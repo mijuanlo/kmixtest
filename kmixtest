@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+# This Python file uses the following encoding: utf-8
+
+import sys
+
+from PySide2.QtCore import qDebug, Qt, QFile
+from PySide2.QtWidgets import QApplication
+from PySide2.QtUiTools import QUiLoader
+
+class AppMainWindow(QApplication):
+    def __init__(self):
+        QApplication.__init__(self,[])
+        self.menu = {}
+        self.window = self.loadUi()
+        self.window.show()
+        #qDebug('{}'.format(self.window.menubar))
+        #qDebug('{}'.format(self.window.statusbar))
+        #qDebug('{}'.format(self.window.centralwidget))
+        self.addMenuItem(["one","two"],["some","other",["menuitem"]])
+
+    def loadUi(self):
+        ui_file = QFile("mainwindow.ui")
+        ui_file.open(QFile.ReadOnly)
+        ui_loader = QUiLoader(self)
+        window = ui_loader.load(ui_file)
+        ui_file.close()
+        return window
+
+    def addMenuItem(self, *args, **kwargs):
+        for name in args:
+            if isinstance(name,list):
+                self.addMenuItem(*name)
+                continue
+            if not isinstance(name,str) or name in self.menu:
+                continue
+            self.menu.setdefault(name,[])
+            self.menu[name].append(self.window.menubar.addMenu(name))
+
+
+if __name__ == "__main__":
+    QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
+    app = AppMainWindow()
+    sys.exit(app.exec_())
