@@ -4,9 +4,36 @@
 
 import sys
 
-from PySide2.QtCore import qDebug, Qt, QFile
-from PySide2.QtWidgets import QApplication
+from PySide2.QtCore import qDebug, Qt, Signal, Slot, QFile
+from PySide2.QtWidgets import QApplication, QAction
 from PySide2.QtUiTools import QUiLoader
+from PySide2.QtGui import QIcon
+
+class Helper():
+    def __init__(self):
+        pass
+
+    def genAction(self, name=None, fn=None, data=None, icon=None, parent=None):
+        if name and fn:
+            if icon:
+                if isinstance(icon,str):
+                    icon = QIcon(icon)
+                elif isinstance(icon,QIcon):
+                    pass
+                else:
+                    icon = None
+            if icon:
+                action = QAction(icon,name,parent)
+            else:
+                action = QAction(name,parent)
+            
+            if data:
+                action.setData(data)
+            
+            action.triggered.connect(fn)
+
+            return action
+        return None
 
 class AppMainWindow(QApplication):
     def __init__(self):
@@ -26,6 +53,10 @@ class AppMainWindow(QApplication):
         window = ui_loader.load(ui_file)
         ui_file.close()
         return window
+    
+    @Slot()
+    def test(self):
+        qDebug("senderData:{}".format(self.sender().data()))
 
     def addMenuItem(self, *args, **kwargs):
         for name in args:
@@ -36,6 +67,7 @@ class AppMainWindow(QApplication):
                 continue
             self.menu.setdefault(name,[])
             self.menu[name].append(self.window.menubar.addMenu(name))
+            self.menu[name][0].addAction(Helper().genAction(name=name,fn=self.test,icon="/usr/share/icons/breeze/actions/32/arrow.svg",parent=self.menu[name][0],data=name))
 
 
 if __name__ == "__main__":
