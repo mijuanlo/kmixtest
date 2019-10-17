@@ -7,13 +7,13 @@ import sys
 from PySide2.QtCore import qDebug, Qt, Signal, Slot, QFile
 from PySide2.QtWidgets import QApplication, QAction
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QKeySequence
 
 class Helper():
     def __init__(self):
         pass
 
-    def genAction(self, name=None, fn=None, data=None, icon=None, parent=None):
+    def genAction(self, name=None, fn=None, data=None, icon=None, shortcut=None, tip=None, parent=None):
         if name and fn:
             if icon:
                 if isinstance(icon,str):
@@ -29,7 +29,21 @@ class Helper():
             
             if data:
                 action.setData(data)
+
+            if shortcut:
+                if isinstance(shortcut,QKeySequence):
+                    pass
+                else:
+                    try:
+                        shortcut = QKeySequence(shortcut)
+                    except:
+                        shortcut = None
+            if shortcut:
+                action.setShortcuts(shortcut)
             
+            if tip and isinstance(tip,str):
+                action.setStatusTip(tip)
+
             action.triggered.connect(fn)
 
             return action
@@ -44,6 +58,7 @@ class AppMainWindow(QApplication):
         #qDebug('{}'.format(self.window.menubar))
         #qDebug('{}'.format(self.window.statusbar))
         #qDebug('{}'.format(self.window.centralwidget))
+        self.window.statusbar.show()
         self.addMenuItem(["one","two"],["some","other",["menuitem"]])
 
     def loadUi(self):
@@ -56,7 +71,30 @@ class AppMainWindow(QApplication):
     
     @Slot()
     def test(self):
-        qDebug("senderData:{}".format(self.sender().data()))
+        data = self.sender().data()
+        qDebug("senderData:{}".format(data))
+        self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
+        pass
+
+    def calculate_default_menubar_shortcut(self,name):
+        used = []
+        for item in self.menu:
+            for character in item:
+                if character in used:
+                    continue
+                else:
+                    used.append(character)
+                    break
+        newname = ""
+        done = False
+        for character in name:
+            if done or character in used:
+                newname += character
+            else:
+                newname += "&" + character
+                done = True
+
+        return newname
 
     def addMenuItem(self, *args, **kwargs):
         for name in args:
@@ -65,9 +103,11 @@ class AppMainWindow(QApplication):
                 continue
             if not isinstance(name,str) or name in self.menu:
                 continue
+            name_with_shortcut = self.calculate_default_menubar_shortcut(name)
             self.menu.setdefault(name,[])
-            self.menu[name].append(self.window.menubar.addMenu(name))
-            self.menu[name][0].addAction(Helper().genAction(name=name,fn=self.test,icon="/usr/share/icons/breeze/actions/32/arrow.svg",parent=self.menu[name][0],data=name))
+            self.menu[name].append(self.window.menubar.addMenu(name_with_shortcut))
+            action = Helper().genAction(name=name,fn=self.test,icon="/usr/share/icons/breeze/actions/32/arrow.svg",tip=name,parent=self.menu[name][0],data=name)
+            self.menu[name][0].addAction(action)
 
 
 if __name__ == "__main__":
