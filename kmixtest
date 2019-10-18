@@ -4,11 +4,12 @@
 
 import sys
 
-from PySide2.QtCore import qDebug, Qt, Signal, Slot, QFile
-from PySide2.QtWidgets import QApplication, QAction
+from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint
+from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence
+from PySide2.QtGui import QIcon, QKeySequence, QCursor
 
+TESTICON="/usr/share/icons/breeze/actions/32/arrow.svg"
 class Helper():
     def __init__(self):
         pass
@@ -27,7 +28,7 @@ class Helper():
             else:
                 action = QAction(name,parent)
             
-            if data:
+            if data != None:
                 action.setData(data)
 
             if shortcut:
@@ -49,17 +50,64 @@ class Helper():
             return action
         return None
 
+class tableHelper(QObject):
+    def __init__(self, controller=None, table=None):
+        QObject.__init__(self)
+        if controller:
+            self.controller = controller
+        if table:
+            self.setTableView(table)
+
+    def setTableView(self, table):
+        self.table = table
+        self.model = table.model()
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.customMenu)
+
+    @Slot(QPoint)
+    def customMenu(self, position):
+        qDebug("{}".format(position))
+        item = self.table.itemAt(position)
+        qDebug("item on x:{} y:{} with value {}".format(item.column(),item.row(),item.text()))
+        qm = QMenu('titulo', self.table)
+        for seq in range(1,4):
+            qm.addAction(Helper().genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=TESTICON,shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
+        qm.addAction(Helper().genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=TESTICON,shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
+        qm.exec_(QCursor.pos())
+    
+    @Slot()
+    def printContextAction(self):
+        data = self.sender().data()
+        qDebug("senderData:{}".format(data))
+        if self.controller:
+            self.controller.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
+
+    @Slot()
+    def deleteContextAction(self):
+        data = self.sender().data()
+        self.table.removeRow(data)
+        if self.controller:
+            self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
+
+    def addItem(self, item):
+        last = self.table.rowCount()
+        self.table.insertRow(last)
+        if not isinstance(item,list):
+            item = [item]
+        for i in range(len(item)):
+            qitem = QTableWidgetItem(item[i])
+            self.table.setItem(last,i,qitem)
+
+
 class AppMainWindow(QApplication):
     def __init__(self):
         QApplication.__init__(self,[])
         self.menu = {}
         self.window = self.loadUi()
         self.window.show()
-        #qDebug('{}'.format(self.window.menubar))
-        #qDebug('{}'.format(self.window.statusbar))
-        #qDebug('{}'.format(self.window.centralwidget))
-        self.window.statusbar.show()
         self.addMenuItem(["one","two"],["some","other",["menuitem"]])
+        self.bind_toolbar_actions()
+        self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
 
     def loadUi(self):
         ui_file = QFile("mainwindow.ui")
@@ -68,12 +116,20 @@ class AppMainWindow(QApplication):
         window = ui_loader.load(ui_file)
         ui_file.close()
         return window
-    
+
+    def bind_toolbar_actions(self):
+        for action in dir(self.window):
+            action_obj = getattr(self.window,action)
+            if isinstance(action_obj,QAction):
+                action_obj.setData(action_obj.text())
+                action_obj.triggered.connect(self.test)
+
     @Slot()
     def test(self):
         data = self.sender().data()
         qDebug("senderData:{}".format(data))
         self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
+        self.tableQuestions.addItem(["",data])
         pass
 
     def calculate_default_menubar_shortcut(self,name):
@@ -106,9 +162,11 @@ class AppMainWindow(QApplication):
             name_with_shortcut = self.calculate_default_menubar_shortcut(name)
             self.menu.setdefault(name,[])
             self.menu[name].append(self.window.menubar.addMenu(name_with_shortcut))
-            action = Helper().genAction(name=name,fn=self.test,icon="/usr/share/icons/breeze/actions/32/arrow.svg",tip=name,parent=self.menu[name][0],data=name)
+            action = Helper().genAction(name=name,fn=self.test,icon=TESTICON,tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
 
+
+    
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
