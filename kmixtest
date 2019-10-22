@@ -251,6 +251,7 @@ class AppMainWindow(QApplication):
         self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
         self.window.previewButton.clicked.connect(self.clickedPreview)
         self.printer = helperPDF()
+        self.clickedPreview(True)
 
     @Slot(bool)
     def clickedPreview(self,checked):
@@ -294,7 +295,7 @@ class AppMainWindow(QApplication):
         formato=QTextCharFormat()
         formato.setFont(QFont("Times",10 * c))
         self.cursor.insertText("{}".format(list(range(1,10000))),formato)
-        self.preview_widget.show()
+        ''' self.preview_widget.show() '''
         #self.document.print_()
         self.diag = PySide2.QtPrintSupport.QPrintPreviewDialog()
         self.diag.paintRequested.connect(self.paintRequest)
@@ -302,6 +303,8 @@ class AppMainWindow(QApplication):
 
     @Slot(QPrinter)
     def paintRequest(self,printer):
+        qDebug("printer resolution {}".format(printer.resolution()))
+        printer.setResolution(QPrinter(QPrinter.HighResolution).resolution())
         document = PySide2.QtGui.QTextDocument()
         document.setPageSize(PySide2.QtCore.QSizeF(printer.pageRect().size()))
         cursor = PySide2.QtGui.QTextCursor(document)
@@ -310,48 +313,53 @@ class AppMainWindow(QApplication):
         
         style = PySide2.QtGui.QTextTableFormat()
         style.setBorderStyle(PySide2.QtGui.QTextTableFormat.BorderStyle_Solid)
-        style.setBorderBrush(PySide2.QtGui.QBrush(Qt.black))
+        style.setBorder(1.0)
+        style.setBorderBrush(PySide2.QtGui.QBrush(Qt.black,Qt.SolidPattern))
         style.setMargin(0.0)
-        style.setCellSpacing(0.0)
-        style.setCellPadding(5.0)
-        style.setColumnWidthConstraints([PySide2.QtGui.QTextLength(PySide2.QtGui.QTextLength.PercentageLength,100/col)]*col)
+        style.setCellSpacing(0)
+        style.setCellPadding(10)
+        style.setColumnWidthConstraints([PySide2.QtGui.QTextLength(PySide2.QtGui.QTextLength.PercentageLength,95/col)]*col)
         table = cursor.insertTable(row,col,style)
         table.mergeCells(1,0,1,col)
         newwidth=(document.pageSize()/col).width()
-        qDebug(str(newwidth))
+        qDebug("newwidth = {}".format(str(newwidth)))
         table.cellAt(0,0).firstCursorPosition().insertImage(PySide2.QtGui.QImage("college.png").scaledToWidth(newwidth,Qt.SmoothTransformation))
-        uid = PySide2.QtCore.QUuid().createUuid()
-        fmt = PySide2.QtGui.QTextImageFormat()
-        fmt.setName(uid.toString())
-        image = PySide2.QtGui.QImage("department.jpg")
+        #uid = PySide2.QtCore.QUuid().createUuid()
+        #fmt = PySide2.QtGui.QTextImageFormat()
+        #fmt.setName(uid.toString())
+        #image = PySide2.QtGui.QImage("department.jpg")
         #document.addResource(PySide2.QtGui.QTextDocument.ImageResource,PySide2.QtCore.QUrl(uid.toString()),image)
-        cursor2 = table.cellAt(0,1).firstCursorPosition()
-        blockformat = PySide2.QtGui.QTextBlockFormat()
-        blockformat.setAlignment(Qt.AlignVCenter)
-        blockformat.setLineHeight(document.idealWidth(),PySide2.QtGui.QTextBlockFormat.FixedHeight)
-        blockformat.setBackground(PySide2.QtGui.QBrush(Qt.black))
+        #cursor2 = table.cellAt(0,1).firstCursorPosition()
+        #blockformat = PySide2.QtGui.QTextBlockFormat()
+        #blockformat.setAlignment(Qt.AlignVCenter)
+        #blockformat.setLineHeight(document.idealWidth(),PySide2.QtGui.QTextBlockFormat.FixedHeight)
+        #blockformat.setBackground(PySide2.QtGui.QBrush(Qt.black))
         charformat = PySide2.QtGui.QTextImageFormat()
-        charformat.setBackground(Qt.blue)
+        #charformat.setBackground(Qt.blue)
         charformat.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
         #cursor2 = PySide2.QtGui.QTextTableCellFormat
         table.cellAt(0,1).setFormat(charformat)
         table.cellAt(0,1).firstCursorPosition().insertImage(PySide2.QtGui.QImage("department.jpg").scaledToWidth(newwidth,Qt.SmoothTransformation))
         #blockformat.hei
         #cursor2.insertBlock(blockformat,charformat)
-        fmt.setWidth(document.idealWidth())
-        fmt.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
-        fmt.setBackground(PySide2.QtGui.QBrush(Qt.black))
+        #fmt.setWidth(document.idealWidth())
+        #fmt.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
+        #fmt.setBackground(PySide2.QtGui.QBrush(Qt.black))
         #cursor2.insertBlock()
         #cursor2.insertImage(fmt)
         #vcenter = PySide2.QtGui.QTextBlockFormat()
         #vcenter.setAlignment(Qt.AlignVCenter)
         #table.cellAt(0,1).firstCursorPosition().setBlockFormat(vcenter)
         #table.cellAt(0,1).firstCursorPosition().insertImage(PySide2.QtGui.QImage("department.jpg").scaledToWidth(newwidth,Qt.SmoothTransformation))
-        
-        #for x in range(col):
-        #    for y in range(row):
-        #        cursor.insertText("({},{})".format(col,row))
-        #        cursor.movePosition(PySide2.QtGui.QTextCursor.NextCell)
+        textformat = PySide2.QtGui.QTextCharFormat()
+        c = int(printer.resolution()) / int(QPrinter(QPrinter.ScreenResolution).resolution())
+        textformat.setFont(PySide2.QtGui.QFont("Times",10 * c))
+        for x in range(col):
+            for y in range(row):
+                if y == 0 and x < 2:
+                    continue
+                table.cellAt(y,x).firstCursorPosition().insertText("({},{})".format(x,y),textformat)
+                #cursor.movePosition(PySide2.QtGui.QTextCursor.NextCell)
         document.print_(printer)
         pass
     
