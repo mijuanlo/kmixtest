@@ -7,10 +7,10 @@ import sys
 from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF
 from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QPainter, QPageSize
+from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize
 from PySide2.QtPrintSupport import QPrinter
 from PySide2.QtPrintSupport import QPrintPreviewWidget
-
+import PySide2
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
 
@@ -255,20 +255,112 @@ class AppMainWindow(QApplication):
     @Slot(bool)
     def clickedPreview(self,checked):
         qDebug("Preview clicked!")
-        txt = 'Hola'
-        self.view = QWebEngineView()
-        self.view.load(QUrl("http://qt-project.org/"))
-        self.view.loadFinished.connect(self.finished)
-        self.printer.loadDocument(txt)
-        self.printer.printFile("testexam.pdf")
-        self.printer.preview()
+        txt = 'Hola'*1000
+        #self.view = QWebEngineView()
+        #self.view.load(QUrl("http://qt-project.org/"))
+        #self.view.loadFinished.connect(self.finished)
+        #self.printer.loadDocument(txt)
+        #self.printer.printFile("testexam.pdf")
+        #self.printer.preview()
+        self.testZone()
+
+    def testZone(self):
+        from PySide2.QtGui import QTextCharFormat, QFont
+        from PySide2.QtCore import QSizeF
+        qDebug("Initiating test")
+        
+        self.document = QTextDocument()
+        self.printer = QPrinter(QPrinter.HighResolution)
+        self.printer.setPageMargins(10,10,10,10,QPrinter.Millimeter)
+        self.document.setPageSize(QSizeF(self.printer.pageRect().size()))
+        
+        c = int(self.printer.resolution()) / int(QPrinter(QPrinter.ScreenResolution).resolution())
+        qDebug("c={} pagesize(document)={} resolution(printer)={} pagerect(printer)={} paperrect(printer)={}".format(c,self.document.pageSize(),self.printer.resolution(),self.printer.pageRect(),self.printer.paperRect()))
+        #self.printer.setResolution(QPrinter.HighResolution)
+        #self.document.setPageSize(QPageSize(QPageSize.A4).size(QPageSize.Point))
+        
+        
+        
+        
+        self.cursor = QTextCursor(self.document)
+
+        self.preview_widget = QPrintPreviewWidget(self.printer)
+        self.preview_widget.setWindowFlags(Qt.Window)
+        self.preview_widget.setSinglePageViewMode()
+        self.preview_widget.fitInView()
+        self.preview_widget.paintRequested.connect(self.document.print_)
+        self.preview_widget.resize(600,800)
+        
+        formato=QTextCharFormat()
+        formato.setFont(QFont("Times",10 * c))
+        self.cursor.insertText("{}".format(list(range(1,10000))),formato)
+        self.preview_widget.show()
+        #self.document.print_()
+        self.diag = PySide2.QtPrintSupport.QPrintPreviewDialog()
+        self.diag.paintRequested.connect(self.paintRequest)
+        self.diag.exec_()
+
+    @Slot(QPrinter)
+    def paintRequest(self,printer):
+        document = PySide2.QtGui.QTextDocument()
+        document.setPageSize(PySide2.QtCore.QSizeF(printer.pageRect().size()))
+        cursor = PySide2.QtGui.QTextCursor(document)
+        row = 2
+        col = 3
+        
+        style = PySide2.QtGui.QTextTableFormat()
+        style.setBorderStyle(PySide2.QtGui.QTextTableFormat.BorderStyle_Solid)
+        style.setBorderBrush(PySide2.QtGui.QBrush(Qt.black))
+        style.setMargin(0.0)
+        style.setCellSpacing(0.0)
+        style.setCellPadding(5.0)
+        style.setColumnWidthConstraints([PySide2.QtGui.QTextLength(PySide2.QtGui.QTextLength.PercentageLength,100/col)]*col)
+        table = cursor.insertTable(row,col,style)
+        table.mergeCells(1,0,1,col)
+        newwidth=(document.pageSize()/col).width()
+        qDebug(str(newwidth))
+        table.cellAt(0,0).firstCursorPosition().insertImage(PySide2.QtGui.QImage("college.png").scaledToWidth(newwidth,Qt.SmoothTransformation))
+        uid = PySide2.QtCore.QUuid().createUuid()
+        fmt = PySide2.QtGui.QTextImageFormat()
+        fmt.setName(uid.toString())
+        image = PySide2.QtGui.QImage("department.jpg")
+        #document.addResource(PySide2.QtGui.QTextDocument.ImageResource,PySide2.QtCore.QUrl(uid.toString()),image)
+        cursor2 = table.cellAt(0,1).firstCursorPosition()
+        blockformat = PySide2.QtGui.QTextBlockFormat()
+        blockformat.setAlignment(Qt.AlignVCenter)
+        blockformat.setLineHeight(document.idealWidth(),PySide2.QtGui.QTextBlockFormat.FixedHeight)
+        blockformat.setBackground(PySide2.QtGui.QBrush(Qt.black))
+        charformat = PySide2.QtGui.QTextImageFormat()
+        charformat.setBackground(Qt.blue)
+        charformat.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
+        #cursor2 = PySide2.QtGui.QTextTableCellFormat
+        table.cellAt(0,1).setFormat(charformat)
+        table.cellAt(0,1).firstCursorPosition().insertImage(PySide2.QtGui.QImage("department.jpg").scaledToWidth(newwidth,Qt.SmoothTransformation))
+        #blockformat.hei
+        #cursor2.insertBlock(blockformat,charformat)
+        fmt.setWidth(document.idealWidth())
+        fmt.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
+        fmt.setBackground(PySide2.QtGui.QBrush(Qt.black))
+        #cursor2.insertBlock()
+        #cursor2.insertImage(fmt)
+        #vcenter = PySide2.QtGui.QTextBlockFormat()
+        #vcenter.setAlignment(Qt.AlignVCenter)
+        #table.cellAt(0,1).firstCursorPosition().setBlockFormat(vcenter)
+        #table.cellAt(0,1).firstCursorPosition().insertImage(PySide2.QtGui.QImage("department.jpg").scaledToWidth(newwidth,Qt.SmoothTransformation))
+        
+        #for x in range(col):
+        #    for y in range(row):
+        #        cursor.insertText("({},{})".format(col,row))
+        #        cursor.movePosition(PySide2.QtGui.QTextCursor.NextCell)
+        document.print_(printer)
+        pass
     
-    @Slot(bool)
-    def finished(self):
-        qDebug('Finished')
-        self.view.show()
-        self.page = self.view.page()
-        self.page.printToPdf("webpage.pdf",QPageLayout(QPageSize(QPageSize.A4),QPageLayout.Portrait,QMarginsF()))
+    # @Slot(bool)
+    # def finished(self):
+    #     qDebug('Finished')
+    #     self.view.show()
+    #     self.page = self.view.page()
+    #     self.page.printToPdf("webpage.pdf",QPageLayout(QPageSize(QPageSize.A4),QPageLayout.Portrait,QMarginsF()))
 
     def loadUi(self):
         ui_file = QFile("mainwindow.ui")
