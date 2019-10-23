@@ -304,9 +304,11 @@ class AppMainWindow(QApplication):
     @Slot(QPrinter)
     def paintRequest(self,printer):
         qDebug("printer resolution {}".format(printer.resolution()))
+        printer.setPageMargins(10.0,10.0,10.0,10.0,PySide2.QtPrintSupport.QPrinter.Millimeter)
         printer.setResolution(QPrinter(QPrinter.HighResolution).resolution())
         document = PySide2.QtGui.QTextDocument()
         document.setPageSize(PySide2.QtCore.QSizeF(printer.pageRect().size()))
+        c = int(printer.resolution()) / int(QPrinter(QPrinter.ScreenResolution).resolution())
         cursor = PySide2.QtGui.QTextCursor(document)
         row = 2
         col = 3
@@ -317,7 +319,7 @@ class AppMainWindow(QApplication):
         style.setBorderBrush(PySide2.QtGui.QBrush(Qt.black,Qt.SolidPattern))
         style.setMargin(0.0)
         style.setCellSpacing(0)
-        style.setCellPadding(10)
+        style.setCellPadding(10*c)
         style.setColumnWidthConstraints([PySide2.QtGui.QTextLength(PySide2.QtGui.QTextLength.PercentageLength,95/col)]*col)
         table = cursor.insertTable(row,col,style)
         table.mergeCells(1,0,1,col)
@@ -352,13 +354,31 @@ class AppMainWindow(QApplication):
         #table.cellAt(0,1).firstCursorPosition().setBlockFormat(vcenter)
         #table.cellAt(0,1).firstCursorPosition().insertImage(PySide2.QtGui.QImage("department.jpg").scaledToWidth(newwidth,Qt.SmoothTransformation))
         textformat = PySide2.QtGui.QTextCharFormat()
-        c = int(printer.resolution()) / int(QPrinter(QPrinter.ScreenResolution).resolution())
+        
         textformat.setFont(PySide2.QtGui.QFont("Times",10 * c))
         for x in range(col):
             for y in range(row):
                 if y == 0 and x < 2:
                     continue
-                table.cellAt(y,x).firstCursorPosition().insertText("({},{})".format(x,y),textformat)
+                if y == 1 and x > 0:
+                    continue
+                cursor = table.cellAt(y,x).firstCursorPosition()
+                bf = cursor.blockFormat()
+                #align_vertical = bf.alignment() & Qt.AlignVertical_Mask
+                #align_vertical = Qt.AlignVCenter & Qt.AlignVertical_Mask
+                #align_horizontal = Qt.AlignHCenter & Qt.AlignHorizontal_Mask
+                #align = align_vertical | align_horizontal
+                #bf.setAlignment(align)
+                bf.setAlignment(Qt.AlignCenter)
+                cursor.setBlockFormat(bf)
+                f = PySide2.QtGui.QTextCharFormat()
+                #f.setBackground(Qt.blue)
+                f.setVerticalAlignment(PySide2.QtGui.QTextCharFormat.VerticalAlignment.AlignMiddle)
+                # funcional 
+                table.cellAt(y,x).setFormat(f)
+                # funcional tambien cursor.setBlockCharFormat(f)
+                import random
+                cursor.insertText("({},{}) {}".format(x,y,"Loren ipsum "*random.randint(1,20)),textformat)
                 #cursor.movePosition(PySide2.QtGui.QTextCursor.NextCell)
         document.print_(printer)
         pass
