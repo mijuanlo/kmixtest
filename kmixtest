@@ -3,13 +3,13 @@
 # This Python file uses the following encoding: utf-8
 
 import sys
-
-from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF
+# TODO: Remove unnecessary imports
+from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF, QSizeF
 from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize
+from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize, QTextTableFormat, QTextImageFormat, QTextCharFormat, QFont, QBrush, QTextLength, QImage
 from PySide2.QtPrintSupport import QPrinter
-from PySide2.QtPrintSupport import QPrintPreviewWidget
+from PySide2.QtPrintSupport import QPrintPreviewWidget, QPrintPreviewDialog
 import PySide2
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
@@ -124,22 +124,84 @@ class tableHelper(QObject):
 
 class helperPDF():
 
-    textMargins = 12
-    borderMargins = 10
-    doPageFooter = False
+    pageMargin = 10
+    header_table_cols = 3
+    header_table_rows = 2
+    printer = None
+    resolution = None
+    document = None
+    constPaperScreen = None
+    cursor = None
+    widget = None
+    styles = None
 
-    def __init__(self, textMargins = 12, borderMargins = 10, doPageFooter = False):
-        self.textMargins = textMargins
-        self.borderMargins = borderMargins
-        self.doPageFooter = doPageFooter
-        self.printer = None
-        self.printer = self.initPrinter()
 
-    def initPrinter(self, resolution=QPrinter.HighResolution, pagesize=QPrinter.A4):
-        self.printer = QPrinter(resolution)
-        self.printer.setPageSize(pagesize)
-        return self.printer
-    
+    def __init__(self, pageMargins = 10):
+        self.widget = self.initWidget()
+        self.styles = self.initStyles()
+
+    def initPrinter(self, printer=self.printer, resolution=QPrinter.HighResolution):
+        default_printer = QPrinter(resolution)
+        if not printer:
+            printer = default_printer
+        if not self.printer:
+            self.printer = printer
+        r = default_printer.resolution()
+        if not self.resolution:
+            self.resolution = r
+        printer.setResolution(r)
+        self.printer.setPageMargins(self.pageMargin,self.pageMargin,self.pageMargin,self.pageMargin,QPrinter.Millimeter)
+        return printer
+
+    def initDocument(self, printer=self.printer):
+        document = QTextDocument()
+        if not self.document:
+            self.document = document
+        document.setPageSize(QSizeM(printer.pageRect().size()))
+        return self.document
+
+    def initWidget(self):
+        self.widget = QPrintPreviewDialog()
+        self.widget.paintRequested.connect(self.paintRequest)
+
+    def openWidget(self):
+        self.widget.exec_()
+
+    def initStyles(self, constant=self.constPaperScreen):
+        if not self.styles:
+            self.styles = {}
+        if not 'header.table' in self.styles:
+            self.styles.setdefault('header.table',QTextTableFormat())
+        self.styles['header.table'].setBorderStyle(QTextTableFormat.BorderStyle_Solid)
+        self.styles['header.table'].setBorder(1.0)
+        self.styles['header.table'].setBorderBrush(QBrush(Qt.back,Qt.SolidPattern))
+        self.styles['header.table'].setMargin(0.0)
+        self.styles['header.table'].setCellSpacing(0.0)
+        self.styles['header.table'].setCellPadding(10 * constant)
+        self.styles['header.table'].setColumnWidthConstraints([ QTextLength(QTextLength.PercentageLength, 95/self.header_table_cols) ] * self.header_table_cols)
+
+    @Slot(QPrinter)
+    def paintRequest(self, printer):
+        self.initPrinter(printer)
+        document = self.initDocument(printer)
+        resolution = printer.resolution()
+        constPaperScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
+        if not self.constPaperScreen:
+            self.constPaperScreen = constPaperScreen
+        cursor = QTextCursor(document)
+        if not self.cursor:
+            self.cursor = cursor
+
+    def makeHeaderTable(self, document = self.document, cursor = self.cursor, style = self.styles['header.table'], rows = self.header_table_rows, cols = self.header_table_cols, images = {'left':'college.png','center':'department.jpg'}):
+        table = cursor.insertTable(rows,cols,style)
+        first_element_row = 1
+        first_element_col = 0
+        num_rows = 1
+        num_cols = cols
+        table.mergeCells(first_element_row,first_element_row,num_rows,num_cols)
+        max_image_width = (document.pageSize() / cols).width()
+        table.cellAt(0,0).firstCursorPosition.insertImage(QImage(images['center']).scaledToWidth(max_image_width,Qt.SmoothTransformation))
+        
     def configureOutput(self, filename=None, format=QPrinter.PdfFormat):
         if not self.printer:
             return None
