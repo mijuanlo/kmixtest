@@ -3,12 +3,14 @@
 # This Python file uses the following encoding: utf-8
 
 import sys
-
-from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint
-from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu
+# TODO: Remove unnecessary imports
+from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF, QSizeF, QSize, Signal
+from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu, QToolBar
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence, QCursor
-
+from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize, QTextTableFormat, QTextImageFormat, QTextBlockFormat, QTextCharFormat, QFont, QBrush, QTextLength, QImage
+from PySide2.QtPrintSupport import QPrinter
+from PySide2.QtPrintSupport import QPrintPreviewWidget, QPrintPreviewDialog
+import PySide2
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
 
@@ -65,6 +67,12 @@ class tableHelper(QObject):
         self.model = table.model()
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.customMenu)
+        self.table.cellClicked.connect(self.cellClicked)
+
+    @Slot(int, int)
+    def cellClicked(self, row, column):
+        if column == 0:
+            self.makeLinkedAction(row)
 
     @Slot(QPoint)
     def customMenu(self, position):
@@ -114,15 +122,236 @@ class tableHelper(QObject):
         else:
             item.setIcon(QIcon(TESTICONLINKED))
 
+class previewPrinter(QPrintPreviewDialog):
+    toolbar = None
+    actions = None
+    orientation = None
+    changedOrientation = Signal(QPrinter.Orientation)
+
+    def __init__(self):
+        self.parent = super()
+        super().__init__()
+        self.preview = self.findChild(QPrintPreviewWidget)
+        self.orientation = QPrinter.Portrait
+        self.toolbar = self.findChild(QToolBar)
+        self.actions = { a.iconText() : a for a in self.toolbar.actions() if (type(a) == type(QAction()) and a.isVisible()) and not a.isSeparator() }
+        self.setupButtons()
+    
+    def setupButtons(self):
+        newActions = {'Landscape': self.triggeredOrientation, 'Portrait': self.triggeredOrientation }
+        for a in self.actions:
+            print('{}'.format(a))
+            if a in newActions:
+                qDebug("Into action {}".format(a))
+                self.actions.get(a).triggered.disconnect()         
+                self.actions.get(a).triggered.connect(newActions.get(a))
+
+    @Slot(bool)
+    def triggeredOrientation(self,checked):
+        sender = self.sender().iconText()
+        if sender == "Portrait":
+            self.orientation = QPrinter.Portrait
+        if sender == "Landscape":
+            self.orientation = QPrinter.Landscape
+        self.changedOrientation.emit(self.orientation)
+
+    def updatePreview(self):
+        self.preview.setOrientation(self.orientation)
+
+
+class helperPDF():
+
+    pageMargin = 10
+    header_table_cols = 3
+    header_table_rows = 2
+    screen_orientation = Qt.PortraitOrientation
+    printer_orientation = QPrinter.Portrait
+    printer = None
+    resolution = None
+    document = None
+    constPaperScreen = None
+    cursor = None
+    widget = None
+    styles = None
+
+
+    def __init__(self):
+        self.widget = self.initWidget()
+        pass
+
+    def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None):
+        default_printer = QPrinter(resolution)
+        if not printer:
+            if self.printer:
+                printer = self.printer
+            else:
+                self.printer = default_printer
+                printer = default_printer
+
+        if not resolution:
+            if self.resolution:
+                resolution = self.resolution
+            else:
+                resolution = QPrinter(QPrinter.HighResolution).resolution()
+                self.resolution = resolution
+        if isinstance(resolution,QPrinter.PrinterMode):
+            resolution = QPrinter(resolution).resolution()
+        printer.setResolution(resolution)
+        qDebug("Setting orientation to {}".format(self.printer_orientation))
+        printer.setOrientation(self.printer_orientation)
+
+        PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
+        if self.constPaperScreen is None:
+            self.constPaperScreen = PaperToScreen
+        
+        if margins is None:
+            if self.pageMargin:
+                margins = self.pageMargin
+            else:
+                margins = 10
+                self.pageMargin = margins
+        
+        printer.setPageMargins(margins, margins, margins, margins, QPrinter.Millimeter)
+        return printer, resolution, PaperToScreen
+
+    def initDocument(self, printer=None, document=None):
+        if not printer:
+            printer = self.printer
+        if not document:
+            document = QTextDocument()
+        if not self.document:
+            self.document = document
+        document.setPageSize(QSize(printer.pageRect().size()))
+        return document
+
+    def initWidget(self, widget=None):
+        if not widget:
+            widget = previewPrinter()
+        if not self.widget:
+            self.widget = widget
+        widget.paintRequested.connect(self.paintRequest)
+        widget.changedOrientation.connect(self.changedOrientation)
+        return widget 
+
+    def openWidget(self):
+        self.widget.exec_()
+
+    def initStyles(self, constant=None, styles=None):
+        if constant is None:
+            if self.constPaperScreen:
+                constant = self.constPaperScreen
+            else:
+                constant = 1
+                self.constPaperScreen = constant
+        if not styles:
+            styles = {}
+            self.styles = styles
+
+        if not 'header.table' in styles:
+            styles.setdefault('header.table',QTextTableFormat())
+        styles['header.table'].setBorderStyle(QTextTableFormat.BorderStyle_Solid)
+        styles['header.table'].setBorder(1.0)
+        styles['header.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
+        styles['header.table'].setMargin(0.0)
+        styles['header.table'].setCellSpacing(0.0)
+        styles['header.table'].setCellPadding(10 * constant)
+        styles['header.table'].setColumnWidthConstraints([ QTextLength(QTextLength.PercentageLength, 95/self.header_table_cols) ] * self.header_table_cols)
+
+        styles['centerH'] = QTextBlockFormat()
+        styles['centerH'].setAlignment(Qt.AlignCenter)
+        # TODO: merge styles + use table cell format
+        styles['centerV'] = QTextCharFormat()
+        styles['centerV'].setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignMiddle)
+
+        styles['text'] = QTextCharFormat()
+        styles['text'].setFont(QFont("Times",10 * constant))
+        return styles
+
+    @Slot(QPrinter.Orientation)
+    def changedOrientation(self, orientation):
+        self.printer_orientation = orientation
+        if orientation == QPrinter.Portrait:
+            self.screen_orientation = Qt.Orientation.Horizontal
+        else:
+            self.screen_orientation = Qt.Orientation.Vertical
+        self.widget.setOrientation(self.screen_orientation)
+        self.widget.updatePreview()
+        pass
+
+    @Slot(QPrinter)
+    def paintRequest(self, printer=None):
+        self.printer, self.resolution, self.constPaperScreen = self.initPrinter()
+        self.document = self.initDocument()
+        self.styles = self.initStyles()
+        qDebug('{} {} {}'.format(self.document.pageSize(),self.printer.paperRect(),self.printer.pageLayout().orientation()))
+        document = self.makeHeaderTable(self.document,self.styles['header.table'] )
+        document.print_(printer)
+        
+
+    def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = {'left':'college.png','center':'department.jpg'}):
+        def setupCell(row=0,col=0):
+            cell = table.cellAt(row,col)
+            cursor = cell.firstCursorPosition()
+            cursor.setBlockFormat(self.styles['centerH'])
+            cell.setFormat(self.styles['centerV'])
+            return cursor
+        
+        max_image_width = (document.pageSize() / cols).width()
+        max_image_height = (document.pageSize() / 6).height() # no big headers!
+        def imageResized(name):
+            image = QImage(name)
+            new_image_height = image.height() * max_image_width / image.width()
+            image = image.scaled(max_image_width,new_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+            if image.height() > max_image_height:
+                new_image_width = image.width() * max_image_height / image.height()
+                image = image.scaled(new_image_width,max_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+            return image
+
+        cursor = QTextCursor(document)
+
+        table = cursor.insertTable(rows,cols,self.styles['header.table'])
+        first_element_row = 1
+        first_element_col = 0
+        num_rows = 1
+        num_cols = cols
+
+        table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
+    
+        cursor = setupCell(0,0)
+        cursor.insertImage(imageResized(images['left']))
+
+        cursor = setupCell(0,1)
+        cursor.insertImage(imageResized(images['center']))
+    
+        from random import randint
+        a = randint(3,20)
+        b = randint(3,20)
+
+        cursor = setupCell(0,2)
+        cursor.insertText("Lorem ipsum " * a, self.styles['text'])
+
+        cursor = setupCell(1,0)
+        cursor.insertText("Lorem ipsum " * b, self.styles['text'])
+
+        return document
+
 class AppMainWindow(QApplication):
     def __init__(self):
-        QApplication.__init__(self,[])
+        super().__init__([])
         self.menu = {}
         self.window = self.loadUi()
         self.window.show()
         self.addMenuItem(["one","two"],["some","other",["menuitem"]])
         self.bind_toolbar_actions()
         self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
+        self.window.previewButton.clicked.connect(self.clickedPreview)
+        self.sheet = helperPDF()
+        self.clickedPreview(True)
+
+    @Slot(bool)
+    def clickedPreview(self,checked):
+        qDebug("Preview clicked!")
+        self.sheet.openWidget()
 
     def loadUi(self):
         ui_file = QFile("mainwindow.ui")
