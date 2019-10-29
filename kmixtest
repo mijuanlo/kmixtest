@@ -4,15 +4,38 @@
 
 import sys
 # TODO: Remove unnecessary imports
-from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF, QSizeF, QSize, Signal
+from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF, QSizeF, QSize, Signal, QMarginsF
 from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu, QToolBar
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize, QTextTableFormat, QTextImageFormat, QTextBlockFormat, QTextCharFormat, QFont, QBrush, QTextLength, QImage
+from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize, QTextTableFormat, QTextImageFormat, QTextBlockFormat, QTextCharFormat, QFont, QBrush, QTextLength, QImage, QPageLayout, QPageSize
 from PySide2.QtPrintSupport import QPrinter
 from PySide2.QtPrintSupport import QPrintPreviewWidget, QPrintPreviewDialog
 import PySide2
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
+
+def print_preview_data(preview):
+    orientation = preview.orientation().name.decode()
+    viewmode = preview.viewMode().name.decode()
+    zoommode = preview.zoomMode().name.decode()
+    currentPage = preview.currentPage()
+    pagecount = preview.pageCount()
+    qDebug("(Preview)  {} {} {} {}/{}".format(orientation, viewmode, zoommode, currentPage, pagecount))
+
+def marginsToString(margins):
+    return "{} {} {} {}".format(margins.left(),margins.top(),margins.right(),margins.bottom())
+
+def print_printer_data(printer):
+    pr = printer.paperRect()
+    layout = printer.pageLayout()
+    margins = layout.margins()
+    size = layout.pageSize().id().name.decode()
+    units = layout.units().name.decode()
+    qDebug("(Printer)  Rect: {}x{} Size: {} Margins: {} Unit: {}".format(pr.width(),pr.height(),size,marginsToString(margins),units))
+
+def print_document_data(document):
+    size = document.pageSize()
+    qDebug('(document) Rect: {}x{}'.format(int(size.width()),int(size.height())))
 
 class Helper():
     def __init__(self):
@@ -125,62 +148,64 @@ class tableHelper(QObject):
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None
     actions = None
-    orientation = None
-    changedOrientation = Signal(QPrinter.Orientation)
+    #orientation = None
+    #changedOrientation = Signal(QPrinter.Orientation)
 
-    def __init__(self):
-        self.parent = super()
-        super().__init__()
+    def __init__(self, parent=None, printer=None):
+        if parent is not None:
+            self.parent = parent
+        super().__init__(printer)
         self.preview = self.findChild(QPrintPreviewWidget)
-        self.orientation = QPrinter.Portrait
-        self.toolbar = self.findChild(QToolBar)
-        self.actions = { a.iconText() : a for a in self.toolbar.actions() if (type(a) == type(QAction()) and a.isVisible()) and not a.isSeparator() }
+        #self.toolbar = self.findChild(QToolBar)
+        #self.actions = { a.iconText() : a for a in self.toolbar.actions() if (type(a) == type(QAction()) and a.isVisible()) and not a.isSeparator() }
         self.setupButtons()
     
     def setupButtons(self):
-        newActions = {'Landscape': self.triggeredOrientation, 'Portrait': self.triggeredOrientation }
-        for a in self.actions:
-            print('{}'.format(a))
-            if a in newActions:
-                qDebug("Into action {}".format(a))
-                self.actions.get(a).triggered.disconnect()         
-                self.actions.get(a).triggered.connect(newActions.get(a))
+        self.preview.previewChanged.connect(self.previewChanged)
 
-    @Slot(bool)
-    def triggeredOrientation(self,checked):
-        sender = self.sender().iconText()
-        if sender == "Portrait":
-            self.orientation = QPrinter.Portrait
-        if sender == "Landscape":
-            self.orientation = QPrinter.Landscape
-        self.changedOrientation.emit(self.orientation)
-
-    def updatePreview(self):
-        self.preview.setOrientation(self.orientation)
-
+    @Slot()
+    def previewChanged(self):
+        qDebug("***** Preview changed! *****")
+        print_preview_data(self.preview)
+        print_printer_data(self.parent.printer)
 
 class helperPDF():
 
-    pageMargin = 10
     header_table_cols = 3
     header_table_rows = 2
-    screen_orientation = Qt.PortraitOrientation
-    printer_orientation = QPrinter.Portrait
-    printer = None
-    resolution = None
-    document = None
-    constPaperScreen = None
-    cursor = None
-    widget = None
-    styles = None
 
-
-    def __init__(self):
-        self.widget = self.initWidget()
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.pageMargins = QMarginsF(10,10,10,10)
+        self.orientation = QPageLayout.Orientation.Portrait
+        self.layout = None
+        self.printer = None
+        self.resolution = QPrinter.HighResolution
+        self.constPaperScreen = None
+        self.document = None
+        self.cursor = None
+        self.styles = None
+        self.widget = None
+        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
+        self.widget = self.initWidget(parent=self, printer=self.printer)
         pass
 
-    def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None):
-        default_printer = QPrinter(resolution)
+    def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None, orientation=None):
+        
+        if not resolution:
+            if self.resolution:
+                resolution = self.resolution
+            else:
+                resolution = QPrinter(QPrinter.HighResolution).resolution()
+                self.resolution = resolution
+        
+        if isinstance(resolution,QPrinter.PrinterMode):
+            default_printer = QPrinter(resolution)
+            resolution = QPrinter(resolution).resolution()
+        else:
+            default_printer = QPrinter()
+            default_printer.setResolution(resolution)
+            
         if not printer:
             if self.printer:
                 printer = self.printer
@@ -188,31 +213,30 @@ class helperPDF():
                 self.printer = default_printer
                 printer = default_printer
 
-        if not resolution:
-            if self.resolution:
-                resolution = self.resolution
-            else:
-                resolution = QPrinter(QPrinter.HighResolution).resolution()
-                self.resolution = resolution
-        if isinstance(resolution,QPrinter.PrinterMode):
-            resolution = QPrinter(resolution).resolution()
         printer.setResolution(resolution)
-        qDebug("Setting orientation to {}".format(self.printer_orientation))
-        printer.setOrientation(self.printer_orientation)
+        
+        current_layout = self.printer.pageLayout()
+        current_layout.setUnits(QPageLayout.Millimeter)
+        if margins is not None and isinstance(margins,QMarginsF):
+            qDebug("Setting margins to {}".format(marginsToString(margins)))
+            current_layout.setMargins(margins)
+        else:
+            self.pageMargins = current_layout().margins()
+        
+        if orientation is not None and isinstance(orientation, QPageLayout.Orientation):
+            qDebug("Setting orientation to {}".format(orientation.name.decode()))
+            current_layout.setOrientation(orientation)
+
+        printer.setPageLayout(current_layout)
 
         PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
-        if self.constPaperScreen is None:
-            self.constPaperScreen = PaperToScreen
-        
-        if margins is None:
-            if self.pageMargin:
-                margins = self.pageMargin
-            else:
-                margins = 10
-                self.pageMargin = margins
-        
-        printer.setPageMargins(margins, margins, margins, margins, QPrinter.Millimeter)
-        return printer, resolution, PaperToScreen
+        self.constPaperScreen = PaperToScreen
+        qDebug("Setting constant: {}".format(int(self.constPaperScreen)))
+
+        self.relTextToA4 = self.printer.pageSizeMM().width()/210.0
+        qDebug("Setting text multiplier size: {}".format(int(self.relTextToA4)))
+
+        return printer, resolution, PaperToScreen, current_layout
 
     def initDocument(self, printer=None, document=None):
         if not printer:
@@ -222,27 +246,23 @@ class helperPDF():
         if not self.document:
             self.document = document
         document.setPageSize(QSize(printer.pageRect().size()))
+        self.initStyles()
         return document
 
-    def initWidget(self, widget=None):
-        if not widget:
-            widget = previewPrinter()
+    def initWidget(self, parent=None, printer=None):
+        
+        widget = previewPrinter(parent=parent,printer=printer)
         if not self.widget:
             self.widget = widget
         widget.paintRequested.connect(self.paintRequest)
-        widget.changedOrientation.connect(self.changedOrientation)
+        #widget.changedOrientation.connect(self.changedOrientation)
         return widget 
 
     def openWidget(self):
         self.widget.exec_()
 
-    def initStyles(self, constant=None, styles=None):
-        if constant is None:
-            if self.constPaperScreen:
-                constant = self.constPaperScreen
-            else:
-                constant = 1
-                self.constPaperScreen = constant
+    def initStyles(self, styles=None):
+        
         if not styles:
             styles = {}
             self.styles = styles
@@ -254,36 +274,31 @@ class helperPDF():
         styles['header.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
         styles['header.table'].setMargin(0.0)
         styles['header.table'].setCellSpacing(0.0)
-        styles['header.table'].setCellPadding(10 * constant)
+        styles['header.table'].setCellPadding(10 * self.constPaperScreen)
         styles['header.table'].setColumnWidthConstraints([ QTextLength(QTextLength.PercentageLength, 95/self.header_table_cols) ] * self.header_table_cols)
 
         styles['centerH'] = QTextBlockFormat()
         styles['centerH'].setAlignment(Qt.AlignCenter)
-        # TODO: merge styles + use table cell format
+        
         styles['centerV'] = QTextCharFormat()
         styles['centerV'].setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignMiddle)
 
         styles['text'] = QTextCharFormat()
-        styles['text'].setFont(QFont("Times",10 * constant))
+        
+        qDebug("Using text multiplier size: {}".format(int(self.relTextToA4)))
+        styles['text'].setFont(QFont("Times",10 * self.constPaperScreen * self.relTextToA4))
         return styles
 
-    @Slot(QPrinter.Orientation)
-    def changedOrientation(self, orientation):
-        self.printer_orientation = orientation
-        if orientation == QPrinter.Portrait:
-            self.screen_orientation = Qt.Orientation.Horizontal
-        else:
-            self.screen_orientation = Qt.Orientation.Vertical
-        self.widget.setOrientation(self.screen_orientation)
-        self.widget.updatePreview()
-        pass
 
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
-        self.printer, self.resolution, self.constPaperScreen = self.initPrinter()
-        self.document = self.initDocument()
-        self.styles = self.initStyles()
-        qDebug('{} {} {}'.format(self.document.pageSize(),self.printer.paperRect(),self.printer.pageLayout().orientation()))
+        qDebug("***** Repaint Event ! *****")
+
+        self.document = self.initDocument(printer = self.printer)
+
+        print_document_data(self.document)
+        print_printer_data(printer)
+
         document = self.makeHeaderTable(self.document,self.styles['header.table'] )
         document.print_(printer)
         
@@ -345,7 +360,7 @@ class AppMainWindow(QApplication):
         self.bind_toolbar_actions()
         self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
         self.window.previewButton.clicked.connect(self.clickedPreview)
-        self.sheet = helperPDF()
+        self.sheet = helperPDF(parent=self)
         self.clickedPreview(True)
 
     @Slot(bool)
