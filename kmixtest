@@ -213,21 +213,29 @@ class helperPDF():
                 self.printer = default_printer
                 printer = default_printer
 
-        printer.setResolution(resolution)
+        if printer.resolution() != resolution:
+            printer.setResolution(resolution)
         
         current_layout = self.printer.pageLayout()
-        current_layout.setUnits(QPageLayout.Millimeter)
+        changed_layout = False
+        if current_layout.units() != QPageLayout.Millimeter:
+            current_layout.setUnits(QPageLayout.Millimeter)
+            changed_layout = True
+
         if margins is not None and isinstance(margins,QMarginsF):
             qDebug("Setting margins to {}".format(marginsToString(margins)))
             current_layout.setMargins(margins)
+            changed_layout = True
         else:
-            self.pageMargins = current_layout().margins()
+            self.pageMargins = current_layout.margins()
         
         if orientation is not None and isinstance(orientation, QPageLayout.Orientation):
             qDebug("Setting orientation to {}".format(orientation.name.decode()))
             current_layout.setOrientation(orientation)
+            changed_layout = True
 
-        printer.setPageLayout(current_layout)
+        if changed_layout:
+            printer.setPageLayout(current_layout)
 
         PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
         self.constPaperScreen = PaperToScreen
@@ -294,6 +302,7 @@ class helperPDF():
     def paintRequest(self, printer=None):
         qDebug("***** Repaint Event ! *****")
 
+        self.initPrinter(printer)
         self.document = self.initDocument(printer = self.printer)
 
         print_document_data(self.document)
