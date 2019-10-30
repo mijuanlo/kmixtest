@@ -3,14 +3,12 @@
 # This Python file uses the following encoding: utf-8
 
 import sys
-# TODO: Remove unnecessary imports
-from PySide2.QtCore import qDebug, Qt, QObject, Signal, Slot, QFile, QAbstractTableModel, QPoint, QRectF, QSizeF, QSize, Signal, QMarginsF
-from PySide2.QtWidgets import QApplication, QAction, QTableWidgetItem, QMenu, QToolBar
-from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QIcon, QKeySequence, QCursor, QTextDocument, QTextCursor, QPainter, QPageSize, QTextTableFormat, QTextImageFormat, QTextBlockFormat, QTextCharFormat, QFont, QBrush, QTextLength, QImage, QPageLayout, QPageSize
-from PySide2.QtPrintSupport import QPrinter
-from PySide2.QtPrintSupport import QPrintPreviewWidget, QPrintPreviewDialog
-import PySide2
+
+from PySide2.QtCore import *
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
+from PySide2.QtPrintSupport import *
+from PySide2.QtUiTools import *
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
 
@@ -40,8 +38,8 @@ def print_document_data(document):
 class Helper():
     def __init__(self):
         pass
-
-    def genAction(self, name=None, fn=None, data=None, icon=None, shortcut=None, tip=None, parent=None):
+    @staticmethod
+    def genAction(name=None, fn=None, data=None, icon=None, shortcut=None, tip=None, parent=None):
         if name and fn:
             if icon:
                 if isinstance(icon,str):
@@ -88,25 +86,38 @@ class tableHelper(QObject):
     def setTableView(self, table):
         self.table = table
         self.model = table.model()
+        self.configureHeader()
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.customMenu)
         self.table.cellClicked.connect(self.cellClicked)
 
+    def configureHeader(self):
+        header  = self.table.horizontalHeader()
+        for i in range(self.table.columnCount()-1):
+                header.setSectionResizeMode(i,QHeaderView.ResizeToContents)
+        #self.table.horizontalHeader().setStretchLastSection(True)
+        pass
+
     @Slot(int, int)
     def cellClicked(self, row, column):
-        if column == 0:
-            self.makeLinkedAction(row)
+        if column != 0:
+            if column == 1:
+                self.makeFixedAction(row)
+            if column == 2:
+                self.makeLinkedAction(row)
 
     @Slot(QPoint)
     def customMenu(self, position):
-        qDebug("{}".format(position))
         item = self.table.itemAt(position)
+        if not item:
+            qDebug("No item on that position!")
+            return
         qDebug("item on x:{} y:{} with value {}".format(item.column(),item.row(),item.text()))
         qm = QMenu('titulo', self.table)
         if item.column()!=0:
             for seq in range(1,4):
-                qm.addAction(Helper().genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=TESTICON,shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
-            qm.addAction(Helper().genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=TESTICON,shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
+                qm.addAction(Helper.genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=TESTICON,shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
+            qm.addAction(Helper.genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=TESTICON,shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())
@@ -148,8 +159,6 @@ class tableHelper(QObject):
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None
     actions = None
-    #orientation = None
-    #changedOrientation = Signal(QPrinter.Orientation)
 
     def __init__(self, parent=None, printer=None):
         if parent is not None:
@@ -241,8 +250,9 @@ class helperPDF():
         self.constPaperScreen = PaperToScreen
         qDebug("Setting constant: {}".format(int(self.constPaperScreen)))
 
-        self.relTextToA4 = self.printer.pageSizeMM().width()/210.0
-        qDebug("Setting text multiplier size: {}".format(int(self.relTextToA4)))
+        relTextToA4 = int(self.printer.pageSizeMM().width()/210.0)
+        self.relTextToA4 = relTextToA4
+        qDebug("Setting text multiplier size: {}".format(relTextToA4))
 
         return printer, resolution, PaperToScreen, current_layout
 
@@ -263,7 +273,6 @@ class helperPDF():
         if not self.widget:
             self.widget = widget
         widget.paintRequested.connect(self.paintRequest)
-        #widget.changedOrientation.connect(self.changedOrientation)
         return widget 
 
     def openWidget(self):
@@ -370,7 +379,6 @@ class AppMainWindow(QApplication):
         self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
         self.window.previewButton.clicked.connect(self.clickedPreview)
         self.sheet = helperPDF(parent=self)
-        self.clickedPreview(True)
 
     @Slot(bool)
     def clickedPreview(self,checked):
@@ -430,7 +438,7 @@ class AppMainWindow(QApplication):
             name_with_shortcut = self.calculate_default_menubar_shortcut(name)
             self.menu.setdefault(name,[])
             self.menu[name].append(self.window.menubar.addMenu(name_with_shortcut))
-            action = Helper().genAction(name=name,fn=self.test,icon=TESTICON,tip=name,parent=self.menu[name][0],data=name)
+            action = Helper.genAction(name=name,fn=self.test,icon=TESTICON,tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
 
 if __name__ == "__main__":
