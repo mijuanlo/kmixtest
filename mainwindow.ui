@@ -53,10 +53,10 @@
              <bool>false</bool>
             </property>
             <property name="columnCount">
-             <number>2</number>
+             <number>4</number>
             </property>
             <attribute name="horizontalHeaderVisible">
-             <bool>false</bool>
+             <bool>true</bool>
             </attribute>
             <attribute name="horizontalHeaderMinimumSectionSize">
              <number>20</number>
@@ -70,8 +70,26 @@
             <attribute name="verticalHeaderVisible">
              <bool>true</bool>
             </attribute>
-            <column/>
-            <column/>
+            <column>
+             <property name="text">
+              <string>Order</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Fixed</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Linked</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Question Type</string>
+             </property>
+            </column>
            </widget>
           </item>
          </layout>
