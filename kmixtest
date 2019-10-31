@@ -11,6 +11,7 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 TESTICON="option.svg"
 TESTICONLINKED="linked.svg"
+TESTICONFIXED="fixed.svg"
 
 def print_preview_data(preview):
     orientation = preview.orientation().name.decode()
@@ -73,15 +74,72 @@ class Helper():
             action.triggered.connect(fn)
 
             return action
-        return None
+        return None       
+class tableDrawer(QStyledItemDelegate):
+    def __init__(self, helper):
+        super().__init__()
+        self.parent = helper
+        self.icons = ["go-up.svg","go-down.svg"]
+        self.widgets = []
+        for i in self.icons:
+            w = QPushButton()
+            w.setIcon(QIcon(i))
+            #w.setText("UP")
+            #w.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            self.widgets.append(w)
+
+    def createEditor(self, parent, option, index):
+        #qDebug("EDITOR")
+        pass
+
+    def editorEvent(self, event, model, option, index):
+        #qDebug("EDITOR EVENT")
+        if index.column() != 0:
+            self.parent.table.cellClicked.emit(index.row(),index.column())
+            return True
+        if event.type() == QEvent.MouseButtonRelease:
+            offset = option.rect.width() / 2
+            if event.x() > offset:
+                go = 'DOWN'
+            else:
+                go = 'UP'
+            self.parent.cellMoveClick.emit(index.row(),go)
+            #qDebug("Release on {} {} row({}) {}".format(event.x(),event.y(),index.row(),go))
+            return True 
+        return False
+
+    def paint(self, painter, option, index):
+        if not index.isValid():
+            return
+        if index.column() == 0:
+            idx = 0
+            count = len(self.widgets)
+            size_available = option.rect.width() / count
+            for w in self.widgets:
+                painter.save()
+                ws = w.style()
+                opt = QStyleOptionButton()
+                opt.rect = option.rect.translated(idx*size_available,0)
+                opt.rect.setWidth(size_available)
+                #opt.text = "{}".format(idx)
+                opt.icon = w.icon()
+                opt.state = ws.State_Enabled
+                QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
+                painter.restore()
+                idx+=1
+        else:
+            super().paint(painter, option, index)
 
 class tableHelper(QObject):
+    cellMoveClick = Signal(int,str)
     def __init__(self, controller=None, table=None):
         QObject.__init__(self)
         if controller:
             self.controller = controller
         if table:
             self.setTableView(table)
+            self.cellMoveClick.connect(self.moveRow)
+            table.setItemDelegate(tableDrawer(self))
 
     def setTableView(self, table):
         self.table = table
@@ -102,9 +160,16 @@ class tableHelper(QObject):
     def cellClicked(self, row, column):
         if column != 0:
             if column == 1:
-                self.makeFixedAction(row)
+                self.makeFixedAction(row, column)
             if column == 2:
-                self.makeLinkedAction(row)
+                self.makeLinkedAction(row, column)
+
+    def makeFixedAction(self, row, column):
+        item = self.table.item(row, column)
+        if item.icon():
+            item.setIcon(QIcon())
+        else:
+            item.setIcon(QIcon(TESTICONFIXED))
 
     @Slot(QPoint)
     def customMenu(self, position):
@@ -136,21 +201,55 @@ class tableHelper(QObject):
         if self.controller:
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
 
-    def addItem(self, item):
-        last_row = self.table.rowCount()
-        self.table.insertRow(last_row)
-        if not isinstance(item,list) and self.table.columnCount() >= 2:
-            first_element = QTableWidgetItem(QIcon(),"")
-            last_element = QTableWidgetItem("{}".format(item))
-            itemlist = [first_element]
-            for i in range(self.table.columnCount()-2):
-                itemlist.append(QTableWidgetItem(""))
-            itemlist.append(last_element)
-        for i in range(len(itemlist)):
-            self.table.setItem(last_row,i,itemlist[i])
+    @Slot(int,str)
+    def moveRow(self,row,dir):
+        insert = False
+        if dir == 'UP' and row != 0:
+            row += 1
+            onrow = row -2
+            insert = True
+        if dir == 'DOWN' and row != self.table.rowCount() -1:
+            onrow = row +2
+            insert = True
+        if not insert:
+            qDebug("Can't move")
+            return
+        #qDebug('Moving {} {}'.format(row,dir))
+        self.table.insertRow(onrow)
+        for col in range(self.table.columnCount()):
+            self.table.setItem(onrow,col,self.table.takeItem(row,col))
+        self.table.removeRow(row)
 
-    def makeLinkedAction(self, row):
-        item = self.table.item(row,0)
+    def makeRow(self, item="", table=None):
+        if table is None and self.table is not None:
+            table = self.table
+        last_row = table.rowCount()
+        table.insertRow(last_row)
+        table.setItem(last_row,0,QTableWidgetItem())
+        table.setItem(last_row,1,QTableWidgetItem(QIcon(),""))
+        table.setItem(last_row,2,QTableWidgetItem(QIcon(),""))
+        table.setItem(last_row,3,QTableWidgetItem("{}".format(item)))
+
+    def addItem(self, item):
+        if item and isinstance(item,list):
+            for i in item:
+                self.addItem(i)
+        else:
+            self.makeRow(item)
+        #last_row = self.table.rowCount()
+        #self.table.insertRow(last_row)
+        #if not isinstance(item,list) and self.table.columnCount() >= 2:
+        #    first_element = QTableWidgetItem(QIcon(),"")
+        #    last_element = QTableWidgetItem("{}".format(item))
+        #    itemlist = [first_element]
+        #    for i in range(self.table.columnCount()-2):
+        #        itemlist.append(QTableWidgetItem(""))
+        #    itemlist.append(last_element)
+        #for i in range(len(itemlist)):
+        #    self.table.setItem(last_row,i,itemlist[i])
+
+    def makeLinkedAction(self, row, column):
+        item = self.table.item(row, column)
         if item.icon():
             item.setIcon(QIcon())
         else:
