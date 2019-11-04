@@ -88,25 +88,47 @@ class tableDrawer(QStyledItemDelegate):
             #w.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             self.widgets.append(w)
 
-    def createEditor(self, parent, option, index):
-        #qDebug("EDITOR")
-        pass
+    #def createEditor(self, parent, option, index):
+    #    qDebug("CREATE EDITOR")
+    #    return super().createEditor(parent, option, index)
+    #def setEditorData(self, editor, index):
+    #    qDebug("SET EDITOR DATA")
+    #    return super().setEditorData(editor, index)
+    #def setModelData(self, editor, model, index):
+    #    qDebug("SET MODEL DATA")
+    #    return super().setModelData(editor, model, index)
+    #def sizeHint(self, option, index):
+    #    qDebug("SIZE HINT")
+    #    return super().sizeHint(option, index)
+    #def updateEditorGeometry(self, editor, option, index):
+    #    qDebug("UPDATE EDITOR GEOMETRY")
+    #    return super().updateEditorGeometry(editor, option, index)
+    #def eventFilter(self, editor, event):
+    #    handled = super().eventFilter(editor, event)
+    #    qDebug("EVENT FILTER {} {} {}".format(editor, event, handled))
+    #    return handled
 
     def editorEvent(self, event, model, option, index):
         #qDebug("EDITOR EVENT")
-        if index.column() != 0:
+        column = index.column()
+        if column == 0:
+            if event.type() == QEvent.MouseButtonRelease:
+                offset = option.rect.width() / 2
+                if event.x() > offset:
+                    go = 'DOWN'
+                else:
+                    go = 'UP'
+                self.parent.cellMoveClick.emit(index.row(),go)
+                #qDebug("Release on {} {} row({}) {}".format(event.x(),event.y(),index.row(),go))
+            return True # Mark all events on column 0 handled
+            # Events on column 0 ends here
+        if index.column() < 2:
             self.parent.table.cellClicked.emit(index.row(),index.column())
-            return True
-        if event.type() == QEvent.MouseButtonRelease:
-            offset = option.rect.width() / 2
-            if event.x() > offset:
-                go = 'DOWN'
-            else:
-                go = 'UP'
-            self.parent.cellMoveClick.emit(index.row(),go)
-            #qDebug("Release on {} {} row({}) {}".format(event.x(),event.y(),index.row(),go))
-            return True 
-        return False
+            return True # Mark events on cols 1,2 as handled after emitting custom signal
+            # Events on columns 1, 2 ends here
+        
+        # Column 3 (text) does not handle event here
+        return super().editorEvent(event, model, option, index) # same as return False
 
     def paint(self, painter, option, index):
         if not index.isValid():
