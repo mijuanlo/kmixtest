@@ -111,7 +111,8 @@ class tableDrawer(QStyledItemDelegate):
     def paint(self, painter, option, index):
         if not index.isValid():
             return
-        if index.column() == 0:
+        column = index.column()
+        if column == 0:
             idx = 0
             count = len(self.widgets)
             size_available = option.rect.width() / count
@@ -123,12 +124,20 @@ class tableDrawer(QStyledItemDelegate):
                 opt.rect.setWidth(size_available)
                 #opt.text = "{}".format(idx)
                 opt.icon = w.icon()
+                #opt.iconSize = QSize(option.rect.height(),option.rect.height())
                 opt.state = ws.State_Enabled
-                QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
+                #QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
+                ws.drawControl(ws.CE_PushButton,opt,painter,w)
                 painter.restore()
                 idx+=1
         else:
+            if column != 3:
+                option.decorationSize = QSize(option.rect.height(), option.rect.height())
+                # Must to set position if alignment need to be setted
+                option.decorationPosition = QStyleOptionViewItem.Top
+                option.decorationAlignment = Qt.AlignCenter 
             super().paint(painter, option, index)
+
 
 class tableHelper(QObject):
     cellMoveClick = Signal(int,str)
@@ -225,10 +234,13 @@ class tableHelper(QObject):
             table = self.table
         last_row = table.rowCount()
         table.insertRow(last_row)
+        # Columns 1,2,3 alignment & size is set from delegated class
         table.setItem(last_row,0,QTableWidgetItem())
         table.setItem(last_row,1,QTableWidgetItem(QIcon(),""))
         table.setItem(last_row,2,QTableWidgetItem(QIcon(),""))
-        table.setItem(last_row,3,QTableWidgetItem("{}".format(item)))
+        i = QTableWidgetItem("{}".format(item))
+        i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        table.setItem(last_row,3,i)
 
     def addItem(self, item):
         if item and isinstance(item,list):
