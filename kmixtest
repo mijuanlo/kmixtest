@@ -139,6 +139,7 @@ class tableDrawer(QStyledItemDelegate):
         #if option.state & QStyle.State_MouseOver:
         #    qDebug("Painting becaused state mouseover")
         column = index.column()
+        row = index.row()
         if column == 0:
             idx = 0
             count = len(self.widgets)
@@ -152,7 +153,14 @@ class tableDrawer(QStyledItemDelegate):
                 #opt.text = "{}".format(idx)
                 opt.icon = w.icon()
                 #opt.iconSize = QSize(option.rect.height(),option.rect.height())
-                opt.state = ws.State_Enabled
+                if row == 0 and idx == 0: # up arrow on first row
+                    opt.state = ws.State_Off
+                elif row == index.model().rowCount()-1 and idx == 1: # down arrow on last row
+                    opt.state = ws.State_Off
+                elif index.siblingAtColumn(self.parent.headerItemNames.index('fixed')).data(Qt.DisplayRole) == True:
+                    opt.state = ws.State_Off
+                else:
+                    opt.state = ws.State_Enabled
                 #QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
                 ws.drawControl(ws.CE_PushButton,opt,painter,w)
                 painter.restore()
@@ -212,11 +220,16 @@ class tableHelper(QObject):
         self.table.cellClicked.connect(self.ClickOnCell)
 
     def configureHeader(self):
+        self.headerItemNames = []
         header  = self.table.horizontalHeader()
-        for i in range(self.table.columnCount()-1):
+        for i in range(self.table.columnCount()):
+            item = self.table.horizontalHeaderItem(i)
+            if item:
                 header.setSectionResizeMode(i,QHeaderView.ResizeToContents)
-        #self.table.horizontalHeader().setStretchLastSection(True)
-        pass
+                self.headerItemNames.append(str.lower(item.text()))
+            else:
+                self.headerItemNames.append("PRIVATE")
+        self.table.horizontalHeader().setStretchLastSection(True)
 
     @Slot(int, int)
     def ClickOnCell(self, row, column):
@@ -225,6 +238,8 @@ class tableHelper(QObject):
             data=self.model.data(idx,Qt.DisplayRole)
             data = not data
             self.model.setData(idx,data,Qt.DisplayRole)
+            # Invalidate button style when click on fixed, linked cells
+            self.table.update(self.model.index(row,self.headerItemNames.index('order')))
             return True
 
     @Slot(QPoint)
@@ -259,22 +274,55 @@ class tableHelper(QObject):
 
     @Slot(int,str)
     def moveRow(self,row,dir):
-        insert = False
-        if dir == 'UP' and row != 0:
+        if self.table.item(row,self.headerItemNames.index('fixed')).data(Qt.DisplayRole):
+            qDebug("Can't move locked cell")
+            return
+        if dir == 'UP' and row == 0:
+            qDebug("Can't move before beggining")
+            return
+        if dir == 'DOWN' and row == self.table.rowCount()-1:
+            qDebug("Can't move after end")
+            return
+        # Remember row mem address to move (when relocating, needed row index is changed)
+        first_of_row = self.table.item(row,0)
+        # Store fixed rows without remove avoiding index modification
+        fixed_rows = {}
+        for y in range(self.table.rowCount()):
+            if self.table.item(y,self.headerItemNames.index('fixed')).data(Qt.DisplayRole):
+                items = []
+                for x in range(self.table.columnCount()):
+                    items.append(self.table.takeItem(y,x))
+                fixed_rows.setdefault(y,items)
+        # After store, remove rows 
+        offset=0 # while removing rows top-bottom higher indexes are changing
+        for y in sorted(fixed_rows):
+            self.table.removeRow(y-offset)
+            offset+=1
+        found = False # Make sure that element are found
+        for y in range(self.table.rowCount()):
+            if self.table.item(y,0) is first_of_row:
+                row = y
+                found = True
+                break
+        if not found:
+            qDebug("Error searching element")
+            return
+        # Calculate origin and destination row taking on mind that we insert before new row
+        if dir == 'UP':
             row += 1
             onrow = row -2
-            insert = True
-        if dir == 'DOWN' and row != self.table.rowCount() -1:
+        if dir == 'DOWN':
             onrow = row +2
-            insert = True
-        if not insert:
-            #qDebug("Can't move")
-            return
-        #qDebug('Moving {} {}'.format(row,dir))
+        # Insert moved row
         self.table.insertRow(onrow)
         for col in range(self.table.columnCount()):
             self.table.setItem(onrow,col,self.table.takeItem(row,col))
         self.table.removeRow(row)
+        # Insert remaning fixed rows into his position
+        for y in fixed_rows:
+            self.table.insertRow(y)
+            for x in range(self.table.columnCount()):
+                self.table.setItem(y,x,fixed_rows[y][x])
 
     def makeRow(self, item="", table=None):
         if table is None and self.table is not None:
