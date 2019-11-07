@@ -75,6 +75,7 @@ class Helper():
 
             return action
         return None       
+
 class tableDrawer(QStyledItemDelegate):
     def __init__(self, helper):
         super().__init__()
@@ -111,24 +112,31 @@ class tableDrawer(QStyledItemDelegate):
     #    return handled
 
     def editorEvent(self, event, model, option, index):
-        #qDebug("EDITOR EVENT")
+        # Disable not click release events
+        if event.type() != QEvent.MouseButtonRelease:
+            return True
+        
         column = index.column()
+
         if column == 0:
-            if event.type() == QEvent.MouseButtonRelease:
-                offset = option.rect.width() / 2
-                if event.x() > offset:
-                    go = 'DOWN'
-                else:
-                    go = 'UP'
-                self.parent.cellMoveClick.emit(index.row(),go)
-                #qDebug("Release on {} {} row({}) {}".format(event.x(),event.y(),index.row(),go))
+            offset = option.rect.width() / 2
+            if event.x() > offset:
+                go = 'DOWN'
+            else:
+                go = 'UP'
+            self.parent.cellMoveClick.emit(index.row(),go)
             return True # Mark all events on column 0 handled
             # Events on column 0 ends here
-        if index.column() < 3:
+
+        if column < 3:
             return True # Mark events on cols 1,2 as handled after emitting custom signal
             # Events on columns 1, 2 ends here
 
         # Column 3 (text) does not handle event here
+        if column == 3:
+            self.parent.editingQuestion.emit(index.row())
+            return True
+
         return super().editorEvent(event, model, option, index) # same as return False
 
     def paint(self, painter, option, index):
@@ -217,13 +225,14 @@ class tableDrawer(QStyledItemDelegate):
             if option.icon or index.data(Qt.DecorationRole):
                 option.icon.paint(painter,option.rect,option.decorationAlignment,QIcon.Mode.Normal,QIcon.State.On)
 
-
 class tableHelper(QObject):
     cellMoveClick = Signal(int,str)
-    def __init__(self, controller=None, table=None):
+    editingQuestion = Signal(int)
+
+    def __init__(self, table=None, parent=None):
         QObject.__init__(self)
-        if controller:
-            self.controller = controller
+        if parent:
+            self.controller = parent
         if table:
             self.setTableView(table)
             self.cellMoveClick.connect(self.moveRow)
@@ -379,7 +388,6 @@ class tableHelper(QObject):
                 self.addItem(i)
         else:
             self.makeRow(item)
-
 
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None
@@ -593,6 +601,70 @@ class helperPDF():
 
         return document
 
+class gridHelper(QObject):
+    def __init__(self, grid=None, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.grid = grid
+        self.group_title,self.grid_title = self.addGroupGrid(grid,"Title")
+        self.addTitleEditor(self.grid_title)
+
+    def addGroupGrid(self, on, title):
+        group = QGroupBox(title)
+        grid = QGridLayout()
+        group.setLayout(grid)
+        on.addWidget(group)
+        return group,grid
+
+    def addToGrid(self, on, what, x=None, y=None ):
+        if not y:
+            y = on.rowCount()-1
+        if not x:
+            x = on.columnCount()-1
+
+        if isinstance(what,QWidget):
+            on.addWidget(what,y,x)
+            return
+        if isinstance(what,list):
+            all_widget = True
+            all_list = True
+            for i in what:
+                if not isinstance(i,QWidget):
+                    all_widget = False
+                if not isinstance(i,list):
+                    all_list = False
+            if all_widget:
+                offset=0
+                for i in what:
+                    self.addToGrid(on,i,x,y+offset)
+                    offset+=1
+            if all_list:
+                all_widget = True
+                for i in what:
+                    for j in i:
+                        if not isinstance(j,QWidget):
+                            all_widget = False
+                            break
+                    if not all_widget:
+                        break
+                if not all_widget:
+                    qDebug("Error")
+                    return
+                else:
+                    offset_x=0
+                    offset_y=0
+                    for i in what:
+                        for j in i:
+                            self.addToGrid(on,j,x+offset_x,y+offset_y)
+                            offset_y+=1
+                        offset_x+=1
+        return
+
+    def addTitleEditor(self, on):
+        label = QLabel("Title")
+        lineedit = QLineEdit()
+        self.addToGrid(on,[[label,lineedit]])
+
 class AppMainWindow(QApplication):
     def __init__(self):
         super().__init__([])
@@ -601,13 +673,21 @@ class AppMainWindow(QApplication):
         self.window.show()
         self.addMenuItem(["one","two"],["some","other",["menuitem"]])
         self.bind_toolbar_actions()
-        self.tableQuestions = tableHelper(self,self.window.tableWidgetQuestions)
+        self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
+        self.tableQuestions.editingQuestion.connect(self.editingQuestion)
+        self.scroll = gridHelper(self.window.gridEdition, self)
         self.window.previewButton.clicked.connect(self.clickedPreview)
-        self.sheet = helperPDF(parent=self)
+        self.sheet = None
+
+    @Slot(int)
+    def editingQuestion(self, row):
+        qDebug("Editing {}".format(row))
 
     @Slot(bool)
     def clickedPreview(self,checked):
         qDebug("Preview clicked!")
+        if not self.sheet:
+            self.sheet = helperPDF(parent=self)
         self.sheet.openWidget()
 
     def loadUi(self):
