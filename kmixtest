@@ -140,6 +140,7 @@ class tableDrawer(QStyledItemDelegate):
         #    qDebug("Painting becaused state mouseover")
         column = index.column()
         row = index.row()
+        ncol_fixed = self.parent.headerItemNames.index('fixed')
         if column == 0:
             idx = 0
             count = len(self.widgets)
@@ -153,14 +154,37 @@ class tableDrawer(QStyledItemDelegate):
                 #opt.text = "{}".format(idx)
                 opt.icon = w.icon()
                 #opt.iconSize = QSize(option.rect.height(),option.rect.height())
-                if row == 0 and idx == 0: # up arrow on first row
-                    opt.state = ws.State_Off
-                elif row == index.model().rowCount()-1 and idx == 1: # down arrow on last row
-                    opt.state = ws.State_Off
-                elif index.siblingAtColumn(self.parent.headerItemNames.index('fixed')).data(Qt.DisplayRole) == True:
+
+                # Set all button state
+                if index.siblingAtColumn(ncol_fixed).data(Qt.DisplayRole) == True:
                     opt.state = ws.State_Off
                 else:
                     opt.state = ws.State_Enabled
+                    if idx == 0: # UP movement
+                        if row == 0: # first element
+                            opt.state = ws.State_Off
+                        else:
+                            # search all others up locked
+                            all_up_locked = True
+                            for i in range(row-1,-1,-1):
+                                if index.sibling(i,ncol_fixed).data(Qt.DisplayRole) == False:
+                                    all_up_locked = False
+                                    break
+                            if all_up_locked:
+                                opt.state = ws.State_Off
+                    else: # DOWN movement
+                        if row == index.model().rowCount()-1:
+                            opt.state = ws.State_Off
+                        else:
+                            # search all others down locked
+                            all_down_locked = True
+                            for i in range(row+1,index.model().rowCount()):
+                                if index.sibling(i,ncol_fixed).data(Qt.DisplayRole) == False:
+                                    all_down_locked = False
+                                    break
+                            if all_down_locked:
+                                opt.state = ws.State_Off
+
                 #QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
                 ws.drawControl(ws.CE_PushButton,opt,painter,w)
                 painter.restore()
@@ -239,7 +263,8 @@ class tableHelper(QObject):
             data = not data
             self.model.setData(idx,data,Qt.DisplayRole)
             # Invalidate button style when click on fixed, linked cells
-            self.table.update(self.model.index(row,self.headerItemNames.index('order')))
+            for i in range(0,self.table.rowCount()):
+                self.table.update(self.model.index(i,self.headerItemNames.index('order')))
             return True
 
     @Slot(QPoint)
@@ -277,12 +302,6 @@ class tableHelper(QObject):
         if self.table.item(row,self.headerItemNames.index('fixed')).data(Qt.DisplayRole):
             qDebug("Can't move locked cell")
             return
-        if dir == 'UP' and row == 0:
-            qDebug("Can't move before beggining")
-            return
-        if dir == 'DOWN' and row == self.table.rowCount()-1:
-            qDebug("Can't move after end")
-            return
         # Remember row mem address to move (when relocating, needed row index is changed)
         first_of_row = self.table.item(row,0)
         # Store fixed rows without remove avoiding index modification
@@ -298,6 +317,7 @@ class tableHelper(QObject):
         for y in sorted(fixed_rows):
             self.table.removeRow(y-offset)
             offset+=1
+        # Update new position
         found = False # Make sure that element are found
         for y in range(self.table.rowCount()):
             if self.table.item(y,0) is first_of_row:
@@ -307,17 +327,25 @@ class tableHelper(QObject):
         if not found:
             qDebug("Error searching element")
             return
-        # Calculate origin and destination row taking on mind that we insert before new row
-        if dir == 'UP':
-            row += 1
-            onrow = row -2
-        if dir == 'DOWN':
-            onrow = row +2
-        # Insert moved row
-        self.table.insertRow(onrow)
-        for col in range(self.table.columnCount()):
-            self.table.setItem(onrow,col,self.table.takeItem(row,col))
-        self.table.removeRow(row)
+        rollback = False
+        if dir == 'UP' and row == 0 :
+            qDebug("Can't move before beggining")
+            rollback = True
+        if dir == 'DOWN' and row == self.table.rowCount()-1:
+            qDebug("Can't move after end")
+            rollback = True
+        if not rollback:
+            # Calculate origin and destination row taking on mind that we insert before new row
+            if dir == 'UP':
+                row += 1
+                onrow = row -2
+            if dir == 'DOWN':
+                onrow = row +2
+            # Insert moved row
+            self.table.insertRow(onrow)
+            for col in range(self.table.columnCount()):
+                self.table.setItem(onrow,col,self.table.takeItem(row,col))
+            self.table.removeRow(row)
         # Insert remaning fixed rows into his position
         for y in fixed_rows:
             self.table.insertRow(y)
