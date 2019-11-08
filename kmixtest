@@ -608,6 +608,9 @@ class gridHelper(QObject):
         self.grid = grid
         self.group_title,self.grid_title = self.addGroupGrid(grid,"Title")
         self.addTitleEditor(self.grid_title)
+        spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
+        self.addToGrid(self.grid,spacer)
+
 
     def addGroupGrid(self, on, title):
         group = QGroupBox(title)
@@ -617,13 +620,21 @@ class gridHelper(QObject):
         return group,grid
 
     def addToGrid(self, on, what, x=None, y=None ):
-        if not y:
-            y = on.rowCount()-1
-        if not x:
-            x = on.columnCount()-1
+        if y is None:
+            y = on.rowCount()
+            if x is not None:
+                x = 0
+            else:
+                for i in range(on.columnCount()):
+                    if on.itemAtPosition(y,i) is None:
+                        x = i
+                        break
 
         if isinstance(what,QWidget):
             on.addWidget(what,y,x)
+            return
+        if isinstance(what,QLayoutItem):
+            on.addItem(what,y,x)
             return
         if isinstance(what,list):
             all_widget = True
@@ -634,10 +645,8 @@ class gridHelper(QObject):
                 if not isinstance(i,list):
                     all_list = False
             if all_widget:
-                offset=0
                 for i in what:
-                    self.addToGrid(on,i,x,y+offset)
-                    offset+=1
+                    self.addToGrid(on,i)
             if all_list:
                 all_widget = True
                 for i in what:
@@ -652,18 +661,17 @@ class gridHelper(QObject):
                     return
                 else:
                     offset_x=0
-                    offset_y=0
                     for i in what:
                         for j in i:
-                            self.addToGrid(on,j,x+offset_x,y+offset_y)
-                            offset_y+=1
-                        offset_x+=1
+                            self.addToGrid(on,j,x+offset_x)
+                            offset_x+=1
         return
 
     def addTitleEditor(self, on):
         label = QLabel("Title")
         lineedit = QLineEdit()
         self.addToGrid(on,[[label,lineedit]])
+        
 
 class AppMainWindow(QApplication):
     def __init__(self):
