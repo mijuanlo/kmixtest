@@ -606,9 +606,10 @@ class Box(QGroupBox):
     closedBox = Signal(str)
     button_space = 4
     button_size = 22
+
     def __init__(self,title=None,parent=None):
-        super().__init__(title=title,parent=parent)
         self.id = str(id(self))
+        super().__init__(title="{}-{}".format(title,self.id[-6:]),parent=parent)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.button = QPushButton(QIcon(ICONCLOSE),"",self)
@@ -643,17 +644,19 @@ class gridHelper(QObject):
         self.parent = parent
         self.grid = grid
         self.boxes = {}
+        self.idbox = 0
         self.init(self.grid)
 
     def init(self, grid):
         for i in range(5):
-            b = Box("Frame #{}".format(i))
+            self.idbox += 1
+            b = Box("Frame #{}".format(self.idbox))
             b.addTo(grid)
             b.closedBox.connect(self.closeBox)
             self.boxes.setdefault(b.getId(),b)
             self.addTitleEditor(b.getGrid())
-        spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
-        self.addToGrid(self.grid,spacer)
+        self.spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
+        self.addToGrid(self.grid,self.spacer)
 
     Slot(str)
     def closeBox(self, uuid):
@@ -663,6 +666,9 @@ class gridHelper(QObject):
             del self.boxes[uuid]
             self.grid.removeWidget(b)
             b.deleteLater()
+            if len(self.boxes) == 0:
+                self.grid.removeItem(self.spacer)
+                self.init(self.grid)
             self.grid.update()
 
     def addToGrid(self, on, what, x=None, y=None ):
@@ -727,6 +733,7 @@ class AppMainWindow(QApplication):
         self.bind_toolbar_actions()
         self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
         self.tableQuestions.editingQuestion.connect(self.editingQuestion)
+        self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
         self.scroll = gridHelper(self.window.gridEdition, self)
         self.window.previewButton.clicked.connect(self.clickedPreview)
         self.sheet = None
