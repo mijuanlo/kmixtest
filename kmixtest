@@ -140,6 +140,77 @@ class tableDrawer(QStyledItemDelegate):
 
         return super().editorEvent(event, model, option, index) # same as return False
 
+    def canMove(self, index, direction):
+        UP = 0
+        DOWN = 1
+        if direction not in [UP,DOWN]:
+            return False
+
+        CURRENT_COLUMN = index.column()
+        CURRENT_ROW = index.row()
+        FIRST_COL = 0
+        FIRST_ROW = 0
+        NEXT_ROW = CURRENT_ROW +1
+        PREV_ROW = CURRENT_ROW -1
+        NUM_ROWS = index.model().rowCount()
+        LAST_ROW = NUM_ROWS -1
+        
+        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+
+        def getCellState(row,col,index=index):
+            return index.sibling(row,col).data(Qt.DisplayRole)
+        def allLocked(range_search,column):
+            all_locked = True
+            for i in range_search:
+                if not getCellState(i,column):
+                    all_locked = False
+                    break
+            return all_locked
+        def allDownLocked():
+            r = range(NEXT_ROW,NUM_ROWS)
+            return allLocked(r,FIXED_COLUMN)
+        def allDownLinked():
+            r = range(NEXT_ROW,NUM_ROWS)
+            return allLocked(r,LINKED_COLUMN)
+        def allUpLocked():
+            r = range(PREV_ROW,-1,-1)
+            return allLocked(r,FIXED_COLUMN)
+        def allUpLinked():
+            r = range(PREV_ROW,-1,-1)
+            return allLocked(r,LINKED_COLUMN)
+
+        if getCellState(CURRENT_ROW,FIXED_COLUMN):
+            return False
+
+        if direction == UP:
+            if CURRENT_ROW == FIRST_ROW:
+                return False
+
+            if allUpLinked():
+                return False
+            
+            if getCellState(PREV_ROW,LINKED_COLUMN) and getCellState(CURRENT_ROW,LINKED_COLUMN):
+                return False
+
+            if allUpLocked():
+                return False
+
+        if direction == DOWN: 
+            if CURRENT_ROW == LAST_ROW:
+                return False
+
+            if allDownLinked():
+                return False
+
+            if getCellState(NEXT_ROW,LINKED_COLUMN) and getCellState(CURRENT_ROW,LINKED_COLUMN):
+                return False
+
+            if allDownLocked():
+                return False
+        
+        return True
+
     def paint(self, painter, option, index):
         if not index.isValid():
             return
@@ -147,66 +218,44 @@ class tableDrawer(QStyledItemDelegate):
         #    qDebug("Painting because state enabled")
         #if option.state & QStyle.State_MouseOver:
         #    qDebug("Painting becaused state mouseover")
-        column = index.column()
-        row = index.row()
-        ncol_fixed = self.parent.headerItemNames.index('fixed')
-        if column == 0:
-            idx = 0
+        CURRENT_COLUMN = index.column()
+        ORDER_COLUMN = self.parent.headerItemNames.index('order')
+        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+        QUESTION_COLUMN = self.parent.headerItemNames.index('question type')
+        if CURRENT_COLUMN == ORDER_COLUMN:
             count = len(self.widgets)
             size_available = option.rect.width() / count
+            DIRECTION_IDX = 0
             for w in self.widgets:
                 painter.save()
                 ws = w.style()
                 opt = QStyleOptionButton()
-                opt.rect = option.rect.translated(idx*size_available,0)
+                opt.rect = option.rect.translated(DIRECTION_IDX*size_available,0)
                 opt.rect.setWidth(size_available)
-                #opt.text = "{}".format(idx)
+                #opt.text = "{}".format(DIRECTION_IDX)
                 opt.icon = w.icon()
                 #opt.iconSize = QSize(option.rect.height(),option.rect.height())
 
-                # Set all button state
-                if index.siblingAtColumn(ncol_fixed).data(Qt.DisplayRole) == True:
-                    opt.state = ws.State_Off
-                else:
+                # # Set all button state
+                if self.canMove(index,DIRECTION_IDX):
                     opt.state = ws.State_Enabled
-                    if idx == 0: # UP movement
-                        if row == 0: # first element
-                            opt.state = ws.State_Off
-                        else:
-                            # search all others up locked
-                            all_up_locked = True
-                            for i in range(row-1,-1,-1):
-                                if index.sibling(i,ncol_fixed).data(Qt.DisplayRole) == False:
-                                    all_up_locked = False
-                                    break
-                            if all_up_locked:
-                                opt.state = ws.State_Off
-                    else: # DOWN movement
-                        if row == index.model().rowCount()-1:
-                            opt.state = ws.State_Off
-                        else:
-                            # search all others down locked
-                            all_down_locked = True
-                            for i in range(row+1,index.model().rowCount()):
-                                if index.sibling(i,ncol_fixed).data(Qt.DisplayRole) == False:
-                                    all_down_locked = False
-                                    break
-                            if all_down_locked:
-                                opt.state = ws.State_Off
+                else:
+                    opt.state = ws.State_Off
 
                 #QApplication.style().drawControl(ws.CE_PushButton,opt,painter,w)
                 ws.drawControl(ws.CE_PushButton,opt,painter,w)
                 painter.restore()
-                idx+=1
+                DIRECTION_IDX += 1
         else:
-            data = index.data(Qt.DisplayRole)
-            if column == 1:
+            if CURRENT_COLUMN == FIXED_COLUMN:
                 col_icon = self.iconFixed
-            if column == 2:
+            if CURRENT_COLUMN == LINKED_COLUMN:
                 col_icon = self.iconLinked
             
-            if column != 3:
-                if data == True:
+            cellState = index.data(Qt.DisplayRole)
+            if CURRENT_COLUMN != QUESTION_COLUMN:    
+                if cellState == True:
                     option.icon = col_icon
                 else:
                     option.icon = QIcon()
@@ -217,7 +266,7 @@ class tableDrawer(QStyledItemDelegate):
                 option.decorationAlignment = Qt.AlignCenter 
             else:
                 option.icon = QIcon()
-                option.text = data
+                option.text = cellState
 
             if option.text:
                 #super().paint(painter, option, index)
@@ -267,15 +316,75 @@ class tableHelper(QObject):
 
     @Slot(int, int)
     def ClickOnCell(self, row, column):
-        if column in [1,2]:
-            idx=self.model.index(row,column)
-            data=self.model.data(idx,Qt.DisplayRole)
-            data = not data
-            self.model.setData(idx,data,Qt.DisplayRole)
-            # Invalidate button style when click on fixed, linked cells
-            for i in range(0,self.table.rowCount()):
-                self.table.update(self.model.index(i,self.headerItemNames.index('order')))
+        FIXED_COL = self.headerItemNames.index('fixed')
+        LINKED_COL = self.headerItemNames.index('linked')
+
+        if column not in [ FIXED_COL , LINKED_COL ]:
             return True
+        
+        FIRST_COL = 0 
+        FIRST_ROW = 0
+        NUM_COLS = self.model.columnCount()
+        NUM_ROWS = self.model.rowCount()
+        LAST_COL = NUM_COLS -1
+        LAST_ROW = NUM_ROWS -1
+
+
+        def updateCellGraphics():
+            ORDER_COL = self.headerItemNames.index('order')
+            for i in range(FIRST_ROW,NUM_ROWS):
+                self.table.update(self.model.index(i,ORDER_COL))
+        def getCellState(row,col):
+            return self.model.data(self.model.index(row,col),Qt.DisplayRole)
+        def putCellState(row,col,state):
+            self.model.setData(self.model.index(row,col),state,Qt.DisplayRole)
+        def flipCellState(rows,cols):
+            if not isinstance(rows,list):
+                rows = [ rows ]
+            if not isinstance(cols,list):
+                cols = [ cols ]
+            invalidate = False
+            for r in rows:
+                for c in cols:
+                    putCellState(r,c,not getCellState(r,c))
+                    invalidate = True
+            return invalidate
+        def removeAloneLinks():
+            remove_linked_rows = []
+            if NUM_ROWS > 1:
+                for r in range(FIRST_ROW,NUM_ROWS):
+                    current_is_linked = getCellState(r,LINKED_COL)
+                    next_is_linked = getCellState(r+1,LINKED_COL)
+                    prev_is_linked = getCellState(r-1,LINKED_COL)
+                    if r == FIRST_ROW and current_is_linked and not next_is_linked:
+                        remove_linked_rows.append(r)
+                        continue
+                    if r == LAST_ROW and current_is_linked and not prev_is_linked:
+                        remove_linked_rows.append(r)
+                        continue
+                    if current_is_linked and not next_is_linked and not prev_is_linked:
+                        remove_linked_rows.append(r)
+                        continue
+            for r in remove_linked_rows:
+                putCellState(r,LINKED_COL,False)
+
+        columns = [ column ]
+        rows = [ row ]
+        
+        if column == LINKED_COL:
+            CURRENT_STATE = getCellState(row,LINKED_COL)
+            if CURRENT_STATE == False:
+                if row == FIRST_ROW:
+                    if row < LAST_ROW and not getCellState(row+1,LINKED_COL):
+                        rows.append(row+1)
+                else:
+                    if row < LAST_ROW and not getCellState(row+1,LINKED_COL) and not getCellState(row-1,LINKED_COL):
+                        rows.append(row+1)
+
+        if flipCellState(rows,columns):
+            removeAloneLinks()
+            updateCellGraphics()
+        return True
 
     @Slot(QPoint)
     def customMenu(self, position):
