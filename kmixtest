@@ -118,14 +118,20 @@ class tableDrawer(QStyledItemDelegate):
             return True
         
         column = index.column()
-
+        UP = 0
+        DOWN = 1
         if column == 0:
             offset = option.rect.width() / 2
             if event.x() > offset:
                 go = 'DOWN'
+                direction = DOWN
             else:
                 go = 'UP'
-            self.parent.cellMoveClick.emit(index.row(),go)
+                direction = UP
+            if self.canMove(index,direction):
+                self.parent.cellMoveClick.emit(index.row(),go)
+            else:
+                qDebug("Impossible movement")
             return True # Mark all events on column 0 handled
             # Events on column 0 ends here
 
@@ -179,6 +185,51 @@ class tableDrawer(QStyledItemDelegate):
         def allUpLinked():
             r = range(PREV_ROW,-1,-1)
             return allLocked(r,LINKED_COLUMN)
+        def RowIsLinked(row):
+            return getCellState(row,LINKED_COLUMN)
+        def RowIsLocked(row):
+            return getCellState(row,FIXED_COLUMN)
+        def getLinkedRowGroup(row):
+            rowgroup=[]
+            if not RowIsLinked(row):
+                return []
+            else:
+                rowgroup.append(row)
+            if CURRENT_ROW > 0:
+                for r in range(PREV_ROW,-1,-1):
+                    if RowIsLinked(r):
+                        rowgroup.append(r)
+                    else:
+                        break
+            if CURRENT_ROW < NUM_ROWS:
+                for r in range(NEXT_ROW,NUM_ROWS):
+                    if RowIsLinked(r):
+                        rowgroup.append(r)
+                    else:
+                        break
+            return sorted(rowgroup)
+
+        def anyLocked(list_linked):
+            for i in list_linked:
+                if RowIsLocked(i):
+                    return True
+            return False
+
+        def freeRows():
+            available = list(range(NUM_ROWS))
+            for r in range(FIRST_ROW,NUM_ROWS):
+                if r not in available:
+                    continue
+                if RowIsLocked(r):
+                    available.remove(r)
+                if RowIsLinked(r):
+                    g = getLinkedRowGroup(r)
+                    if anyLocked(g):
+                        for i in g:
+                            if i in available:
+                                available.remove(i)
+            return available
+
 
         if getCellState(CURRENT_ROW,FIXED_COLUMN):
             return False
@@ -186,13 +237,16 @@ class tableDrawer(QStyledItemDelegate):
         if direction == UP:
             if CURRENT_ROW == FIRST_ROW:
                 return False
-
-            if allUpLinked():
-                return False
             
-            if getCellState(PREV_ROW,LINKED_COLUMN) and getCellState(CURRENT_ROW,LINKED_COLUMN):
-                return False
-
+            if RowIsLinked(CURRENT_ROW):
+                if RowIsLinked(PREV_ROW):
+                    return False
+                if anyLocked(getLinkedRowGroup(CURRENT_ROW)):
+                    return False
+            else:
+                if allUpLinked() and anyLocked(getLinkedRowGroup(PREV_ROW)):
+                    return False
+            
             if allUpLocked():
                 return False
 
@@ -200,15 +254,20 @@ class tableDrawer(QStyledItemDelegate):
             if CURRENT_ROW == LAST_ROW:
                 return False
 
-            if allDownLinked():
-                return False
-
-            if getCellState(NEXT_ROW,LINKED_COLUMN) and getCellState(CURRENT_ROW,LINKED_COLUMN):
-                return False
+            if RowIsLinked(CURRENT_ROW):
+                if RowIsLinked(NEXT_ROW):
+                    return False
+                if anyLocked(getLinkedRowGroup(CURRENT_ROW)):
+                    return False
+            else:
+                if allDownLinked() and anyLocked(getLinkedRowGroup(NEXT_ROW)):
+                    return False
 
             if allDownLocked():
                 return False
         
+        if len(freeRows()) < 2:
+            return False
         return True
 
     def paint(self, painter, option, index):
@@ -316,6 +375,9 @@ class tableHelper(QObject):
 
     @Slot(int, int)
     def ClickOnCell(self, row, column):
+        #
+        # Method manager for click linkable, lockable cells, no movement here
+        #
         FIXED_COL = self.headerItemNames.index('fixed')
         LINKED_COL = self.headerItemNames.index('linked')
 
@@ -418,57 +480,114 @@ class tableHelper(QObject):
 
     @Slot(int,str)
     def moveRow(self,row,dir):
-        if self.table.item(row,self.headerItemNames.index('fixed')).data(Qt.DisplayRole):
-            qDebug("Can't move locked cell")
-            return
-        # Remember row mem address to move (when relocating, needed row index is changed)
-        first_of_row = self.table.item(row,0)
-        # Store fixed rows without remove avoiding index modification
+        #
+        # Method manager for row movement, impossible movements are filtered from table delegated class event manager
+        #
+        CURRENT_ROW = row
+        PREV_ROW = row -1
+        NEXT_ROW = row +1
+        FIXED_COLUMN = self.headerItemNames.index('fixed')
+        LINKED_COLUMN = self.headerItemNames.index('linked')
+        def NUM_COLS():
+            return self.table.columnCount()
+        def NUM_ROWS():
+            return self.table.rowCount()
+        def LAST_ROW():
+            return NUM_ROWS()-1
+        def RowIsLocked(row):
+            return self.table.item(row,FIXED_COLUMN).data(Qt.DisplayRole)
+        def RowIsLinked(row):
+            return self.table.item(row,LINKED_COLUMN).data(Qt.DisplayRole)
+        def getLinkedRowGroup(row):
+            rowgroup=[]
+            if not RowIsLinked(row):
+                return []
+            else:
+                rowgroup.append(row)
+            if CURRENT_ROW > 0:
+                for r in range(PREV_ROW,-1,-1):
+                    if RowIsLinked(r):
+                        rowgroup.append(r)
+                    else:
+                        break
+            if CURRENT_ROW < NUM_ROWS():
+                for r in range(NEXT_ROW,NUM_ROWS()):
+                    if RowIsLinked(r):
+                        rowgroup.append(r)
+                    else:
+                        break
+            return sorted(rowgroup)
+
+        # Deprecated: Impossible movements aren't triggered
+        #
+        # if RowIsLocked(CURRENT_ROW):
+        #    qDebug("Can't move locked cell")
+        #    return
+        
+        # Store fixed rows without remove avoiding index modification { num_row : [ QTableItem ] }
         fixed_rows = {}
-        for y in range(self.table.rowCount()):
-            if self.table.item(y,self.headerItemNames.index('fixed')).data(Qt.DisplayRole):
-                items = []
-                for x in range(self.table.columnCount()):
-                    items.append(self.table.takeItem(y,x))
-                fixed_rows.setdefault(y,items)
-        # After store, remove rows 
-        offset=0 # while removing rows top-bottom higher indexes are changing
-        for y in sorted(fixed_rows):
-            self.table.removeRow(y-offset)
-            offset+=1
-        # Update new position
-        found = False # Make sure that element are found
-        for y in range(self.table.rowCount()):
-            if self.table.item(y,0) is first_of_row:
-                row = y
-                found = True
-                break
-        if not found:
-            qDebug("Error searching element")
-            return
-        rollback = False
-        if dir == 'UP' and row == 0 :
-            qDebug("Can't move before beggining")
-            rollback = True
-        if dir == 'DOWN' and row == self.table.rowCount()-1:
-            qDebug("Can't move after end")
-            rollback = True
-        if not rollback:
-            # Calculate origin and destination row taking on mind that we insert before new row
+
+        # Locked cells can't be here trying to move
+        # Only 2 cell types can be here, with no action or linked cell(without lock)
+
+        linked_group = []
+        if RowIsLinked(CURRENT_ROW):
+            linked_group = getLinkedRowGroup(CURRENT_ROW)
             if dir == 'UP':
-                row += 1
-                onrow = row -2
-            if dir == 'DOWN':
+                # move all group up are the same as moving down previous cell before the group
+                # groups with first and last rows, are blocked and can't be triggered
+                row = linked_group[0]-1
+                onrow = linked_group[-1]+1
+            else:
+                # move all group down are the same as moving up next cell after the group
+                # groups with first and last rows, are blocked and can't be triggered
+                row = linked_group[-1]+1
+                onrow = linked_group[0]
+        else: # Normal cell (without action), need to jump throught locked cells
+            # Remember row mem address to move (when relocating, needed row index is changed)
+            first_of_row = self.table.item(CURRENT_ROW,0)
+            for y in range(NUM_ROWS()):
+                if RowIsLocked(y):
+                    items = []
+                    for x in range(NUM_COLS()):
+                        items.append(self.table.takeItem(y,x))
+                    fixed_rows.setdefault(y,items)
+            # After store, remove rows 
+            offset=0 # while removing rows top-bottom higher indexes are changing
+            for y in sorted(fixed_rows):
+                self.table.removeRow(y-offset)
+                offset+=1
+            # Update new position
+            found = False # Make sure that element are found
+            for y in range(NUM_ROWS()):
+                if self.table.item(y,0) is first_of_row:
+                    row = y
+                    found = True
+                    break
+            if not found:
+                qDebug("Error searching element")
+                return
+
+            # Calculate origin and destination
+            if dir == 'UP':
+                onrow = row -1
+            else:
                 onrow = row +2
-            # Insert moved row
-            self.table.insertRow(onrow)
-            for col in range(self.table.columnCount()):
-                self.table.setItem(onrow,col,self.table.takeItem(row,col))
-            self.table.removeRow(row)
+        
+        # Insert moved row
+        self.table.insertRow(onrow)
+        # With insertion the indexes were modified
+        if row > onrow:
+            row += 1
+
+        for col in range(NUM_COLS()):
+            self.table.setItem(onrow,col,self.table.takeItem(row,col))
+        self.table.removeRow(row)
+        
         # Insert remaning fixed rows into his position
         for y in fixed_rows:
             self.table.insertRow(y)
-            for x in range(self.table.columnCount()):
+            for x in range(NUM_COLS()):
                 self.table.setItem(y,x,fixed_rows[y][x])
 
     def makeRow(self, item="", table=None):
