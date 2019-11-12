@@ -208,7 +208,10 @@ class tableDrawer(QStyledItemDelegate):
                     else:
                         break
             return sorted(rowgroup)
-
+        def lastOfGroup(list_linked):
+            return list_linked[-1]
+        def firstOfGroup(list_linked):
+            return list_linked[0]
         def anyLocked(list_linked):
             for i in list_linked:
                 if RowIsLocked(i):
@@ -229,7 +232,23 @@ class tableDrawer(QStyledItemDelegate):
                             if i in available:
                                 available.remove(i)
             return available
-
+        def consecutiveNotLocked(cells):
+            i=0
+            max=0
+            for r in cells:
+                if not RowIsLocked(r):
+                    i+=1
+                else:
+                    i=0
+                if i > max:
+                    max = i
+            return max
+        def consecutiveNotLockedUp(fromrow):
+            l=range(fromrow-1,-1,-1)
+            return consecutiveNotLocked(l)
+        def consecutiveNotLockedDown(fromrow):
+            l=range(fromrow+1,NUM_ROWS)
+            return consecutiveNotLocked(l)
 
         if getCellState(CURRENT_ROW,FIXED_COLUMN):
             return False
@@ -241,7 +260,10 @@ class tableDrawer(QStyledItemDelegate):
             if RowIsLinked(CURRENT_ROW):
                 if RowIsLinked(PREV_ROW):
                     return False
-                if anyLocked(getLinkedRowGroup(CURRENT_ROW)):
+                lg = getLinkedRowGroup(CURRENT_ROW)
+                if anyLocked(lg):
+                    return False
+                if len(lg) > consecutiveNotLockedUp(firstOfGroup(lg)):
                     return False
             else:
                 if allUpLinked() and anyLocked(getLinkedRowGroup(PREV_ROW)):
@@ -257,7 +279,10 @@ class tableDrawer(QStyledItemDelegate):
             if RowIsLinked(CURRENT_ROW):
                 if RowIsLinked(NEXT_ROW):
                     return False
-                if anyLocked(getLinkedRowGroup(CURRENT_ROW)):
+                lg = getLinkedRowGroup(CURRENT_ROW)
+                if anyLocked(lg):
+                    return False
+                if len(lg) > consecutiveNotLockedDown(lastOfGroup(lg)):
                     return False
             else:
                 if allDownLinked() and anyLocked(getLinkedRowGroup(NEXT_ROW)):
@@ -483,6 +508,12 @@ class tableHelper(QObject):
         #
         # Method manager for row movement, impossible movements are filtered from table delegated class event manager
         #
+        UP = 1
+        DOWN = 0
+        if dir == 'UP':
+            dir = UP
+        else:
+            dir = DOWN
         CURRENT_ROW = row
         PREV_ROW = row -1
         NEXT_ROW = row +1
@@ -494,58 +525,158 @@ class tableHelper(QObject):
             return self.table.rowCount()
         def LAST_ROW():
             return NUM_ROWS()-1
+        def RowEmpty(row):
+            if self.table.item(row,0):
+                return False
+            return True
         def RowIsLocked(row):
-            return self.table.item(row,FIXED_COLUMN).data(Qt.DisplayRole)
+            item = self.table.item(row,FIXED_COLUMN)
+            if item:
+                return item.data(Qt.DisplayRole)
+            else:
+                return False
         def RowIsLinked(row):
-            return self.table.item(row,LINKED_COLUMN).data(Qt.DisplayRole)
+            item = self.table.item(row,LINKED_COLUMN)
+            if item:
+                return item.data(Qt.DisplayRole)
+            else:
+                return False
+        def getId(row):
+            return id(self.table.item(CURRENT_ROW,0))
+        def searchPositionId(id):
+            for i in range(0,LAST_ROW()):
+                if id == getId(i):
+                    return i
         def getLinkedRowGroup(row):
             rowgroup=[]
             if not RowIsLinked(row):
                 return []
             else:
                 rowgroup.append(row)
-            if CURRENT_ROW > 0:
-                for r in range(PREV_ROW,-1,-1):
-                    if RowIsLinked(r):
-                        rowgroup.append(r)
-                    else:
-                        break
-            if CURRENT_ROW < NUM_ROWS():
-                for r in range(NEXT_ROW,NUM_ROWS()):
-                    if RowIsLinked(r):
-                        rowgroup.append(r)
-                    else:
-                        break
+            
+            for r in range(row-1,-1,-1):
+                if RowIsLinked(r):
+                    rowgroup.append(r)
+                else:
+                    break
+        
+            for r in range(row+1,NUM_ROWS()):
+                if RowIsLinked(r):
+                    rowgroup.append(r)
+                else:
+                    break
             return sorted(rowgroup)
+        def anyLocked(linked_group):
+            for r in linked_group:
+                if RowIsLocked(r):
+                    return True
+            return False
+        def firstOfGroup(linked_group):
+            return linked_group[0]
+        def lastOfGroup(linked_group):
+            return linked_group[-1]
+        # def searchPlace(rows,size):
+        #     i=0
+        #     last_start=None
+        #     for r in rows:
+        #         if not RowIsLocked(r):
+        #             if not last_start:
+        #                 last_start=r
+        #             i+=1
+        #         else:
+        #             i=0
+        #             last_start=None
+        #         if i == size:
+        #             return last_start
+        #     qDebug("Error searching place")
+        #     return None
+        # def searchPlaceDown(fromrow,size):
+        #     place = searchPlace(range(fromrow+1,NUM_ROWS()),size)
+        #     return lastOfGroup(getLinkedRowGroup(place))+1
+        # def searchPlaceUp(fromrow,size):
+        #     place = searchPlace(range(fromrow-1,-1,-1),size)
+        #     return firstOfGroup(getLinkedRowGroup(place))
 
         # Deprecated: Impossible movements aren't triggered
         #
         # if RowIsLocked(CURRENT_ROW):
         #    qDebug("Can't move locked cell")
         #    return
-        
-        # Store fixed rows without remove avoiding index modification { num_row : [ QTableItem ] }
-        fixed_rows = {}
+        def takeAllRowItems(row):
+            items = []
+            for x in range(0,NUM_COLS()):
+                items.append(self.table.takeItem(row,x))
+            return items
+        def extractFixedRows():
+            fixed_rows = {}
+            for y in range(0,NUM_ROWS()):
+                if RowIsLocked(y):
+                    fixed_rows.setdefault(y,takeAllRowItems(y))
+                    continue
+                if RowIsLinked(y):
+                    if anyLocked(getLinkedRowGroup(y)):
+                        fixed_rows.setdefault(y,takeAllRowItems(y))
+            return fixed_rows
+        # Store fixed rows { num_row : [ QTableItem ] }
+        fixed_rows = extractFixedRows()
+        # linked rows = [ ( num_row , [QTableItem] ),( num_row , [QTableItem] ) ]
+        # group all linked rows = [ linked_rows , linked_rows ]
+        def extractLinkedRows():
+            groups = []
+            for y in range(0,NUM_ROWS()):
+                if RowIsLinked(y):
+                    linked_rows = []
+                    for r in getLinkedRowGroup(y):
+                        linked_rows.append((r,takeAllRowItems(r)))
+                    groups.append(linked_rows)
+            return groups
 
+        groups_linked = extractLinkedRows()
+
+        def extractSingleRows():
+            single_rows = {}
+            for y in range(0,NUM_ROWS()):
+                if not RowEmpty(y):
+                    single_rows.setdefault(y,takeAllRowItems(y))
+            return single_rows
+
+        single_rows = extractSingleRows()
+
+        sum_linked = 0
+        for g in groups_linked:
+            sum_linked += len(g)
+        if NUM_ROWS() != len(single_rows) + len(fixed_rows) + sum_linked:
+            qDebug("Error")
         # Locked cells can't be here trying to move
         # Only 2 cell types can be here, with no action or linked cell(without lock)
 
         linked_group = []
         if RowIsLinked(CURRENT_ROW):
             linked_group = getLinkedRowGroup(CURRENT_ROW)
-            if dir == 'UP':
+            if dir == UP:
+                place = searchPlaceUp(CURRENT_ROW,len(linked_group))
                 # move all group up are the same as moving down previous cell before the group
                 # groups with first and last rows, are blocked and can't be triggered
-                row = linked_group[0]-1
-                onrow = linked_group[-1]+1
+                moving_rows = []
+                offset=0
+                for x in linked_group:
+                    moving_rows.append((x+offset*2,place+offset))
+                    offset+=1
             else:
+                place = searchPlaceDown(CURRENT_ROW,len(linked_group))
                 # move all group down are the same as moving up next cell after the group
                 # groups with first and last rows, are blocked and can't be triggered
-                row = linked_group[-1]+1
-                onrow = linked_group[0]
-        else: # Normal cell (without action), need to jump throught locked cells
+                moving_rows = []
+                offset=0
+                for x in linked_group:
+                    moving_rows.append((x+offset,place+offset))
+                    offset+=1
+                row = lastOfGroup(linked_group)+1
+                onrow = firstOfGroup(linked_group)
+        else: # Normal cell (without action), need to jump throught locked/linked cells
             # Remember row mem address to move (when relocating, needed row index is changed)
             first_of_row = self.table.item(CURRENT_ROW,0)
+            the_id = id(self.table.item(CURRENT_ROW,0))
             for y in range(NUM_ROWS()):
                 if RowIsLocked(y):
                     items = []
@@ -560,6 +691,9 @@ class tableHelper(QObject):
             # Update new position
             found = False # Make sure that element are found
             for y in range(NUM_ROWS()):
+                newid = id(self.table.item(y,0))
+                if newid == the_id:
+                    qDebug("found")
                 if self.table.item(y,0) is first_of_row:
                     row = y
                     found = True
@@ -569,7 +703,7 @@ class tableHelper(QObject):
                 return
 
             # Calculate origin and destination
-            if dir == 'UP':
+            if dir == UP:
                 onrow = row -1
             else:
                 onrow = row +2
