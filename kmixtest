@@ -627,12 +627,12 @@ class tableHelper(QObject):
             x=0
             for i in items:
                 if isinstance(i,bool):
-                    self.k=i
+                    self.k=items[x]
                 else:
-                    self.k=i
+                    self.k=items[x]
                 print('{} {}'.format(self.k,PUTDATA(row,x,self.k)))
                 #print(PUTDATA(row,x,i))
-                x=+1
+                x+=1
         def extractFixedRows():
             fixed_rows = {}
             for y in range(0,NUM_ROWS()):
@@ -665,6 +665,8 @@ class tableHelper(QObject):
         fixed_rows = extractFixedRows()
         for y in fixed_rows:
             #self.table.insertRow(0)
+            #self.table.removeRow(y)
+            #self.table.insertRow(y)
             putAllRowItems(y,fixed_rows[y])
         MODEL.layoutChanged.emit()
         return
