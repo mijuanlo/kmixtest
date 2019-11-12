@@ -514,39 +514,54 @@ class tableHelper(QObject):
             dir = UP
         else:
             dir = DOWN
+        MODEL = self.table.model()
+        MODEL.layoutAboutToBeChanged.emit()
         CURRENT_ROW = row
         PREV_ROW = row -1
         NEXT_ROW = row +1
         FIXED_COLUMN = self.headerItemNames.index('fixed')
         LINKED_COLUMN = self.headerItemNames.index('linked')
         def NUM_COLS():
-            return self.table.columnCount()
+            return MODEL.columnCount()
         def NUM_ROWS():
-            return self.table.rowCount()
+            return MODEL.rowCount()
         def LAST_ROW():
             return NUM_ROWS()-1
+        def LAST_COL():
+            return NUM_COLS()-1
+        PRIVATE_COLUMN = LAST_COL()
+        def DATA(row,col,take=False):
+            role = Qt.DisplayRole
+            idx = MODEL.index(row,col)
+            if col == LAST_COL():
+                role = Qt.UserRole
+            data = MODEL.data(idx,role)
+            if take:
+                MODEL.setData(idx,None)
+            return data
+        def PUTDATA(row,col,data):
+            role = Qt.DisplayRole
+            if col == PRIVATE_COLUMN:
+                role = Qt.UserRole
+            if col == 3:
+                data = "JAJAJa"
+            return MODEL.setData(MODEL.index(row,col),data,role)
+        def TAKE(row,col):
+            return DATA(row,col,True)
         def RowEmpty(row):
-            if self.table.item(row,0):
-                return False
-            return True
+             if DATA(row,PRIVATE_COLUMN):
+                 return False
+             return True
         def RowIsLocked(row):
-            item = self.table.item(row,FIXED_COLUMN)
-            if item:
-                return item.data(Qt.DisplayRole)
-            else:
-                return False
+            return DATA(row,FIXED_COLUMN)
         def RowIsLinked(row):
-            item = self.table.item(row,LINKED_COLUMN)
-            if item:
-                return item.data(Qt.DisplayRole)
-            else:
-                return False
+            return DATA(row,LINKED_COLUMN)
         def getId(row):
-            return id(self.table.item(CURRENT_ROW,0))
-        def searchPositionId(id):
-            for i in range(0,LAST_ROW()):
-                if id == getId(i):
-                    return i
+            return DATA(CURRENT_ROW,PRIVATE_COLUMN)
+        # def searchPositionId(id):
+        #     for i in range(0,LAST_ROW()):
+        #         if id == getId(i):
+        #             return i
         def getLinkedRowGroup(row):
             rowgroup=[]
             if not RowIsLinked(row):
@@ -605,8 +620,19 @@ class tableHelper(QObject):
         def takeAllRowItems(row):
             items = []
             for x in range(0,NUM_COLS()):
-                items.append(self.table.takeItem(row,x))
+                items.append(TAKE(row,x))
             return items
+        self.k=None
+        def putAllRowItems(row,items):
+            x=0
+            for i in items:
+                if isinstance(i,bool):
+                    self.k=i
+                else:
+                    self.k=i
+                print('{} {}'.format(self.k,PUTDATA(row,x,self.k)))
+                #print(PUTDATA(row,x,i))
+                x=+1
         def extractFixedRows():
             fixed_rows = {}
             for y in range(0,NUM_ROWS()):
@@ -617,8 +643,31 @@ class tableHelper(QObject):
                     if anyLocked(getLinkedRowGroup(y)):
                         fixed_rows.setdefault(y,takeAllRowItems(y))
             return fixed_rows
+        def printTable():
+            for y in range(NUM_ROWS()):
+                str=''
+                for x in range(1,3):
+                    i=DATA(y,x)
+                    if i:
+                        str+=' {}'.format(i.data(Qt.DisplayRole))
+                    else:
+                        str+=' {}'.format(None)
+                qDebug(str)
+        def analyzeTable():
+            for y in range(NUM_ROWS()):
+                pass
+        if RowIsLinked(CURRENT_ROW):
+            CURRENT_LINKED=True
+        else:
+            CURRENT_LINKED=False
+        current_id=getId(CURRENT_ROW)
         # Store fixed rows { num_row : [ QTableItem ] }
         fixed_rows = extractFixedRows()
+        for y in fixed_rows:
+            #self.table.insertRow(0)
+            putAllRowItems(y,fixed_rows[y])
+        MODEL.layoutChanged.emit()
+        return
         # linked rows = [ ( num_row , [QTableItem] ),( num_row , [QTableItem] ) ]
         # group all linked rows = [ linked_rows , linked_rows ]
         def extractLinkedRows():
@@ -641,12 +690,22 @@ class tableHelper(QObject):
             return single_rows
 
         single_rows = extractSingleRows()
-
         sum_linked = 0
         for g in groups_linked:
             sum_linked += len(g)
         if NUM_ROWS() != len(single_rows) + len(fixed_rows) + sum_linked:
             qDebug("Error")
+        #self.table.clearContents()
+        #self.table.reset()
+        #self.table.repaint()
+        #self.table.setRowCount(0)
+
+        #self.table.reset()
+        #self.table.repaint()
+        #if not CURRENT_LINKED:
+            
+
+        return
         # Locked cells can't be here trying to move
         # Only 2 cell types can be here, with no action or linked cell(without lock)
 
@@ -730,20 +789,21 @@ class tableHelper(QObject):
         last_row = table.rowCount()
         table.insertRow(last_row)
         # Columns 1,2,3 alignment & size is set from delegated class
-        table.setItem(last_row,0,QTableWidgetItem())
+        #table.setItem(last_row,0,QTableWidgetItem())
 
         for col in [1,2]:
             idx=self.model.index(last_row,col)
             self.model.setData(idx,False,Qt.DisplayRole)
 
-        i = QTableWidgetItem("{}".format(item))
-        i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        table.setItem(last_row,3,i)
-        
-        col = self.table.columnCount() -1
+        # i = QTableWidgetItem("{}".format(item))
+        # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        # table.setItem(last_row,3,i)
+        self.model.setData(self.model.index(last_row,3),"{}".format(item))
+
+        col = self.model.columnCount() -1
         idx=self.model.index(last_row,col)
         # Store as UserRole into hidden column
-        self.model.setData(idx,"{}".format(item),Qt.UserRole)
+        self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
 
     def addItem(self, item):
         if item and isinstance(item,list):
