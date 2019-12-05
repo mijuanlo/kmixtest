@@ -485,9 +485,10 @@ class tableDrawer(QStyledItemDelegate):
             return False
         ID = chr(65+index.row())
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 0)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
         self.parent.resolver.addCondition(ID,direction)
         R = self.parent.resolver.getResults()
+        print('{} can move {}? {}'.format(ID,'DOWN' if direction else 'UP',True if R else False))
         return True if R else False
 
         # CURRENT_COLUMN = index.column()
