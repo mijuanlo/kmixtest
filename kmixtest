@@ -131,6 +131,11 @@ class Resolver:
         if not thing:
             self.dprint(thing,None)
             return None
+        for id,valid in self.conditions:
+            if id==thing[l-1]:
+                if l not in valid:
+                    self.dprint(thing,False)
+                    return False
         option = self.options['names'].get(thing[l-1])
         if option.get('fixed') and option.get('place') != l and self.options['places'][l] != thing[l-1]:
             self.dprint(thing,False)
@@ -150,11 +155,11 @@ class Resolver:
                         return False
                 else:
                     print('ERROR BACKWARD')
-        for id,valid in self.conditions:
-            if id==thing[l-1]:
-                if l not in valid:
-                    self.dprint(thing,False)
-                    return False
+        # for id,valid in self.conditions:
+        #     if id==thing[l-1]:
+        #         if l not in valid:
+        #             self.dprint(thing,False)
+        #             return False
         if full:
             if self.debug_level > 0:
                 self.debug_info['times'].append((self.stime,time()))
@@ -483,12 +488,18 @@ class tableDrawer(QStyledItemDelegate):
         DOWN = 1
         if direction not in [UP,DOWN]:
             return False
+        if index.row() == 0 and direction == UP:
+            return False
+        if index.row() == index.model().rowCount()-1 and direction == DOWN:
+            return False
         ID = chr(65+index.row())
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
         self.parent.resolver.addCondition(ID,direction)
+        stime = time()
+        print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
         R = self.parent.resolver.getResults()
-        print('{} can move {}? {}'.format(ID,'DOWN' if direction else 'UP',True if R else False))
+        print('{0:s} can move {1:s}? {2:s} [ {3:4.2f} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if R else 'NO',time()-stime))
         return True if R else False
 
         # CURRENT_COLUMN = index.column()
