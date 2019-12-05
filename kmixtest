@@ -17,311 +17,312 @@ from sys import exit
 from time import time
 
 class Resolver:
-	class direction:
-		UP = 0
-		DOWN = 1
-	class testclass:
-		A = '00 00 10 11 01 10 00 01 01'
-		# A 0 0
-		# B 0 0
-		# C 1 0
-		# D 1 1
-		# E 0 1
-		# F 1 0
-		# G 0 0
-		# H 0 1
-		# I 0 1
-	class colors:
-		HEADER = '\033[95m'
-		OKBLUE = '\033[94m'
-		OKGREEN = '\033[92m'
-		WARNING = '\033[93m'
-		FAIL = '\033[91m'
-		ENDC = '\033[0m'
-		BOLD = '\033[1m'
-		UNDERLINE = '\033[4m'
+    class direction:
+        UP = 0
+        DOWN = 1
+    class testclass:
+        A = '00 00 10 11 01 10 00 01 01'
+        # A 0 0
+        # B 0 0
+        # C 1 0
+        # D 1 1
+        # E 0 1
+        # F 1 0
+        # G 0 0
+        # H 0 1
+        # I 0 1
+    class colors:
+        HEADER = '\033[95m'
+        OKBLUE = '\033[94m'
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
 
-	def dprint(self,msg,found):
-		if self.debug_level < 2:
-			return
-		if not msg:
-			msg = "<empty>"
-		begin = self.colors.FAIL
-		end = self.colors.ENDC
-		if found is True:
-			begin = self.colors.OKGREEN
-		elif found is None:
-			begin = self.colors.WARNING
-		print(begin+msg+end)
+    def dprint(self,msg,found):
+        if self.debug_level < 2:
+            return
+        if not msg:
+            msg = "<empty>"
+        begin = self.colors.FAIL
+        end = self.colors.ENDC
+        if found is True:
+            begin = self.colors.OKGREEN
+        elif found is None:
+            begin = self.colors.WARNING
+        print(begin+msg+end)
 
-	def __init__(self,*args,**kwargs):
-		thing = kwargs.get('thing',None)
-		complete = kwargs.get('complete',None)
-		debug_level = kwargs.get('debug_level',None)
-		for i,value in enumerate(args,1):
-			if i == 1 and not thing:
-				thing = value
-			if i == 2 and not complete:
-				complete = value
-			if i == 3 and not debug_level:
-				debug_level = value
+    def __init__(self,*args,**kwargs):
+        thing = kwargs.get('thing',None)
+        complete = kwargs.get('complete',None)
+        debug_level = kwargs.get('debug_level',None)
+        for i,value in enumerate(args,1):
+            if i == 1 and not thing:
+                thing = value
+            if i == 2 and not complete:
+                complete = value
+            if i == 3 and not debug_level:
+                debug_level = value
 
-		if not complete:
-			complete = False
-		if not debug_level:
-			debug_level = 0
-		self.thing = thing
+        if not complete:
+            complete = False
+        if not debug_level:
+            debug_level = 0
+        self.thing = thing
 
-		self.complete = complete
+        self.complete = complete
 
-		self.debug_info = { 'counter' : {'partial':0,'full':0}, 'times' : [] }
-		self.debug_level = debug_level
-		
-		self.combination = ''
-		self.levels = 0
-		self.options = {}
-		self.results = []
-		self.conditions = []
-		if not self.initialize(self.thing):
-			print(self.colors.FAIL+'Not valid'+self.colors.ENDC)
-			exit(1)
+        self.debug_info = { 'counter' : {'partial':0,'full':0}, 'times' : [] }
+        self.debug_level = debug_level
+        
+        self.combination = ''
+        self.levels = 0
+        self.options = {}
+        self.results = []
+        self.conditions = []
+        if not self.initialize(self.thing):
+            print(self.colors.FAIL+'Not valid'+self.colors.ENDC)
+            exit(1)
 
-	def print_debug_info(self):
-		if self.debug_level > 0:
-			acu = 0.0
-			s = []
-			for ini,end in self.debug_info['times']:
-				cur = end-ini
-				acu += cur
-				s.append('{0:4.2f}'.format(cur))
-			print("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
+    def print_debug_info(self):
+        if self.debug_level > 0:
+            acu = 0.0
+            s = []
+            for ini,end in self.debug_info['times']:
+                cur = end-ini
+                acu += cur
+                s.append('{0:4.2f}'.format(cur))
+            print("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
 
-	def addCondition(self,item,dir):
-		item_tmp = ''
-		item = item.upper()
-		for i in item:
-			if self.options['names'][i].get('linked'):
-				item_tmp += ''.join(self.options['names'][item].get('list'))
-			else:
-				item_tmp += i
-		i = self.combination.index(item)+1
-		if dir == self.direction.UP:
-			k=len(item)
-			for x in item:
-				k-=1
-				l = list(range(1,i-k))
-				l.reverse()
-				self.conditions.append((x,l))
-		else:
-			k=0
-			for x in item:
-				k+=1
-				self.conditions.append((x,list(range(i+k,self.levels+1))))
+    def addCondition(self,item,dir):
+        item_tmp = ''
+        item = item.upper()
+        for i in item:
+            if self.options['names'][i].get('linked'):
+                item_tmp += ''.join(self.options['names'][item].get('list'))
+            else:
+                item_tmp += i
+        i = self.combination.index(item)+1
+        if dir == self.direction.UP:
+            k=len(item)
+            for x in item:
+                k-=1
+                l = list(range(1,i-k))
+                l.reverse()
+                self.conditions.append((x,l))
+        else:
+            k=0
+            for x in item:
+                k+=1
+                self.conditions.append((x,list(range(i+k,self.levels+1))))
 
-	def validate(self,thing):
-		l = len(thing)
-		full = l == self.levels
+    def validate(self,thing):
+        l = len(thing)
+        full = l == self.levels
 
-		if self.debug_level > 0:
-			if full:
-				self.debug_info['counter']['full'] += 1
-			else:
-				self.debug_info['counter']['partial'] += 1
+        if self.debug_level > 0:
+            if full:
+                self.debug_info['counter']['full'] += 1
+            else:
+                self.debug_info['counter']['partial'] += 1
 
-		if not thing:
-			self.dprint(thing,None)
-			return None
-		option = self.options['names'].get(thing[l-1])
-		if option.get('fixed') and option.get('place') != l and self.options['places'][l] != thing[l-1]:
-			self.dprint(thing,False)
-			return False
-		if option.get('linked'):
-			llist = option.get('list')
-			xlist = len(llist)
-			a=l
-			for x in range(llist.index(thing[l-1]),-1,-1):
-				a-=1
-				if a < 0:
-					self.dprint(thing,False)
-					return False
-				if a >=0 and a < len(thing):
-					if thing[a] != llist[x]:
-						self.dprint(thing,False)
-						return False
-				else:
-					print('ERROR BACKWARD')
-		for id,valid in self.conditions:
-			if id==thing[l-1]:
-				if l not in valid:
-					self.dprint(thing,False)
-					return False
-		if full:
-			if self.debug_level > 0:
-				self.debug_info['times'].append((self.stime,time()))
-				self.stime = time()
-			self.dprint(thing,True)
-			self.results.append(thing)
-			if self.complete:
-				return None
-			else:
-				return thing
-		else:
-			self.dprint(thing,None)
-			return None
+        if not thing:
+            self.dprint(thing,None)
+            return None
+        option = self.options['names'].get(thing[l-1])
+        if option.get('fixed') and option.get('place') != l and self.options['places'][l] != thing[l-1]:
+            self.dprint(thing,False)
+            return False
+        if option.get('linked'):
+            llist = option.get('list')
+            xlist = len(llist)
+            a=l
+            for x in range(llist.index(thing[l-1]),-1,-1):
+                a-=1
+                if a < 0:
+                    self.dprint(thing,False)
+                    return False
+                if a >=0 and a < len(thing):
+                    if thing[a] != llist[x]:
+                        self.dprint(thing,False)
+                        return False
+                else:
+                    print('ERROR BACKWARD')
+        for id,valid in self.conditions:
+            if id==thing[l-1]:
+                if l not in valid:
+                    self.dprint(thing,False)
+                    return False
+        if full:
+            if self.debug_level > 0:
+                self.debug_info['times'].append((self.stime,time()))
+                self.stime = time()
+            self.dprint(thing,True)
+            self.results.append(thing)
+            if self.complete:
+                return None
+            else:
+                return thing
+        else:
+            self.dprint(thing,None)
+            return None
 
-	def tree(self,level=1,used='',initialcall=True):
-		if initialcall and self.debug_level > 0:
-			self.stime = time()
-		ret = self.validate(used)
+    def tree(self,level=1,used='',initialcall=True):
+        if initialcall and self.debug_level > 0:
+            self.stime = time()
+        ret = self.validate(used)
 
-		if ret is None and level <= self.levels:
-			if self.options['places'][level]:
-				ret = self.tree(level+1,used+self.options['places'][level],False)
-				if ret:
-					if initialcall and self.debug_level > 0:
-						self.debug_info['times'].append((self.stime,time()))
-					return ret
-			else:
-				for x in [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]:
-					ret = self.tree(level+1,used + x,False)
-					if ret:
-						if initialcall and self.debug_level > 0:
-							self.debug_info['times'].append((self.stime,time()))
-						return ret
-		else:
-			if initialcall and self.debug_level > 0:
-				self.debug_info['times'].append((self.stime,time()))
-			return ret
-		
-		if initialcall and self.debug_level > 0:
-			self.debug_info['times'].append((self.stime,time()))
+        if ret is None and level <= self.levels:
+            if self.options['places'][level]:
+                ret = self.tree(level+1,used+self.options['places'][level],False)
+                if ret:
+                    if initialcall and self.debug_level > 0:
+                        self.debug_info['times'].append((self.stime,time()))
+                    return ret
+            else:
+                for x in [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]:
+                    ret = self.tree(level+1,used + x,False)
+                    if ret:
+                        if initialcall and self.debug_level > 0:
+                            self.debug_info['times'].append((self.stime,time()))
+                        return ret
+        else:
+            if initialcall and self.debug_level > 0:
+                self.debug_info['times'].append((self.stime,time()))
+            return ret
+        
+        if initialcall and self.debug_level > 0:
+            self.debug_info['times'].append((self.stime,time()))
 
-	def initialize(self,thing):
-		try:
-			skip_characters = [x for x in thing if x not in '01' ]
-			for x in skip_characters:
-				thing = thing.replace(x,'')
-		except:
-			pass
-		l = len(thing)
-		wellformed = l%2 == 0 and l!=0
-		if not wellformed: 
-			return False
-		else:
-			self.thing = thing
-		self.conditions = []
-		self.combination = ''
-		self.options = { 'places': {} , 'names': {} }
-		
-		self.levels = int(len(thing)/2)
-		templinked = []
-		fixedlist=False
-		if self.debug_level > 1:
-			table = '--- TABLE ---\n'
-		for i in range(self.levels):
-			name = chr(65+i)
-			self.combination += name
-			mark_fixed = thing[2*i]
-			mark_linked = thing[2*i+1]
-			if self.debug_level > 1:
-				table += '{}   | {} | {} |\n'.format(name,mark_fixed,mark_linked) 
-			self.options['names'].setdefault(name,{'place':i+1,'ownfixed':mark_fixed=='1','linked':mark_linked=='1','list':[],'fixedlist':None,'fixed':None})
-			if self.options['names'].get(name).get('linked'):
-				templinked.append(name)
-			else:
-				for char in templinked:
-					if self.options['names'][char]['ownfixed']:
-						fixedlist = True
-					self.options['names'][char]['list']=templinked
-				if fixedlist:
-					for char in templinked:
-						self.options['names'][char]['fixedlist'] = True
-				templinked = []
-				fixedlist = False
-		if self.debug_level > 1:
-			table += '-------------\n'
-			print(self.colors.WARNING+table+self.colors.ENDC)
-		if templinked:
-			for char in templinked:
-				self.options['names'][char]['list']=templinked
-				if self.options['names'][char]['ownfixed']:
-					fixedlist = True
-			if fixedlist:
-					for char in templinked:
-						self.options['names'][char]['fixedlist'] = True
-			templinked = False
-			fixedlist = False
-		for char in self.options['names']:
-			self.options['names'][char]['fixed'] = self.options['names'][char]['ownfixed'] or self.options['names'][char]['fixedlist']
-		for i in range(self.levels):
-			name = chr(65+i)
-			if self.options['names'][name]['fixed']:
-				self.options['places'][i+1] = name
-			else:
-				self.options['places'][i+1] = None
-		if self.complete:
-			results = []
-		return True
+    def initialize(self,thing):
+        try:
+            skip_characters = [x for x in thing if x not in '01' ]
+            for x in skip_characters:
+                thing = thing.replace(x,'')
+        except:
+            pass
+        l = len(thing)
+        wellformed = l%2 == 0 and l!=0
+        if not wellformed: 
+            return False
+        else:
+            self.thing = thing
+        self.conditions = []
+        self.combination = ''
+        self.options = { 'places': {} , 'names': {} }
+        
+        self.levels = int(len(thing)/2)
+        templinked = []
+        fixedlist=False
+        if self.debug_level > 1:
+            table = '--- TABLE ---\n'
+        for i in range(self.levels):
+            name = chr(65+i)
+            self.combination += name
+            mark_fixed = thing[2*i]
+            mark_linked = thing[2*i+1]
+            if self.debug_level > 1:
+                table += '{}   | {} | {} |\n'.format(name,mark_fixed,mark_linked) 
+            self.options['names'].setdefault(name,{'place':i+1,'ownfixed':mark_fixed=='1','linked':mark_linked=='1','list':[],'fixedlist':None,'fixed':None})
+            if self.options['names'].get(name).get('linked'):
+                templinked.append(name)
+            else:
+                for char in templinked:
+                    if self.options['names'][char]['ownfixed']:
+                        fixedlist = True
+                    self.options['names'][char]['list']=templinked
+                if fixedlist:
+                    for char in templinked:
+                        self.options['names'][char]['fixedlist'] = True
+                templinked = []
+                fixedlist = False
+        if self.debug_level > 1:
+            table += '-------------\n'
+            print(self.colors.WARNING+table+self.colors.ENDC)
+        if templinked:
+            for char in templinked:
+                self.options['names'][char]['list']=templinked
+                if self.options['names'][char]['ownfixed']:
+                    fixedlist = True
+            if fixedlist:
+                    for char in templinked:
+                        self.options['names'][char]['fixedlist'] = True
+            templinked = False
+            fixedlist = False
+        for char in self.options['names']:
+            self.options['names'][char]['fixed'] = self.options['names'][char]['ownfixed'] or self.options['names'][char]['fixedlist']
+        for i in range(self.levels):
+            name = chr(65+i)
+            if self.options['names'][name]['fixed']:
+                self.options['places'][i+1] = name
+            else:
+                self.options['places'][i+1] = None
+        if self.complete:
+            results = []
+        return True
 
-	def getResults(self):
-		return self.results
+    def getResults(self):
+        return self.results
 
-	def print_results(self):
-		results = len(self.results)
-		if not results:
-			r = 'No solution'
-		else:
-			r = ','.join(self.results)
-			if self.complete:
-				r += ' ({} results)'.format(results)
-			else:
-				r += ' (first result)'
-		print(self.colors.OKBLUE+r+self.colors.ENDC)
-		self.print_debug_info()
+    def print_results(self):
+        results = len(self.results)
+        if not results:
+            r = 'No solution'
+        else:
+            r = ','.join(self.results)
+            if self.complete:
+                r += ' ({} results)'.format(results)
+            else:
+                r += ' (first result)'
+        if self.debug_level > 0:
+            print(self.colors.OKBLUE+r+self.colors.ENDC)
+        self.print_debug_info()
 
 class ResolverCached():
-	def __init__(self,*args,**kwargs):
-		self.reset()
-	
-	def getResults(self,*args,**kwargs):
-		k = self.makekey()
-		if not k or not k in self.cache: # or not self.cache[k]:
-			self.tree()
-		return self.cache[k]
+    def __init__(self,*args,**kwargs):
+        self.reset()
+    
+    def getResults(self,*args,**kwargs):
+        k = self.makekey()
+        if not k or not k in self.cache: # or not self.cache[k]:
+            self.tree()
+        return self.cache[k]
 
-	def newQuery(self,*args,**kwargs):
-		self.resolver = Resolver(*args,**kwargs)
-		self.key = self.resolver.thing
-		self.key_result = ''
-		self.conditions = {}
+    def newQuery(self,*args,**kwargs):
+        self.resolver = Resolver(*args,**kwargs)
+        self.key = self.resolver.thing
+        self.key_result = ''
+        self.conditions = {}
 
-	def reset(self,*args,**kwargs):
-		self.cache = {}
-		self.key_result = ''
-		self.conditions = {}
+    def reset(self,*args,**kwargs):
+        self.cache = {}
+        self.key_result = ''
+        self.conditions = {}
 
-	def makekey(self,inserting=False):
-		self.key_result = self.key
-		for t in sorted(list(self.conditions)):
-			for d in sorted(list(self.conditions[t])):
-				if inserting:
-					self.resolver.addCondition(t,d)
-				self.key_result += str(t) + str(d)
-		return self.key_result
+    def makekey(self,inserting=False):
+        self.key_result = self.key
+        for t in sorted(list(self.conditions)):
+            for d in sorted(list(self.conditions[t])):
+                if inserting:
+                    self.resolver.addCondition(t,d)
+                self.key_result += str(t) + str(d)
+        return self.key_result
 
-	def tree(self):
-		def run():
-			k = self.makekey(inserting=True)
-			self.resolver.tree()
-			self.resolver.print_results()
-			self.cache[k] = self.resolver.getResults()
-		k = self.makekey()
-		if k not in self.cache:
-			run()
-	
-	def addCondition(self, thing, dir):
-		self.conditions.setdefault(thing,{})
-		self.conditions[thing].setdefault(dir,{})
+    def tree(self):
+        def run():
+            k = self.makekey(inserting=True)
+            self.resolver.tree()
+            self.resolver.print_results()
+            self.cache[k] = self.resolver.getResults()
+        k = self.makekey()
+        if k not in self.cache:
+            run()
+    
+    def addCondition(self, thing, dir):
+        self.conditions.setdefault(thing,{})
+        self.conditions[thing].setdefault(dir,{})
 
 # if __name__ == "__main__":
 # 	debug_level = 0
@@ -331,7 +332,7 @@ class ResolverCached():
 # 	resolver.tree()
 # 	print(resolver.getResults())
 # 	resolver.print_results()
-	
+    
 # 	print('With resolver')
 # 	resolver = ResolverCached()
 # 	resolver.newQuery(thing = Resolver.testclass.A, complete = complete, debug_level = debug_level)
@@ -485,156 +486,152 @@ class tableDrawer(QStyledItemDelegate):
         ID = chr(65+index.row())
         STATE = self.parent.stateString
         self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 0)
-        qDebug('{} can go {}?'.format(ID,'DOWN' if direction else 'UP'))
-        if ID == 'B' and direction == 1 and index.model().rowCount() > 2:
-            a=0
         self.parent.resolver.addCondition(ID,direction)
         R = self.parent.resolver.getResults()
-        qDebug('{}'.format(R))
         return True if R else False
 
-        CURRENT_COLUMN = index.column()
-        CURRENT_ROW = index.row()
-        FIRST_COL = 0
-        FIRST_ROW = 0
-        NEXT_ROW = CURRENT_ROW +1
-        PREV_ROW = CURRENT_ROW -1
-        NUM_ROWS = index.model().rowCount()
-        LAST_ROW = NUM_ROWS -1
+        # CURRENT_COLUMN = index.column()
+        # CURRENT_ROW = index.row()
+        # FIRST_COL = 0
+        # FIRST_ROW = 0
+        # NEXT_ROW = CURRENT_ROW +1
+        # PREV_ROW = CURRENT_ROW -1
+        # NUM_ROWS = index.model().rowCount()
+        # LAST_ROW = NUM_ROWS -1
         
-        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+        # FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        # LINKED_COLUMN = self.parent.headerItemNames.index('linked')
 
-        def getCellState(row,col,index=index):
-            return index.sibling(row,col).data(Qt.DisplayRole)
-        def allLocked(range_search,column):
-            all_locked = True
-            for i in range_search:
-                if not getCellState(i,column):
-                    all_locked = False
-                    break
-            return all_locked
-        def allDownLocked():
-            r = range(NEXT_ROW,NUM_ROWS)
-            return allLocked(r,FIXED_COLUMN)
-        def allDownLinked():
-            r = range(NEXT_ROW,NUM_ROWS)
-            return allLocked(r,LINKED_COLUMN)
-        def allUpLocked():
-            r = range(PREV_ROW,-1,-1)
-            return allLocked(r,FIXED_COLUMN)
-        def allUpLinked():
-            r = range(PREV_ROW,-1,-1)
-            return allLocked(r,LINKED_COLUMN)
-        def RowIsLinked(row):
-            return getCellState(row,LINKED_COLUMN)
-        def RowIsLocked(row):
-            return getCellState(row,FIXED_COLUMN)
-        def getLinkedRowGroup(row):
-            rowgroup=[]
-            if not RowIsLinked(row):
-                return []
-            else:
-                rowgroup.append(row)
-            if CURRENT_ROW > 0:
-                for r in range(PREV_ROW,-1,-1):
-                    if RowIsLinked(r):
-                        rowgroup.append(r)
-                    else:
-                        break
-            if CURRENT_ROW < NUM_ROWS:
-                for r in range(NEXT_ROW,NUM_ROWS):
-                    if RowIsLinked(r):
-                        rowgroup.append(r)
-                    else:
-                        break
-            return sorted(rowgroup)
-        def lastOfGroup(list_linked):
-            return list_linked[-1]
-        def firstOfGroup(list_linked):
-            return list_linked[0]
-        def anyLocked(list_linked):
-            for i in list_linked:
-                if RowIsLocked(i):
-                    return True
-            return False
+        # def getCellState(row,col,index=index):
+        #     return index.sibling(row,col).data(Qt.DisplayRole)
+        # def allLocked(range_search,column):
+        #     all_locked = True
+        #     for i in range_search:
+        #         if not getCellState(i,column):
+        #             all_locked = False
+        #             break
+        #     return all_locked
+        # def allDownLocked():
+        #     r = range(NEXT_ROW,NUM_ROWS)
+        #     return allLocked(r,FIXED_COLUMN)
+        # def allDownLinked():
+        #     r = range(NEXT_ROW,NUM_ROWS)
+        #     return allLocked(r,LINKED_COLUMN)
+        # def allUpLocked():
+        #     r = range(PREV_ROW,-1,-1)
+        #     return allLocked(r,FIXED_COLUMN)
+        # def allUpLinked():
+        #     r = range(PREV_ROW,-1,-1)
+        #     return allLocked(r,LINKED_COLUMN)
+        # def RowIsLinked(row):
+        #     return getCellState(row,LINKED_COLUMN)
+        # def RowIsLocked(row):
+        #     return getCellState(row,FIXED_COLUMN)
+        # def getLinkedRowGroup(row):
+        #     rowgroup=[]
+        #     if not RowIsLinked(row):
+        #         return []
+        #     else:
+        #         rowgroup.append(row)
+        #     if CURRENT_ROW > 0:
+        #         for r in range(PREV_ROW,-1,-1):
+        #             if RowIsLinked(r):
+        #                 rowgroup.append(r)
+        #             else:
+        #                 break
+        #     if CURRENT_ROW < NUM_ROWS:
+        #         for r in range(NEXT_ROW,NUM_ROWS):
+        #             if RowIsLinked(r):
+        #                 rowgroup.append(r)
+        #             else:
+        #                 break
+        #     return sorted(rowgroup)
+        # def lastOfGroup(list_linked):
+        #     return list_linked[-1]
+        # def firstOfGroup(list_linked):
+        #     return list_linked[0]
+        # def anyLocked(list_linked):
+        #     for i in list_linked:
+        #         if RowIsLocked(i):
+        #             return True
+        #     return False
 
-        def freeRows():
-            available = list(range(NUM_ROWS))
-            for r in range(FIRST_ROW,NUM_ROWS):
-                if r not in available:
-                    continue
-                if RowIsLocked(r):
-                    available.remove(r)
-                if RowIsLinked(r):
-                    g = getLinkedRowGroup(r)
-                    if anyLocked(g):
-                        for i in g:
-                            if i in available:
-                                available.remove(i)
-            return available
-        def consecutiveNotLocked(cells):
-            i=0
-            max=0
-            for r in cells:
-                if not RowIsLocked(r):
-                    i+=1
-                else:
-                    i=0
-                if i > max:
-                    max = i
-            return max
-        def consecutiveNotLockedUp(fromrow):
-            l=range(fromrow-1,-1,-1)
-            return consecutiveNotLocked(l)
-        def consecutiveNotLockedDown(fromrow):
-            l=range(fromrow+1,NUM_ROWS)
-            return consecutiveNotLocked(l)
+        # def freeRows():
+        #     available = list(range(NUM_ROWS))
+        #     for r in range(FIRST_ROW,NUM_ROWS):
+        #         if r not in available:
+        #             continue
+        #         if RowIsLocked(r):
+        #             available.remove(r)
+        #         if RowIsLinked(r):
+        #             g = getLinkedRowGroup(r)
+        #             if anyLocked(g):
+        #                 for i in g:
+        #                     if i in available:
+        #                         available.remove(i)
+        #     return available
+        # def consecutiveNotLocked(cells):
+        #     i=0
+        #     max=0
+        #     for r in cells:
+        #         if not RowIsLocked(r):
+        #             i+=1
+        #         else:
+        #             i=0
+        #         if i > max:
+        #             max = i
+        #     return max
+        # def consecutiveNotLockedUp(fromrow):
+        #     l=range(fromrow-1,-1,-1)
+        #     return consecutiveNotLocked(l)
+        # def consecutiveNotLockedDown(fromrow):
+        #     l=range(fromrow+1,NUM_ROWS)
+        #     return consecutiveNotLocked(l)
 
-        if getCellState(CURRENT_ROW,FIXED_COLUMN):
-            return False
+        # if getCellState(CURRENT_ROW,FIXED_COLUMN):
+        #     return False
 
-        if direction == UP:
-            if CURRENT_ROW == FIRST_ROW:
-                return False
+        # if direction == UP:
+        #     if CURRENT_ROW == FIRST_ROW:
+        #         return False
             
-            if RowIsLinked(CURRENT_ROW):
-                if RowIsLinked(PREV_ROW):
-                    return False
-                lg = getLinkedRowGroup(CURRENT_ROW)
-                if anyLocked(lg):
-                    return False
-                if len(lg) > consecutiveNotLockedUp(firstOfGroup(lg)):
-                    return False
-            else:
-                if allUpLinked() and anyLocked(getLinkedRowGroup(PREV_ROW)):
-                    return False
+        #     if RowIsLinked(CURRENT_ROW):
+        #         if RowIsLinked(PREV_ROW):
+        #             return False
+        #         lg = getLinkedRowGroup(CURRENT_ROW)
+        #         if anyLocked(lg):
+        #             return False
+        #         if len(lg) > consecutiveNotLockedUp(firstOfGroup(lg)):
+        #             return False
+        #     else:
+        #         if allUpLinked() and anyLocked(getLinkedRowGroup(PREV_ROW)):
+        #             return False
             
-            if allUpLocked():
-                return False
+        #     if allUpLocked():
+        #         return False
 
-        if direction == DOWN: 
-            if CURRENT_ROW == LAST_ROW:
-                return False
+        # if direction == DOWN: 
+        #     if CURRENT_ROW == LAST_ROW:
+        #         return False
 
-            if RowIsLinked(CURRENT_ROW):
-                if RowIsLinked(NEXT_ROW):
-                    return False
-                lg = getLinkedRowGroup(CURRENT_ROW)
-                if anyLocked(lg):
-                    return False
-                if len(lg) > consecutiveNotLockedDown(lastOfGroup(lg)):
-                    return False
-            else:
-                if allDownLinked() and anyLocked(getLinkedRowGroup(NEXT_ROW)):
-                    return False
+        #     if RowIsLinked(CURRENT_ROW):
+        #         if RowIsLinked(NEXT_ROW):
+        #             return False
+        #         lg = getLinkedRowGroup(CURRENT_ROW)
+        #         if anyLocked(lg):
+        #             return False
+        #         if len(lg) > consecutiveNotLockedDown(lastOfGroup(lg)):
+        #             return False
+        #     else:
+        #         if allDownLinked() and anyLocked(getLinkedRowGroup(NEXT_ROW)):
+        #             return False
 
-            if allDownLocked():
-                return False
+        #     if allDownLocked():
+        #         return False
         
-        if len(freeRows()) < 2:
-            return False
-        return True
+        # if len(freeRows()) < 2:
+        #     return False
+        # return True
 
     def paint(self, painter, option, index):
         if not index.isValid():
