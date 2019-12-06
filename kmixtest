@@ -20,6 +20,7 @@ class Resolver:
     class direction:
         UP = 0
         DOWN = 1
+        FIXED = 2
     class testclass:
         A = '00 00 10 11 01 10 00 01 01'
         # A 0 0
@@ -101,18 +102,22 @@ class Resolver:
         item = item.upper()
         for i in item:
             if self.options['names'][i].get('linked'):
-                item_tmp += ''.join(self.options['names'][item].get('list'))
+                item_tmp += ''.join(self.options['names'][i].get('list'))
             else:
                 item_tmp += i
         i = self.combination.index(item)+1
-        if dir == self.direction.UP:
+        if dir == self.direction.FIXED:
+            for x in item:
+                self.conditions.append((x,[i]))
+                i+=1
+        elif dir == self.direction.UP:
             k=len(item)
             for x in item:
                 k-=1
                 l = list(range(1,i-k))
                 l.reverse()
                 self.conditions.append((x,l))
-        else:
+        elif dir == self.direction.DOWN:
             k=0
             for x in item:
                 k+=1
@@ -486,16 +491,29 @@ class tableDrawer(QStyledItemDelegate):
     def canMove(self, index, direction):
         UP = 0
         DOWN = 1
+        FIXED = 2
         if direction not in [UP,DOWN]:
             return False
-        if index.row() == 0 and direction == UP:
-            return False
-        if index.row() == index.model().rowCount()-1 and direction == DOWN:
-            return False
+        #if index.row() == 0 and direction == UP:
+        #    return False
+        #if index.row() == index.model().rowCount()-1 and direction == DOWN:
+        #    return False
         ID = chr(65+index.row())
         STATE = self.parent.stateString
         self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
         self.parent.resolver.addCondition(ID,direction)
+        if direction == UP:
+            s = ''
+            for i in range(index.row()+1,index.model().rowCount()):
+                s += chr(65+i)
+            if s:
+                self.parent.resolver.addCondition(s,FIXED)
+        if direction == DOWN:
+            s = ''
+            for i in range(index.row()-1,-1,-1):
+                s = chr(65+i)+s
+            if s:
+                self.parent.resolver.addCondition(s,FIXED)
         stime = time()
         print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
         R = self.parent.resolver.getResults()
