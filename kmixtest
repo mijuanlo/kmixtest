@@ -498,19 +498,25 @@ class tableDrawer(QStyledItemDelegate):
         #    return False
         #if index.row() == index.model().rowCount()-1 and direction == DOWN:
         #    return False
-        ID = chr(65+index.row())
+        ROW = index.row()
+        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+        ID = chr(65+ROW)
         STATE = self.parent.stateString
         self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
-            for i in range(index.row()+1,index.model().rowCount()):
+            while ROW < index.model().rowCount() and index.sibling(ROW+1,LINKED_COLUMN).data(Qt.DisplayRole):
+                ROW += 1
+            for i in range(ROW+1,index.model().rowCount()):
                 s += chr(65+i)
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
         if direction == DOWN:
             s = ''
-            for i in range(index.row()-1,-1,-1):
+            while ROW > 0 and index.sibling(ROW-1,LINKED_COLUMN).data(Qt.DisplayRole):
+                ROW -= 1
+            for i in range(ROW-1,-1,-1):
                 s = chr(65+i)+s
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
