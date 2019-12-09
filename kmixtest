@@ -100,7 +100,7 @@ class Resolver:
     def addCondition(self,item,dir):
         item_tmp = ''
         item_bkp = item
-        item = item.upper()
+        #item = item.upper()
         for i in item:
             if self.options['names'][i].get('linked'):
                 linked_str = ''.join(self.options['names'][i].get('list'))
@@ -183,6 +183,24 @@ class Resolver:
             self.dprint(thing,None)
             return None
 
+    def reorder(self,thing):
+        singles = []
+        linked = []
+        used = []
+        for o in thing:
+            if not self.options['names'][o].get('linked'):
+                singles.append(o)
+            else:
+                if o not in used:
+                    l = self.options['names'][o].get('list')
+                    used.extend(l)
+                    linked.append(l)
+        out = []
+        for o in linked:
+            out.extend(o)
+        out.extend(singles)
+        return out
+
     def tree(self,level=1,used='',initialcall=True):
         if initialcall and self.debug_level > 0:
             self.stime = time()
@@ -196,7 +214,9 @@ class Resolver:
                         self.debug_info['times'].append((self.stime,time()))
                     return ret
             else:
-                for x in [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]:
+                possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
+                possible = self.reorder(possible)
+                for x in possible:
                     ret = self.tree(level+1,used + x,False)
                     if ret:
                         if initialcall and self.debug_level > 0:
@@ -506,7 +526,7 @@ class tableDrawer(QStyledItemDelegate):
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         ID = chr(65+ROW)
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
@@ -525,7 +545,7 @@ class tableDrawer(QStyledItemDelegate):
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
         stime = time()
-        print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+        #print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
         R = self.parent.resolver.getResults()
         duration = time() - stime
         if duration > 5.0:
