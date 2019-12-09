@@ -99,12 +99,16 @@ class Resolver:
 
     def addCondition(self,item,dir):
         item_tmp = ''
+        item_bkp = item
         item = item.upper()
         for i in item:
             if self.options['names'][i].get('linked'):
-                item_tmp += ''.join(self.options['names'][i].get('list'))
+                linked_str = ''.join(self.options['names'][i].get('list'))
+                if linked_str not in item_tmp:
+                    item_tmp += linked_str
             else:
                 item_tmp += i
+        item = item_tmp
         i = self.combination.index(item)+1
         if dir == self.direction.FIXED:
             for x in item:
@@ -226,15 +230,15 @@ class Resolver:
         self.levels = int(len(thing)/2)
         templinked = []
         fixedlist=False
-        if self.debug_level > 1:
-            table = '--- TABLE ---\n'
+        #if self.debug_level > 1:
+        #    table = '--- TABLE ---\n'
         for i in range(self.levels):
             name = chr(65+i)
             self.combination += name
             mark_fixed = thing[2*i]
             mark_linked = thing[2*i+1]
-            if self.debug_level > 1:
-                table += '{}   | {} | {} |\n'.format(name,mark_fixed,mark_linked) 
+            #if self.debug_level > 1:
+            #    table += '{}   | {} | {} |\n'.format(name,mark_fixed,mark_linked) 
             self.options['names'].setdefault(name,{'place':i+1,'ownfixed':mark_fixed=='1','linked':mark_linked=='1','list':[],'fixedlist':None,'fixed':None})
             if self.options['names'].get(name).get('linked'):
                 templinked.append(name)
@@ -248,9 +252,9 @@ class Resolver:
                         self.options['names'][char]['fixedlist'] = True
                 templinked = []
                 fixedlist = False
-        if self.debug_level > 1:
-            table += '-------------\n'
-            print(self.colors.WARNING+table+self.colors.ENDC)
+        #if self.debug_level > 1:
+        #    table += '-------------\n'
+        #    print(self.colors.WARNING+table+self.colors.ENDC)
         if templinked:
             for char in templinked:
                 self.options['names'][char]['list']=templinked
@@ -502,7 +506,7 @@ class tableDrawer(QStyledItemDelegate):
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         ID = chr(65+ROW)
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
@@ -523,7 +527,9 @@ class tableDrawer(QStyledItemDelegate):
         stime = time()
         print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
         R = self.parent.resolver.getResults()
-        print('{0:s} can move {1:s}? {2:s} [ {3:4.2f} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if R else 'NO',time()-stime))
+        duration = time() - stime
+        if duration > 5.0:
+            print('{0:s} can move {1:s}? {2:s} [ {3:4.2f} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration))
         return True if R else False
 
         # CURRENT_COLUMN = index.column()
