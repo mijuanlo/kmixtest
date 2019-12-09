@@ -100,7 +100,6 @@ class Resolver:
     def addCondition(self,item,dir):
         item_tmp = ''
         item_bkp = item
-        #item = item.upper()
         for i in item:
             if self.options['names'][i].get('linked'):
                 linked_str = ''.join(self.options['names'][i].get('list'))
@@ -524,9 +523,12 @@ class tableDrawer(QStyledItemDelegate):
         #    return False
         ROW = index.row()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+            return False
         ID = chr(65+ROW)
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 1)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
