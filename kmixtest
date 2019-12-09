@@ -182,22 +182,46 @@ class Resolver:
             self.dprint(thing,None)
             return None
 
-    def reorder(self,thing):
-        singles = []
-        linked = []
-        used = []
-        for o in thing:
-            if not self.options['names'][o].get('linked'):
-                singles.append(o)
-            else:
-                if o not in used:
-                    l = self.options['names'][o].get('list')
-                    used.extend(l)
-                    linked.append(l)
-        out = []
-        for o in linked:
-            out.extend(o)
-        out.extend(singles)
+    def reorder(self,used,thing):
+        #if not used:
+        #    return thing
+        # singles = []
+        # linked = []
+        # done = []
+        # for o in thing:
+        #     if not self.options['names'][o].get('linked'):
+        #         singles.append(o)
+        #     else:
+        #         if o not in done:
+        #             l = self.options['names'][o].get('list')
+        #             done.extend(l)
+        #             linked.append(l)
+        # out = []
+        # for o in linked:
+        #     out.extend(o)
+        # out.extend(singles)
+        # for x in used:
+        #     if x in out:
+        #         out.remove(x)
+        out = thing
+        # TRY TO USE FIRST WHATEVER THAT HAS CONDITIONS AND IS NOT USED
+        l=[x for x,y in self.conditions]
+        l.reverse()
+        for x in l:
+            if x not in used:
+                out.remove(x)
+                out.insert(0,x)
+        
+        # BUT.... FIRST LINKED
+        if used:
+            if self.options['names'][used[-1]].get('linked'):
+                where = self.options['names'][used[-1]].get('list').index(used[-1])
+                for x in range(where+1,len(self.options['names'][used[-1]].get('list'))):
+                    out.remove(self.options['names'][used[-1]].get('list')[x])
+                    out.insert(0,self.options['names'][used[-1]].get('list')[x])
+        if len(thing) != len(out):
+            print('Error')
+            exit(1)
         return out
 
     def tree(self,level=1,used='',initialcall=True):
@@ -214,7 +238,8 @@ class Resolver:
                     return ret
             else:
                 possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
-                possible = self.reorder(possible)
+                #if len(used) and self.options['names'][used[-1]].get('linked') and self.options['names'][used[-1]].get('list')[-1] != used[-1]:
+                possible = self.reorder(used,possible)
                 for x in possible:
                     ret = self.tree(level+1,used + x,False)
                     if ret:
@@ -512,6 +537,7 @@ class tableDrawer(QStyledItemDelegate):
         return super().editorEvent(event, model, option, index) # same as return False
 
     def canMove(self, index, direction):
+        DEBUG_LEVEL = 0
         UP = 0
         DOWN = 1
         FIXED = 2
@@ -522,19 +548,35 @@ class tableDrawer(QStyledItemDelegate):
         #if index.row() == index.model().rowCount()-1 and direction == DOWN:
         #    return False
         ROW = index.row()
+        ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
         if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
             return False
+        if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+            idx = ROW -1
+            while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx -= 1
+
+            idx = ROW +1
+            while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx += 1
+            
         ID = chr(65+ROW)
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = 2)
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = DEBUG_LEVEL)
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
-            while ROW < index.model().rowCount() and index.sibling(ROW+1,LINKED_COLUMN).data(Qt.DisplayRole):
+            while ROW < ROW_COUNT and index.sibling(ROW+1,LINKED_COLUMN).data(Qt.DisplayRole):
                 ROW += 1
-            for i in range(ROW+1,index.model().rowCount()):
+            for i in range(ROW+1,ROW_COUNT):
                 s += chr(65+i)
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
@@ -547,11 +589,21 @@ class tableDrawer(QStyledItemDelegate):
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
         stime = time()
-        #print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+        if DEBUG_LEVEL > 0:
+            print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+        ##print('{} {} {}'.format(ID,direction,index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole)))
+        if ID=='F' and direction == DOWN and index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole):
+            a=1
         R = self.parent.resolver.getResults()
         duration = time() - stime
-        if duration > 5.0:
-            print('{0:s} can move {1:s}? {2:s} [ {3:4.2f} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration))
+        if duration > 1.0 and DEBUG_LEVEL > 0:
+            pad = '>'*20
+            ipad = ''
+            epad = ''
+            if duration > 5.0:
+                ipad = Resolver.colors.FAIL
+                epad = Resolver.colors.ENDC
+            print('{0:s}{1:s} {2:s} can move {3:s}? {4:s} [ {5:4.2f} secs ]{6:s}'.format(ipad,pad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
         return True if R else False
 
         # CURRENT_COLUMN = index.column()
