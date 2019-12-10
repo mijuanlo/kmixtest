@@ -584,6 +584,8 @@ class tableDrawer(QStyledItemDelegate):
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        if ROW == 3 and direction == UP and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+            a = 1
         if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
             return False
         if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
