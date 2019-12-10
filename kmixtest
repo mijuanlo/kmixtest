@@ -536,38 +536,17 @@ class tableDrawer(QStyledItemDelegate):
 
         return super().editorEvent(event, model, option, index) # same as return False
 
-    def canMove(self, index, direction):
-        DEBUG_LEVEL = 0
+    def configureResolver(self, index, direction):
+        DEBUG_LEVEL = 2
         UP = 0
         DOWN = 1
         FIXED = 2
-        if direction not in [UP,DOWN]:
-            return False
-        #if index.row() == 0 and direction == UP:
-        #    return False
-        #if index.row() == index.model().rowCount()-1 and direction == DOWN:
-        #    return False
+
         ROW = index.row()
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-            return False
-        if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-            idx = ROW -1
-            while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
-                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
-                    return False
-                else:
-                    idx -= 1
 
-            idx = ROW +1
-            while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
-                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
-                    return False
-                else:
-                    idx += 1
-            
         ID = chr(65+ROW)
         STATE = self.parent.stateString
         self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = DEBUG_LEVEL)
@@ -588,22 +567,49 @@ class tableDrawer(QStyledItemDelegate):
                 s = chr(65+i)+s
             if s:
                 self.parent.resolver.addCondition(s,FIXED)
+
+    def canMove(self, index, direction):
+        DEBUG_LEVEL = 2
+        UP = 0
+        DOWN = 1
+        FIXED = 2
+        if direction not in [UP,DOWN]:
+            return False
+        ROW = index.row()
+        ID = chr(65+ROW)
+        ROW_COUNT = index.model().rowCount()
+        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+            return False
+        if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+            idx = ROW -1
+            while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx -= 1
+
+            idx = ROW +1
+            while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx += 1
+        self.configureResolver(index,direction)
         stime = time()
         if DEBUG_LEVEL > 0:
             print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
         ##print('{} {} {}'.format(ID,direction,index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole)))
-        if ID=='F' and direction == DOWN and index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole):
-            a=1
         R = self.parent.resolver.getResults()
         duration = time() - stime
-        if duration > 1.0 and DEBUG_LEVEL > 0:
-            pad = '>'*20
+        if DEBUG_LEVEL > 0:
             ipad = ''
             epad = ''
             if duration > 5.0:
                 ipad = Resolver.colors.FAIL
                 epad = Resolver.colors.ENDC
-            print('{0:s}{1:s} {2:s} can move {3:s}? {4:s} [ {5:4.2f} secs ]{6:s}'.format(ipad,pad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
+            print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
         return True if R else False
 
         # CURRENT_COLUMN = index.column()
@@ -824,7 +830,8 @@ class tableHelper(QObject):
         if table:
             self.setTableView(table)
             self.cellMoveClick.connect(self.moveRow)
-            table.setItemDelegate(tableDrawer(self))
+            self.delegate = tableDrawer(self)
+            table.setItemDelegate(self.delegate)
         self.resolver = ResolverCached()
         self.stateString = ''
 
@@ -979,7 +986,28 @@ class tableHelper(QObject):
         #
         # Method manager for row movement, impossible movements are filtered from table delegated class event manager
         #
-        qDebug('Disabled')
+        MODEL = self.table.model()
+        MODEL.layoutAboutToBeChanged.emit()
+        if dir == 'DOWN':
+            dir = 1
+        else:
+            dir = 0
+        self.delegate.configureResolver(MODEL.index(row,0),dir)
+        R = self.resolver.getResults()
+        if R:
+            R = [ ord(x)-65 for x in R[0] ]
+        y = -1
+        NUM_COLS = MODEL.columnCount()
+        done = []
+        for idx in R:
+            y += 1
+            if idx != y and y not in done and idx not in done:
+                for x in range(1,NUM_COLS):
+                    tmp = self.table.takeItem(y,x)
+                    self.table.setItem(y,x,self.table.takeItem(idx,x))
+                    self.table.setItem(idx,x,tmp)
+                    done.extend([y,idx])
+        MODEL.layoutChanged.emit()
         return
         UP = 1
         DOWN = 0
