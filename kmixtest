@@ -340,7 +340,7 @@ class Resolver:
 
 class ResolverCached():
     def __init__(self,*args,**kwargs):
-        self.reset()
+        self.fullreset()
     
     def getResults(self,*args,**kwargs):
         k = self.makekey()
@@ -354,8 +354,12 @@ class ResolverCached():
         self.key_result = ''
         self.conditions = {}
 
-    def reset(self,*args,**kwargs):
+    def fullreset(self,*args,**kwargs):
         self.cache = {}
+        self.key_result = ''
+        self.conditions = {}
+    
+    def reset(self,*args,**kwargs):
         self.key_result = ''
         self.conditions = {}
 
@@ -832,8 +836,9 @@ class tableHelper(QObject):
             self.cellMoveClick.connect(self.moveRow)
             self.delegate = tableDrawer(self)
             table.setItemDelegate(self.delegate)
-        self.resolver = ResolverCached()
         self.stateString = ''
+        self.resolver = ResolverCached()
+        
 
     def setTableView(self, table):
         self.table = table
@@ -860,6 +865,10 @@ class tableHelper(QObject):
             else:
                 self.headerItemNames.append("PRIVATE")
         self.table.horizontalHeader().setStretchLastSection(True)
+
+    def updateStateString(self):
+        self.stateString = self.getStateString()
+        self.resolver.reset()
 
     def getStateString(self):
         FIXED_COL = self.headerItemNames.index('fixed')
@@ -946,8 +955,8 @@ class tableHelper(QObject):
 
         if flipCellState(rows,columns):
             removeAloneLinks()
+            self.updateStateString()
             updateCellGraphics()
-            self.stateString = self.getStateString()
         return True
 
     @Slot(QPoint)
@@ -977,7 +986,7 @@ class tableHelper(QObject):
     def deleteContextAction(self):
         data = self.sender().data()
         self.table.removeRow(data)
-        self.stateString = self.getStateString()
+        self.updateStateString()
         if self.controller:
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
 
@@ -1006,7 +1015,8 @@ class tableHelper(QObject):
                     tmp = self.table.takeItem(y,x)
                     self.table.setItem(y,x,self.table.takeItem(idx,x))
                     self.table.setItem(idx,x,tmp)
-                    done.extend([y,idx])
+                done.extend([y,idx])
+        self.updateStateString()
         MODEL.layoutChanged.emit()
         return
         UP = 1
@@ -1314,7 +1324,7 @@ class tableHelper(QObject):
                 self.addItem(i)
         else:
             self.makeRow(item)
-            self.stateString = self.getStateString()
+            self.updateStateString()
 
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None
