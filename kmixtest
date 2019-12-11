@@ -114,17 +114,19 @@ class Resolver:
                 self.conditions.append((x,[i]))
                 i+=1
         elif dir == self.direction.UP:
-            k=len(item)
+            offset=-1
+            size = len(item)
             for x in item:
-                k-=1
-                l = list(range(1,i-k))
+                offset+=1
+                #l = list(range(i-size+offset,i+offset))
+                l = list(range(1,i-size+offset))
                 l.reverse()
                 self.conditions.append((x,l))
         elif dir == self.direction.DOWN:
-            k=0
+            offset=0
             for x in item:
-                k+=1
-                self.conditions.append((x,list(range(i+k,self.levels+1))))
+                offset+=1
+                self.conditions.append((x,list(range(i+offset,self.levels+offset+1))))
 
     def validate(self,thing):
         l = len(thing)
@@ -203,14 +205,28 @@ class Resolver:
         # for x in used:
         #     if x in out:
         #         out.remove(x)
-        out = thing
+        out = thing.copy()
+        #test
+        out[0]=thing[-1]
+        out = []
+
         # TRY TO USE FIRST WHATEVER THAT HAS CONDITIONS AND IS NOT USED
         l=[x for x,y in self.conditions]
-        l.reverse()
-        for x in l:
-            if x not in used:
-                out.remove(x)
-                out.insert(0,x)
+        # l.reverse()
+        # for x in l:
+        #     if x not in used:
+        #         out.remove(x)
+        #         out.insert(0,x)
+        for x in thing:
+            if x in used:
+                continue
+            if x not in l:
+                out.append(x)
+            else:
+                for xx,y in self.conditions:
+                    if x == xx:
+                        out.insert(y[0]-1,x)
+
         
         # BUT.... FIRST LINKED
         if used:
@@ -375,6 +391,8 @@ class ResolverCached():
     def tree(self):
         def run():
             k = self.makekey(inserting=True)
+            if k == '000000010101000000D0GHI2':
+                a=1
             self.resolver.tree()
             self.resolver.print_results()
             self.cache[k] = self.resolver.getResults()
@@ -584,8 +602,6 @@ class tableDrawer(QStyledItemDelegate):
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        if ROW == 3 and direction == UP and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-            a = 1
         if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
             return False
         if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
@@ -606,6 +622,8 @@ class tableDrawer(QStyledItemDelegate):
         stime = time()
         if DEBUG_LEVEL > 0:
             print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+        if ROW == 2 and direction == UP and index.sibling(ROW-1,LINKED_COLUMN).data(Qt.DisplayRole):
+            a = 1
         ##print('{} {} {}'.format(ID,direction,index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole)))
         R = self.parent.resolver.getResults()
         duration = time() - stime
@@ -997,6 +1015,16 @@ class tableHelper(QObject):
         #
         # Method manager for row movement, impossible movements are filtered from table delegated class event manager
         #
+        def printModel(m):
+            print('MODEL')
+            for y in range(0,m.rowCount()):
+                s = []
+                for x in range(1,m.columnCount()):
+                    a=str(m.data(m.index(y,x),Qt.DisplayRole))
+                    if a == 'None':
+                        a=str(m.data(m.index(y,x),Qt.UserRole))
+                    s.append(a)
+                print('>{}{}: {}'.format('\t',y,' | '.join(s)))
         MODEL = self.table.model()
         MODEL.layoutAboutToBeChanged.emit()
         if dir == 'DOWN':
@@ -1009,15 +1037,36 @@ class tableHelper(QObject):
             R = [ ord(x)-65 for x in R[0] ]
         y = -1
         NUM_COLS = MODEL.columnCount()
-        done = []
-        for idx in R:
-            y += 1
-            if idx != y and y not in done and idx not in done:
-                for x in range(1,NUM_COLS):
-                    tmp = self.table.takeItem(y,x)
-                    self.table.setItem(y,x,self.table.takeItem(idx,x))
-                    self.table.setItem(idx,x,tmp)
-                done.extend([y,idx])
+        NUM_ROWS = MODEL.rowCount()
+        done = False
+        dest = -1
+        while not done:
+            changed = False
+            dest+=1
+            for dest in range(dest,NUM_ROWS):
+                #idx = R.index(dest)
+                if dest != R[dest]: #idx: 
+                    # change rows
+                    print('CHANGING {} <-> {}'.format(dest,R[dest]))
+                    printModel(MODEL)
+                    for x in range(1,NUM_COLS):
+                        tmp = self.table.takeItem(dest,x)
+                        self.table.setItem(dest,x,self.table.takeItem(R[dest],x))
+                        self.table.setItem(R[dest],x,tmp)
+                    printModel(MODEL)
+                    R[R.index(dest)] = R[dest]
+                    R[dest] = dest
+                    changed = True
+            done = not changed
+                        
+        # for idx in R:
+        #     y += 1
+        #     if idx != y and y not in done:# and idx not in done:
+        #         for x in range(1,NUM_COLS):
+        #             tmp = self.table.takeItem(y,x)
+        #             self.table.setItem(y,x,self.table.takeItem(idx,x))
+        #             self.table.setItem(idx,x,tmp)
+        #         done.append(y)
         self.updateStateString()
         MODEL.layoutChanged.emit()
         return
