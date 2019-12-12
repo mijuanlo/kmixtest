@@ -108,25 +108,25 @@ class Resolver:
             else:
                 item_tmp += i
         item = item_tmp
-        i = self.combination.index(item)+1
+        i = self.combination.index(item)
         if dir == self.direction.FIXED:
+            i+=1
             for x in item:
                 self.conditions.append((x,[i]))
                 i+=1
         elif dir == self.direction.UP:
             offset=-1
-            size = len(item)
+            #size = len(item)
             for x in item:
                 offset+=1
-                #l = list(range(i-size+offset,i+offset))
-                l = list(range(1,i-size+offset))
-                l.reverse()
+                l = list(range(i+offset,-1+offset,-1))
+                #l.reverse()
                 self.conditions.append((x,l))
         elif dir == self.direction.DOWN:
-            offset=0
+            offset=1
             for x in item:
                 offset+=1
-                self.conditions.append((x,list(range(i+offset,self.levels+offset+1))))
+                self.conditions.append((x,list(range(i+offset,self.levels+2))))
 
     def validate(self,thing):
         l = len(thing)
@@ -225,7 +225,10 @@ class Resolver:
             else:
                 for xx,y in self.conditions:
                     if x == xx:
-                        out.insert(y[0]-1,x)
+                        if len(y):
+                            out.insert(y[0]-1,x)
+                        else:
+                            out.append(x)
 
         
         # BUT.... FIRST LINKED
@@ -579,16 +582,16 @@ class tableDrawer(QStyledItemDelegate):
                 ROW += 1
             for i in range(ROW+1,ROW_COUNT):
                 s += chr(65+i)
-            if s:
-                self.parent.resolver.addCondition(s,FIXED)
+            #####if s:
+                #####self.parent.resolver.addCondition(s,FIXED)
         if direction == DOWN:
             s = ''
             while ROW > 0 and index.sibling(ROW-1,LINKED_COLUMN).data(Qt.DisplayRole):
                 ROW -= 1
             for i in range(ROW-1,-1,-1):
                 s = chr(65+i)+s
-            if s:
-                self.parent.resolver.addCondition(s,FIXED)
+            ####if s:
+                ####self.parent.resolver.addCondition(s,FIXED)
 
     def canMove(self, index, direction):
         DEBUG_LEVEL = 2
