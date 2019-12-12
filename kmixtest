@@ -578,20 +578,38 @@ class tableDrawer(QStyledItemDelegate):
         self.parent.resolver.addCondition(ID,direction)
         if direction == UP:
             s = ''
-            while ROW < ROW_COUNT and index.sibling(ROW+1,LINKED_COLUMN).data(Qt.DisplayRole):
+            r = ROW
+            count=0
+            for i in range(r-1,-1,-1):
+                if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
+                    count+=1
+            while ROW < ROW_COUNT and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
                 ROW += 1
-            for i in range(ROW+1,ROW_COUNT):
+            while ROW < ROW_COUNT and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+                ROW += 1
+                count-=1
+            for i in range(ROW,ROW_COUNT):
                 s += chr(65+i)
-            #####if s:
-                #####self.parent.resolver.addCondition(s,FIXED)
+            s = s.replace(ID,'')
+            if s:
+                self.parent.resolver.addCondition(s,FIXED)
         if direction == DOWN:
             s = ''
-            while ROW > 0 and index.sibling(ROW-1,LINKED_COLUMN).data(Qt.DisplayRole):
+            r = ROW
+            count = 0
+            for i in range(r+1,ROW_COUNT):
+                if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
+                    count+=1
+            while ROW > -1 and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
                 ROW -= 1
-            for i in range(ROW-1,-1,-1):
+            while ROW > -1 and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+                ROW -= 1
+                count-=1
+            for i in range(ROW,-1,-1):
                 s = chr(65+i)+s
-            ####if s:
-                ####self.parent.resolver.addCondition(s,FIXED)
+            s = s.replace(ID,'')
+            if s:
+                self.parent.resolver.addCondition(s,FIXED)
 
     def canMove(self, index, direction):
         DEBUG_LEVEL = 2
