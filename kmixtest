@@ -20,7 +20,8 @@ from enum import Enum,IntEnum,auto,unique
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
 DEBUG_LEVEL = 0
-
+# Replay longer queries, auto-activating debug_level = 2 for debug sequence
+PAUSE_WHEN_SEEMS_WRONG = True
 @unique
 class Direction(IntEnum):
     UP = 0
@@ -38,6 +39,7 @@ class Color(Enum):
     BOLD = '\033[1m'
     BLINK = '\033[5m'
     UNDERLINE = '\033[4m'
+
     def makecolor(thing,color):
         if not isinstance(color,Color):
             return
@@ -65,6 +67,8 @@ class Resolver:
             msg = Color.makecolor(msg,Color.GREEN)
         elif found is None:
             msg = Color.makecolor(msg,Color.YELLOW)
+        else:
+            msg = Color.makecolor(msg,Color.RED)
         print(msg)
 
     def __init__(self,*args,**kwargs):
@@ -187,22 +191,44 @@ class Resolver:
             self.dprint(thing,False)
             return False
         # Check base conditions linked
-        if option.get('linked'):
-            llist = option.get('list')
-            xlist = len(llist)
-            a=l
-            # Check that all linked elements are joined
-            for x in range(llist.index(thing[l-1]),-1,-1):
-                a-=1
-                if a < 0:
-                    self.dprint(thing,False)
-                    return False
-                if a >=0 and a < len(thing):
-                    if thing[a] != llist[x]:
+        for t in thing:
+            option = self.options['names'].get(t)
+            if option.get('linked'):
+                idx = None
+                for x in [ o for o in option.get('list') ]:
+                    if idx == None:
+                        if x in thing:
+                            idx = thing.index(x)
+                            continue
+                        else:
+                            # Wrong order for linked items
+                            self.dprint(thing,False)
+                            return False
+                    else:
+                        idx += 1
+
+                    if idx >= l:
+                        break
+                    if x != thing[idx]:
                         self.dprint(thing,False)
                         return False
-                else:
-                    print('ERROR BACKWARD')
+                   
+        # if option.get('linked'):
+        #     llist = option.get('list')
+        #     xlist = len(llist)
+        #     a=l
+        #     # Check that all linked elements are joined
+        #     for x in range(llist.index(thing[l-1]),-1,-1):
+        #         a-=1
+        #         if a < 0:
+        #             self.dprint(thing,False)
+        #             return False
+        #         if a >=0 and a < len(thing):
+        #             if thing[a] != llist[x]:
+        #                 self.dprint(thing,False)
+        #                 return False
+        #         else:
+        #             print('ERROR BACKWARD')
 
         # If it's full, one solution was found
         if full:
@@ -224,34 +250,44 @@ class Resolver:
             return None
 
     # Reorder apply heuristic over possible recursion branches, improving time to answer and finding solution
-    def reorder(self,used,thing):
+    def reorder(self,used,possible):
         out = []
-
+        level = len(used)
         # Try to use first whatever that has conditions applied and it's not used
-        l=[x for x,y in self.conditions]
-        for x in thing:
-            if x in used:
-                continue
-            if x not in l:
-                out.append(x)
+        l=[elem for elem,places in self.conditions]
+        for p in possible:
+            if p in used:
+                raise ValueError('Can\'t reorder {} because it\'s used and try to mark as possible'.format(p))
+            if p not in l:
+            # not conditionated elements insert at the end
+                out.append(p)
             else:
-                for xx,y in self.conditions:
-                    if x == xx:
-                        if len(y):
-                            out.insert(y[0]-1,x)
+                # conditionated elements first , try to get quickly fail or success
+                for elem,places in self.conditions:
+                    if p == elem:
+                        if not len(places):
+                            raise ValueError('Condition without candidate position')
+                        if level in places:
+                            out.insert(0,p)
                         else:
-                            out.append(x)
+                            out.append(p)
+
+                #             # try to insert at right position
+                #             out.insert(places[0]-1,p)
+                #         else:
+                #             out.append(p)
 
         # BUT.... First LINKED elements
-        if used:
-            if self.options['names'][used[-1]].get('linked'):
-                where = self.options['names'][used[-1]].get('list').index(used[-1])
-                for x in range(where+1,len(self.options['names'][used[-1]].get('list'))):
-                    out.remove(self.options['names'][used[-1]].get('list')[x])
-                    out.insert(0,self.options['names'][used[-1]].get('list')[x])
+        # if used:
+        #     if self.options['names'][used[-1]].get('linked'):
+        #         linked_elements = self.options['names'][used[-1]].get('list')
+        #         where = linked_elements.index(used[-1])
+        #         for x in range(where+1,len(linked_elements)):
+        #             out.remove(linked_elements[x])
+        #             out.insert(0,self.options['names'][used[-1]].get('list')[x])
         
         # Assertion that list of possible elements for selecting next branch is the same reordered
-        if len(thing) != len(out):
+        if len(possible) != len(out):
             print('Error')
             exit(1)
         return out
@@ -280,10 +316,15 @@ class Resolver:
                     return ret
             # If this level(position) hasn't fixed value, need to run exhaustive recursion tree over actual combination
             else:
-                # possible values are: whatever element if not used until now and not fixed on any position,
-                possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
-                # optimize order of branches, selecting more probable branch first
-                possible = self.reorder(used,possible)
+                possible = []
+                if used and self.options['names'][used[-1]]['linked']:
+                    l = self.options['names'][used[-1]]['list']
+                    possible = [ o for o in l if o not in used ]
+                if len(possible) == 0:
+                    # possible values are: whatever element if not used until now and not fixed on any position,
+                    possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
+                    # optimize order of branches, selecting more probable branch first
+                    possible = self.reorder(used,possible)
                 # launch recursion tree
                 for x in possible:
                     ret = self.tree(level+1,used + x,False)
@@ -430,10 +471,19 @@ class Resolver:
 # Cache stores results from resolver into dictionary, with key built with compound table state and conditions (queries + assertions from user)
 class ResolverCached():
     def __init__(self,*args,**kwargs):
+        global DEBUG_LEVEL
+        self.debug_level = DEBUG_LEVEL
         self.fullreset()
     
     # get results from cache or run a recursive resolver
     def getResults(self,*args,**kwargs):
+        if kwargs.get('debug'):
+            global DEBUG_LEVEL
+            DEBUG_LEVEL=2
+            self.debug_level=2
+            this_is_for_putting_debug_breakpoint_call_is_replaying=True
+            # Remove key from cache
+            del self.cache[self.makekey()]
         # get the cache key for current state
         k = self.makekey()
         if not k or not k in self.cache:
@@ -494,6 +544,89 @@ class ResolverCached():
         self.conditions.setdefault(thing,{})
         self.conditions[thing].setdefault(dir,{})
 
+    def get_row_value(self,state, row, column):
+        FIXED_COLUMN = 0
+        LINKED_COLUMN = 1
+        try:
+            return True if state[(row*2)+column] == '1' else False
+        except:
+            return False
+    def row_is_linked(self, state, row):
+        LINKED_COLUMN = 1
+        return self.get_row_value(state,row,LINKED_COLUMN)
+    def row_is_fixed(self, state, row):
+        FIXED_COLUMN = 0
+        return self.get_row_value(state,row,FIXED_COLUMN)
+
+    def configureResolver(self, state, row, direction):
+        ROW_COUNT = int(len(state)/2)
+
+        # row to id representing row into resolver
+        ID = chr(65+row)
+        
+        # starts new cachedresolver for query state & conditions
+        self.newQuery(thing = state, complete = False, debug_level = self.debug_level)
+        # add query (as condition) to get answer if one row can move or not
+        self.addCondition(ID,direction)
+
+        #
+        # Optimization conditions (specially going up, because going down recursion is easiest)
+        #
+        # If query if one row can go up, maybe down rows can be fixed
+        if direction == Direction.UP:
+            # rows fixed for optimization
+            s = ''
+            # row pointer
+            r = row
+            # count bottom linked rows
+            count=0
+            # count down rows that are linked
+            for i in range(r-1,-1,-1):
+                if self.row_is_linked(state,i) and not self.row_is_fixed(state,i):
+                    count+=1
+            # move row pointer to end linked element (if current ID it's linked)
+            while r < ROW_COUNT and self.row_is_linked(state,r):
+                r += 1
+            # move row pointer to allow down row linked elements going up
+            while r < ROW_COUNT and count > 0 and not self.row_is_linked(state,r) and not self.row_is_fixed(state,r):
+                r += 1
+                count-=1
+            # build condition for remaning rows
+            for i in range(r,ROW_COUNT):
+                s += chr(65+i)
+            # remove current row to avoid duplicate condition on selected row
+            s = s.replace(ID,'')
+            # add optimization conditions
+            if s:
+                self.addCondition(s,Direction.FIXED.value)
+        # If query if one row can go down, maybe up rows can be fixed
+        if direction == Direction.DOWN:
+            # rows fixed for optimization
+            s = ''
+            # row pointer
+            r = row
+            # count upper linked rows
+            count = 0
+            # count upper rows that are linked
+            for i in range(r+1,ROW_COUNT):
+                if self.row_is_linked(state,i) and not self.row_is_fixed(state,i):
+                    count+=1
+            # move row pointer to first element linked if ID it's linked
+            while r > -1 and self.row_is_linked(state,r):
+                r -= 1
+            # move row pointer to allow upper elements go down
+            while r > -1 and count > 0 and not self.row_is_linked(state,r) and not self.row_is_fixed(state,r):
+                r -= 1
+                count-=1
+            # build condition for remaning rows
+            for i in range(r,-1,-1):
+                s = chr(65+i)+s
+            # remove current row to avoid duplicate condition on selected row
+            s = s.replace(ID,'')
+            # add optimization conditions
+            if s:
+                self.addCondition(s,Direction.FIXED.value)
+
 # COMENTED SINGLE CALLS TO RESOLVER
 # COPIED FROM RESOLVER PYTHON DEVELOPED FILE
 #
@@ -518,6 +651,12 @@ class ResolverCached():
 # 	resolver.addCondition('A',Resolver.direction.DOWN)
 # 	print(resolver.getResults())
 # 	exit(0)
+
+class BuildPersistentCache():
+    def __init__():
+        r = ResolverCached()
+    
+
 
 #
 #
@@ -688,82 +827,82 @@ class tableDrawer(QStyledItemDelegate):
 
         return super().editorEvent(event, model, option, index) # same as return False
 
-    # Configure CachedResolver function
-    # Initializes call to resolver without resetting cache adding some optimization conditions
-    # Called from Delegated table class that update graphics
-    def configureResolver(self, index, direction):
-        # current row updating graphics
-        ROW = index.row()
-        ROW_COUNT = index.model().rowCount()
-        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+    # # Configure CachedResolver function
+    # # Initializes call to resolver without resetting cache adding some optimization conditions
+    # # Called from Delegated table class that update graphics
+    # def configureResolver(self, index, direction):
+    #     # current row updating graphics
+    #     ROW = index.row()
+    #     ROW_COUNT = index.model().rowCount()
+    #     LINKED_COLUMN = self.parent.headerItemNames.index('linked')
+    #     FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
 
-        # row to id representing row into resolver
-        ID = chr(65+ROW)
-        # state from cells for use with resolver
-        STATE = self.parent.stateString
-        # starts new cachedresolver for query state & conditions
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = self.debug_level)
-        # add query (as condition) to get answer if one row can move or not
-        self.parent.resolver.addCondition(ID,direction)
+    #     # row to id representing row into resolver
+    #     ID = chr(65+ROW)
+    #     # state from cells for use with resolver
+    #     STATE = self.parent.stateString
+    #     # starts new cachedresolver for query state & conditions
+    #     self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = self.debug_level)
+    #     # add query (as condition) to get answer if one row can move or not
+    #     self.parent.resolver.addCondition(ID,direction)
 
-        #
-        # Optimization conditions (specially going up, because going down recursion are easiest)
-        #
-        # If query if one row can go up, maybe down rows can be fixed
-        if direction == Direction.UP:
-            # rows fixed for optimization
-            s = ''
-            # row pointer
-            r = ROW
-            # count bottom linked rows
-            count=0
-            # count down rows that are linked
-            for i in range(r-1,-1,-1):
-                if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
-                    count+=1
-            # move row pointer to end linked element (if current ID it's linked)
-            while ROW < ROW_COUNT and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-                ROW += 1
-            # move row pointer to allow down row linked elements going up
-            while ROW < ROW_COUNT and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-                ROW += 1
-                count-=1
-            # build condition for remaning rows
-            for i in range(ROW,ROW_COUNT):
-                s += chr(65+i)
-            # remove current row to avoid duplicate condition on selected row
-            s = s.replace(ID,'')
-            # add optimization conditions
-            if s:
-                self.parent.resolver.addCondition(s,Direction.FIXED.value)
-        # If query if one row can go down, maybe up rows can be fixed
-        if direction == Direction.DOWN:
-            # rows fixed for optimization
-            s = ''
-            # row pointer
-            r = ROW
-            # count upper linked rows
-            count = 0
-            # count upper rows that are linked
-            for i in range(r+1,ROW_COUNT):
-                if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
-                    count+=1
-            # move row pointer to first element linked if ID it's linked
-            while ROW > -1 and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-                ROW -= 1
-            # move row pointer to allow upper elements go down
-            while ROW > -1 and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-                ROW -= 1
-                count-=1
-            # build condition for remaning rows
-            for i in range(ROW,-1,-1):
-                s = chr(65+i)+s
-            # remove current row to avoid duplicate condition on selected row
-            s = s.replace(ID,'')
-            # add optimization conditions
-            if s:
-                self.parent.resolver.addCondition(s,Direction.FIXED.value)
+    #     #
+    #     # Optimization conditions (specially going up, because going down recursion are easiest)
+    #     #
+    #     # If query if one row can go up, maybe down rows can be fixed
+    #     if direction == Direction.UP:
+    #         # rows fixed for optimization
+    #         s = ''
+    #         # row pointer
+    #         r = ROW
+    #         # count bottom linked rows
+    #         count=0
+    #         # count down rows that are linked
+    #         for i in range(r-1,-1,-1):
+    #             if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
+    #                 count+=1
+    #         # move row pointer to end linked element (if current ID it's linked)
+    #         while ROW < ROW_COUNT and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+    #             ROW += 1
+    #         # move row pointer to allow down row linked elements going up
+    #         while ROW < ROW_COUNT and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+    #             ROW += 1
+    #             count-=1
+    #         # build condition for remaning rows
+    #         for i in range(ROW,ROW_COUNT):
+    #             s += chr(65+i)
+    #         # remove current row to avoid duplicate condition on selected row
+    #         s = s.replace(ID,'')
+    #         # add optimization conditions
+    #         if s:
+    #             self.parent.resolver.addCondition(s,Direction.FIXED.value)
+    #     # If query if one row can go down, maybe up rows can be fixed
+    #     if direction == Direction.DOWN:
+    #         # rows fixed for optimization
+    #         s = ''
+    #         # row pointer
+    #         r = ROW
+    #         # count upper linked rows
+    #         count = 0
+    #         # count upper rows that are linked
+    #         for i in range(r+1,ROW_COUNT):
+    #             if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
+    #                 count+=1
+    #         # move row pointer to first element linked if ID it's linked
+    #         while ROW > -1 and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+    #             ROW -= 1
+    #         # move row pointer to allow upper elements go down
+    #         while ROW > -1 and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+    #             ROW -= 1
+    #             count-=1
+    #         # build condition for remaning rows
+    #         for i in range(ROW,-1,-1):
+    #             s = chr(65+i)+s
+    #         # remove current row to avoid duplicate condition on selected row
+    #         s = s.replace(ID,'')
+    #         # add optimization conditions
+    #         if s:
+    #             self.parent.resolver.addCondition(s,Direction.FIXED.value)
 
     # Function called from editorevent manager
     # Check if one row can move up or down taking number, position and states of all rows
@@ -779,6 +918,11 @@ class tableDrawer(QStyledItemDelegate):
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
         
+        # First can't go up and Last can't go down
+        if ROW == 0 and direction == Direction.UP:
+            return False
+        if ROW == ROW_COUNT -1 and direction == Direction.DOWN:
+            return False
         # Fixed rows can't move
         if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
             return False
@@ -800,7 +944,8 @@ class tableDrawer(QStyledItemDelegate):
                 else:
                     idx += 1
         # Configure resolver for query if it's a possible movement (if there is a solution with movement applied)
-        self.configureResolver(index,direction)
+        #self.configureResolver(index,direction)
+        self.parent.resolver.configureResolver(self.parent.stateString,ROW,direction)
 
         # debug timming counters
         stime = time()
@@ -815,9 +960,16 @@ class tableDrawer(QStyledItemDelegate):
             ipad = ''
             epad = ''
             if duration > 5.0:
-                ipad = Colors.RED.value
-                epad = Colors.RESET.value
+                ipad = Color.RED.value
+                epad = Color.RESET.value
             print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
+        
+        global PAUSE_WHEN_SEEMS_WRONG
+        if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
+            self.parent.resolver.configureResolver(self.parent.stateString,ROW,direction)
+            R = self.parent.resolver.getResults(debug=True)
+        if duration > 0.05:
+            print(duration)
         return True if R else False
 
     # Repaint function for question table
@@ -1133,7 +1285,9 @@ class tableHelper(QObject):
             dir = Direction.UP.value
 
         # Need to get what row movement need to be done
-        self.delegate.configureResolver(MODEL.index(row,0),dir)
+        #self.delegate.configureResolver(MODEL.index(row,0),dir)
+        self.resolver.configureResolver(self.stateString,row,dir)
+
         # Results always will be available on cache otherwise action would be disabled
         R = self.resolver.getResults()
         # Change movements from sequence of chars to list of integers with new rows order
