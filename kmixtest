@@ -17,6 +17,10 @@ from sys import exit
 from time import time
 from enum import Enum,IntEnum,auto,unique
 
+# Debug level for internal resolver & movement, printing terminal messages
+#  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
+DEBUG_LEVEL = 0
+
 @unique
 class Direction(IntEnum):
     UP = 0
@@ -521,6 +525,7 @@ class ResolverCached():
 #
 #
 
+# Function for debugging page printer configuration
 def print_preview_data(preview):
     orientation = preview.orientation().name.decode()
     viewmode = preview.viewMode().name.decode()
@@ -532,6 +537,7 @@ def print_preview_data(preview):
 def marginsToString(margins):
     return "{} {} {} {}".format(margins.left(),margins.top(),margins.right(),margins.bottom())
 
+# Function for debugging printer configuration
 def print_printer_data(printer):
     pr = printer.paperRect()
     layout = printer.pageLayout()
@@ -540,15 +546,28 @@ def print_printer_data(printer):
     units = layout.units().name.decode()
     qDebug("(Printer)  Rect: {}x{} Size: {} Margins: {} Unit: {}".format(pr.width(),pr.height(),size,marginsToString(margins),units))
 
+# Function for debugging document configuration
 def print_document_data(document):
     size = document.pageSize()
     qDebug('(document) Rect: {}x{}'.format(int(size.width()),int(size.height())))
 
+# Helper with static functions helping qt gui actions
 class Helper():
     def __init__(self):
         pass
+    # Generates qtaction with custom parameters
+    # Parameters:
+    # name: name of qtaction action, must be provided
+    # fn: trigger function, must be provided
+    # data: static data (string) included into qtaction, optional
+    # icon: Qicon or string (filename) for qtaction, optional
+    # shortcut: QKeySecuence or string representing shortcut for qtaction, optional
+    # tip: string helping describe qtaction when mouse is over, optional
+    # parent: parent QtObject, optional
+    # Returns: QtAction configured
     @staticmethod
     def genAction(name=None, fn=None, data=None, icon=None, shortcut=None, tip=None, parent=None):
+        # name and callback function are mandatory
         if name and fn:
             if icon:
                 if isinstance(icon,str):
@@ -557,14 +576,16 @@ class Helper():
                     pass
                 else:
                     icon = None
+            # icon can be filename (string) or QIcon
             if icon:
                 action = QAction(icon,name,parent)
             else:
                 action = QAction(name,parent)
             
+            # allow empty data included
             if data != None:
                 action.setData(data)
-
+            # allow empty shortcut
             if shortcut:
                 if isinstance(shortcut,QKeySequence):
                     pass
@@ -576,6 +597,7 @@ class Helper():
             if shortcut:
                 action.setShortcuts(shortcut)
             
+            # allow empty tip
             if tip and isinstance(tip,str):
                 action.setStatusTip(tip)
 
@@ -584,8 +606,12 @@ class Helper():
             return action
         return None       
 
+# Delegate class for questions table logic 
+# Allows customize data representation from table model and customize action cells with custom widgets
 class tableDrawer(QStyledItemDelegate):
     def __init__(self, helper):
+        global DEBUG_LEVEL
+        self.debug_level = DEBUG_LEVEL
         super().__init__()
         self.parent = helper
         self.iconFixed = QIcon(TESTICONFIXED)
@@ -598,6 +624,9 @@ class tableDrawer(QStyledItemDelegate):
             #w.setText("UP")
             #w.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             self.widgets.append(w)
+
+    # POSSIBLE ACTIONS THAT CAN BE REIMPLEMENTED INTO DELEGATE CLASS FOR VIEW THE MODEL DATA OF TABLE
+    # (commented, this functions are not needed in this program)
 
     #def createEditor(self, parent, option, index):
     #    qDebug("CREATE EDITOR")
@@ -619,29 +648,35 @@ class tableDrawer(QStyledItemDelegate):
     #    qDebug("EVENT FILTER {} {} {}".format(editor, event, handled))
     #    return handled
 
+    # Implementation for managing events into table
     def editorEvent(self, event, model, option, index):
         # Disable not click release events
         if event.type() != QEvent.MouseButtonRelease:
             return True
         
         column = index.column()
-        # UP = 0
-        # DOWN = 1
+        # First column providing up and down movement for rows
+        # Model doesn't contain anything for this column
         if column == 0:
+            # check what button is pressed thinking on mind that first middle width is for upbutton, rest for downbutton
             offset = option.rect.width() / 2
             if event.x() > offset:
                 go = 'DOWN'
-                direction = Direction.DOWN
+                direction = Direction.DOWN.value
             else:
                 go = 'UP'
-                direction = Direction.UP
+                direction = Direction.UP.value
+            # Call for a helper function that manages if cell can be enabled or disabled
             if self.canMove(index,direction):
+                # If button was enabled emit signal for movement
                 self.parent.cellMoveClick.emit(index.row(),go)
             else:
+                # Disable movement not emitting signal
                 qDebug("Impossible movement")
             return True # Mark all events on column 0 handled
             # Events on column 0 ends here
 
+        # Events for setting fixed and linked rows
         if column < 3:
             return True # Mark events on cols 1,2 as handled after emitting custom signal
             # Events on columns 1, 2 ends here
@@ -657,23 +692,23 @@ class tableDrawer(QStyledItemDelegate):
     # Initializes call to resolver without resetting cache adding some optimization conditions
     # Called from Delegated table class that update graphics
     def configureResolver(self, index, direction):
-        DEBUG_LEVEL = 2
-        # UP = 0
-        # DOWN = 1
-        # FIXED = 2
-
+        # current row updating graphics
         ROW = index.row()
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
 
+        # row to id representing row into resolver
         ID = chr(65+ROW)
+        # state from cells for use with resolver
         STATE = self.parent.stateString
-        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = DEBUG_LEVEL)
+        # starts new cachedresolver for query state & conditions
+        self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = self.debug_level)
+        # add query (as condition) to get answer if one row can move or not
         self.parent.resolver.addCondition(ID,direction)
 
         #
-        # Optimization conditions (specially going up, because going down recursion are easyest)
+        # Optimization conditions (specially going up, because going down recursion are easiest)
         #
         # If query if one row can go up, maybe down rows can be fixed
         if direction == Direction.UP:
@@ -730,44 +765,53 @@ class tableDrawer(QStyledItemDelegate):
             if s:
                 self.parent.resolver.addCondition(s,Direction.FIXED.value)
 
+    # Function called from editorevent manager
+    # Check if one row can move up or down taking number, position and states of all rows
     def canMove(self, index, direction):
-        DEBUG_LEVEL = 2
-        UP = 0
-        DOWN = 1
-        FIXED = 2
-        if direction not in [UP,DOWN]:
+        if direction not in [Direction.UP.value,Direction.DOWN.value]:
             return False
+        # current row searching movement
         ROW = index.row()
+        # internal id for selected row
         ID = chr(65+ROW)
+
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
+        
+        # Fixed rows can't move
         if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
             return False
+        
+        # Linked rows with any of them fixed , can't move
         if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
             idx = ROW -1
+            # search upward fixed row on linked group
             while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
                 if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
                     return False
                 else:
                     idx -= 1
-
+            # search downward fixed row on linked group
             idx = ROW +1
             while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
                 if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
                     return False
                 else:
                     idx += 1
+        # Configure resolver for query if it's a possible movement (if there is a solution with movement applied)
         self.configureResolver(index,direction)
+
+        # debug timming counters
         stime = time()
-        if DEBUG_LEVEL > 0:
+        if self.debug_level > 0:
             print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
-        if ROW == 2 and direction == UP and index.sibling(ROW-1,LINKED_COLUMN).data(Qt.DisplayRole):
-            a = 1
-        ##print('{} {} {}'.format(ID,direction,index.sibling(ROW-2,LINKED_COLUMN).data(Qt.DisplayRole)))
+
+        # Run cached resolver returning result
         R = self.parent.resolver.getResults()
+
         duration = time() - stime
-        if DEBUG_LEVEL > 0:
+        if self.debug_level > 0:
             ipad = ''
             epad = ''
             if duration > 5.0:
@@ -776,149 +820,7 @@ class tableDrawer(QStyledItemDelegate):
             print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
         return True if R else False
 
-        # CURRENT_COLUMN = index.column()
-        # CURRENT_ROW = index.row()
-        # FIRST_COL = 0
-        # FIRST_ROW = 0
-        # NEXT_ROW = CURRENT_ROW +1
-        # PREV_ROW = CURRENT_ROW -1
-        # NUM_ROWS = index.model().rowCount()
-        # LAST_ROW = NUM_ROWS -1
-        
-        # FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        # LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-
-        # def getCellState(row,col,index=index):
-        #     return index.sibling(row,col).data(Qt.DisplayRole)
-        # def allLocked(range_search,column):
-        #     all_locked = True
-        #     for i in range_search:
-        #         if not getCellState(i,column):
-        #             all_locked = False
-        #             break
-        #     return all_locked
-        # def allDownLocked():
-        #     r = range(NEXT_ROW,NUM_ROWS)
-        #     return allLocked(r,FIXED_COLUMN)
-        # def allDownLinked():
-        #     r = range(NEXT_ROW,NUM_ROWS)
-        #     return allLocked(r,LINKED_COLUMN)
-        # def allUpLocked():
-        #     r = range(PREV_ROW,-1,-1)
-        #     return allLocked(r,FIXED_COLUMN)
-        # def allUpLinked():
-        #     r = range(PREV_ROW,-1,-1)
-        #     return allLocked(r,LINKED_COLUMN)
-        # def RowIsLinked(row):
-        #     return getCellState(row,LINKED_COLUMN)
-        # def RowIsLocked(row):
-        #     return getCellState(row,FIXED_COLUMN)
-        # def getLinkedRowGroup(row):
-        #     rowgroup=[]
-        #     if not RowIsLinked(row):
-        #         return []
-        #     else:
-        #         rowgroup.append(row)
-        #     if CURRENT_ROW > 0:
-        #         for r in range(PREV_ROW,-1,-1):
-        #             if RowIsLinked(r):
-        #                 rowgroup.append(r)
-        #             else:
-        #                 break
-        #     if CURRENT_ROW < NUM_ROWS:
-        #         for r in range(NEXT_ROW,NUM_ROWS):
-        #             if RowIsLinked(r):
-        #                 rowgroup.append(r)
-        #             else:
-        #                 break
-        #     return sorted(rowgroup)
-        # def lastOfGroup(list_linked):
-        #     return list_linked[-1]
-        # def firstOfGroup(list_linked):
-        #     return list_linked[0]
-        # def anyLocked(list_linked):
-        #     for i in list_linked:
-        #         if RowIsLocked(i):
-        #             return True
-        #     return False
-
-        # def freeRows():
-        #     available = list(range(NUM_ROWS))
-        #     for r in range(FIRST_ROW,NUM_ROWS):
-        #         if r not in available:
-        #             continue
-        #         if RowIsLocked(r):
-        #             available.remove(r)
-        #         if RowIsLinked(r):
-        #             g = getLinkedRowGroup(r)
-        #             if anyLocked(g):
-        #                 for i in g:
-        #                     if i in available:
-        #                         available.remove(i)
-        #     return available
-        # def consecutiveNotLocked(cells):
-        #     i=0
-        #     max=0
-        #     for r in cells:
-        #         if not RowIsLocked(r):
-        #             i+=1
-        #         else:
-        #             i=0
-        #         if i > max:
-        #             max = i
-        #     return max
-        # def consecutiveNotLockedUp(fromrow):
-        #     l=range(fromrow-1,-1,-1)
-        #     return consecutiveNotLocked(l)
-        # def consecutiveNotLockedDown(fromrow):
-        #     l=range(fromrow+1,NUM_ROWS)
-        #     return consecutiveNotLocked(l)
-
-        # if getCellState(CURRENT_ROW,FIXED_COLUMN):
-        #     return False
-
-        # if direction == UP:
-        #     if CURRENT_ROW == FIRST_ROW:
-        #         return False
-            
-        #     if RowIsLinked(CURRENT_ROW):
-        #         if RowIsLinked(PREV_ROW):
-        #             return False
-        #         lg = getLinkedRowGroup(CURRENT_ROW)
-        #         if anyLocked(lg):
-        #             return False
-        #         if len(lg) > consecutiveNotLockedUp(firstOfGroup(lg)):
-        #             return False
-        #     else:
-        #         if allUpLinked() and anyLocked(getLinkedRowGroup(PREV_ROW)):
-        #             return False
-            
-        #     if allUpLocked():
-        #         return False
-
-        # if direction == DOWN: 
-        #     if CURRENT_ROW == LAST_ROW:
-        #         return False
-
-        #     if RowIsLinked(CURRENT_ROW):
-        #         if RowIsLinked(NEXT_ROW):
-        #             return False
-        #         lg = getLinkedRowGroup(CURRENT_ROW)
-        #         if anyLocked(lg):
-        #             return False
-        #         if len(lg) > consecutiveNotLockedDown(lastOfGroup(lg)):
-        #             return False
-        #     else:
-        #         if allDownLinked() and anyLocked(getLinkedRowGroup(NEXT_ROW)):
-        #             return False
-
-        #     if allDownLocked():
-        #         return False
-        
-        # if len(freeRows()) < 2:
-        #     return False
-        # return True
-
+    # Repaint function for question table
     def paint(self, painter, option, index):
         if not index.isValid():
             return
@@ -926,13 +828,17 @@ class tableDrawer(QStyledItemDelegate):
         #    qDebug("Painting because state enabled")
         #if option.state & QStyle.State_MouseOver:
         #    qDebug("Painting becaused state mouseover")
+        
         CURRENT_COLUMN = index.column()
         ORDER_COLUMN = self.parent.headerItemNames.index('order')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
         QUESTION_COLUMN = self.parent.headerItemNames.index('question type')
+        
+        # First (0) column with movement buttons
         if CURRENT_COLUMN == ORDER_COLUMN:
             count = len(self.widgets)
+            # split table cell for two button (up, down)
             size_available = option.rect.width() / count
             DIRECTION_IDX = 0
             for w in self.widgets:
@@ -945,7 +851,7 @@ class tableDrawer(QStyledItemDelegate):
                 opt.icon = w.icon()
                 #opt.iconSize = QSize(option.rect.height(),option.rect.height())
 
-                # # Set all button state
+                # Set all button state
                 if self.canMove(index,DIRECTION_IDX):
                     opt.state = ws.State_Enabled
                 else:
@@ -955,12 +861,14 @@ class tableDrawer(QStyledItemDelegate):
                 ws.drawControl(ws.CE_PushButton,opt,painter,w)
                 painter.restore()
                 DIRECTION_IDX += 1
+        # Other cells are: fixed cell , linked cell, question string
         else:
+            # set icon for cells 1 and 2
             if CURRENT_COLUMN == FIXED_COLUMN:
                 col_icon = self.iconFixed
             if CURRENT_COLUMN == LINKED_COLUMN:
                 col_icon = self.iconLinked
-            
+            # on model, cells 1 and 2 are represented with boolean data
             cellState = index.data(Qt.DisplayRole)
             if CURRENT_COLUMN != QUESTION_COLUMN:    
                 if cellState == True:
@@ -971,11 +879,13 @@ class tableDrawer(QStyledItemDelegate):
                 option.decorationSize = QSize(option.rect.height(), option.rect.height())
                 # Must to set position if alignment need to be setted
                 option.decorationPosition = QStyleOptionViewItem.Top
-                option.decorationAlignment = Qt.AlignCenter 
+                option.decorationAlignment = Qt.AlignCenter
+            # cell 3 with question string and no icon
             else:
                 option.icon = QIcon()
                 option.text = cellState
-
+            
+            # draw native text widget or icon widget
             if option.text:
                 #super().paint(painter, option, index)
                 # same as next call
@@ -983,23 +893,42 @@ class tableDrawer(QStyledItemDelegate):
             if option.icon or index.data(Qt.DecorationRole):
                 option.icon.paint(painter,option.rect,option.decorationAlignment,QIcon.Mode.Normal,QIcon.State.On)
 
+# Class for helping related qt functions for table questions
 class tableHelper(QObject):
+    # Signals triggered from delegated class
+    # Cellmoveclick trigger movement for any row
     cellMoveClick = Signal(int,str)
+    # editingquestion trigger editor for cell string 
     editingQuestion = Signal(int)
 
+    # class initialization with:
+    #  table: qtablewidget view
     def __init__(self, table=None, parent=None):
+        global DEBUG_LEVEL
+        self.debug_level = DEBUG_LEVEL
+
         QObject.__init__(self)
         if parent:
+            # link to parent as controller for calling functions, events or sending data back
             self.controller = parent
+
         if table:
+            # initialize internal data with table data
             self.setTableView(table)
+            # connect signals from table with local functions as callback
             self.cellMoveClick.connect(self.moveRow)
+            # set delegate class for customizing view from model data
             self.delegate = tableDrawer(self)
             table.setItemDelegate(self.delegate)
+        # local string representing table rows selection
+        # this state represents number of rows, and state linked or fixed for each row
         self.stateString = ''
+        # create new cachedresolver for query movements
         self.resolver = ResolverCached()
-        
 
+    # initialize internal data from table provided and setup table for store and view questions
+    # initialize callbacks for custom menu on cells
+    # initialize callcacks for click on cells
     def setTableView(self, table):
         self.table = table
         # Maybe create own model in future
@@ -1014,6 +943,7 @@ class tableHelper(QObject):
         self.table.customContextMenuRequested.connect(self.customMenu)
         self.table.cellClicked.connect(self.ClickOnCell)
 
+    # Create header for tableview
     def configureHeader(self):
         self.headerItemNames = []
         header  = self.table.horizontalHeader()
@@ -1026,10 +956,14 @@ class tableHelper(QObject):
                 self.headerItemNames.append("PRIVATE")
         self.table.horizontalHeader().setStretchLastSection(True)
 
+    # Update internal statestring used by resolver
+    # Need to update statestring when rows are modified
     def updateStateString(self):
         self.stateString = self.getStateString()
         self.resolver.reset()
 
+    # build new state string representing table
+    # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells
     def getStateString(self):
         FIXED_COL = self.headerItemNames.index('fixed')
         LINKED_COL = self.headerItemNames.index('linked')
@@ -1039,10 +973,11 @@ class tableHelper(QObject):
         for y in range(NUM_ROWS):
             for x in [ FIXED_COL, LINKED_COL ]:
                 states += '1' if self.model.data(self.model.index(y,x),Qt.DisplayRole) else '0'
-        if self.controller:
-            self.controller.window.statusbar.showMessage("State = {}".format(states),30*1000)
+        #if self.controller:
+        #    self.controller.window.statusbar.showMessage("State = {}".format(states),10*1000)
         return states
-        
+    
+    # Callback from delegate class when click is done on cells linked (col 2) or fixed (col 1)
     @Slot(int, int)
     def ClickOnCell(self, row, column):
         #
@@ -1061,15 +996,21 @@ class tableHelper(QObject):
         LAST_COL = NUM_COLS -1
         LAST_ROW = NUM_ROWS -1
 
-
+        # if there isn't a minium of two rows, linked action isn't available
+        if NUM_ROWS < 2 and column == LINKED_COL:
+            return True
+        # call update graphics from native widget to update movement buttons
         def updateCellGraphics():
             ORDER_COL = self.headerItemNames.index('order')
             for i in range(FIRST_ROW,NUM_ROWS):
                 self.table.update(self.model.index(i,ORDER_COL))
+        # get cell state for a row and col
         def getCellState(row,col):
             return self.model.data(self.model.index(row,col),Qt.DisplayRole)
+        # set cell state for a row and col
         def putCellState(row,col,state):
             self.model.setData(self.model.index(row,col),state,Qt.DisplayRole)
+        # flip state for a row and col, support one or more rows and cols passing lists
         def flipCellState(rows,cols):
             if not isinstance(rows,list):
                 rows = [ rows ]
@@ -1081,6 +1022,8 @@ class tableHelper(QObject):
                     putCellState(r,c,not getCellState(r,c))
                     invalidate = True
             return invalidate
+        # one alone row, can't be linked, minium linked rows are two
+        # remove alone linked states
         def removeAloneLinks():
             remove_linked_rows = []
             if NUM_ROWS > 1:
@@ -1102,10 +1045,12 @@ class tableHelper(QObject):
 
         columns = [ column ]
         rows = [ row ]
-        
+        # if click was on linked cell, link with next or previous cell
+        # linked rows will be stored into list
         if column == LINKED_COL:
             CURRENT_STATE = getCellState(row,LINKED_COL)
             if CURRENT_STATE == False:
+                # Links two rows on first linking
                 if row == FIRST_ROW:
                     if row < LAST_ROW and not getCellState(row+1,LINKED_COL):
                         rows.append(row+1)
@@ -1113,12 +1058,14 @@ class tableHelper(QObject):
                     if row < LAST_ROW and not getCellState(row+1,LINKED_COL) and not getCellState(row-1,LINKED_COL):
                         rows.append(row+1)
 
+        # Flip state for list of rows and cols
         if flipCellState(rows,columns):
             removeAloneLinks()
             self.updateStateString()
             updateCellGraphics()
         return True
 
+    # Build custom menu for each row
     @Slot(QPoint)
     def customMenu(self, position):
         item = self.table.itemAt(position)
@@ -1134,7 +1081,8 @@ class tableHelper(QObject):
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())
-    
+
+    # Callback for print on statusbar action triggered from contextmenu
     @Slot()
     def printContextAction(self):
         data = self.sender().data()
@@ -1142,6 +1090,7 @@ class tableHelper(QObject):
         if self.controller:
             self.controller.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
 
+    # Callback for delete row action triggered from contextmenu
     @Slot()
     def deleteContextAction(self):
         data = self.sender().data()
@@ -1150,11 +1099,19 @@ class tableHelper(QObject):
         if self.controller:
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
 
+    # Callback for move rows triggered from movement buttons on col 0
+    # Impossible movements was filtered from delegate class rendering buttons
+    # Impossible movements has disabled button that doesn't trigger signal through this callback
+    # Parameters:
+    # row: (int) number of row that wants to move
+    # dir: (string) (UP or DOWN) with movement direction
     @Slot(int,str)
     def moveRow(self,row,dir):
         #
         # Method manager for row movement, impossible movements are filtered from table delegated class event manager
         #
+
+        # Debug function printing model on terminal
         def printModel(m):
             print('MODEL')
             for y in range(0,m.rowCount()):
@@ -1165,16 +1122,25 @@ class tableHelper(QObject):
                         a=str(m.data(m.index(y,x),Qt.UserRole))
                     s.append(a)
                 print('>{}{}: {}'.format('\t',y,' | '.join(s)))
+        
         MODEL = self.table.model()
+        # Emit signal while model are changing
         MODEL.layoutAboutToBeChanged.emit()
+        # Change to integer for direction
         if dir == 'DOWN':
-            dir = 1
+            dir = Direction.DOWN.value
         else:
-            dir = 0
+            dir = Direction.UP.value
+
+        # Need to get what row movement need to be done
         self.delegate.configureResolver(MODEL.index(row,0),dir)
+        # Results always will be available on cache otherwise action would be disabled
         R = self.resolver.getResults()
+        # Change movements from sequence of chars to list of integers with new rows order
         if R:
             R = [ ord(x)-65 for x in R[0] ]
+
+        # REORDER ROWS TO GET THE SAME ORDER AS ONE RETURNED FROM RESOLVER
         y = -1
         NUM_COLS = MODEL.columnCount()
         NUM_ROWS = MODEL.rowCount()
@@ -1184,309 +1150,31 @@ class tableHelper(QObject):
             changed = False
             dest+=1
             for dest in range(dest,NUM_ROWS):
-                #idx = R.index(dest)
-                if dest != R[dest]: #idx: 
+                if dest != R[dest]:
                     # change rows
-                    print('CHANGING {} <-> {}'.format(dest,R[dest]))
-                    printModel(MODEL)
+                    if self.debug_level > 1:
+                        print('CHANGING {} <-> {}'.format(dest,R[dest]))
+                        printModel(MODEL)
                     for x in range(1,NUM_COLS):
                         tmp = self.table.takeItem(dest,x)
                         self.table.setItem(dest,x,self.table.takeItem(R[dest],x))
                         self.table.setItem(R[dest],x,tmp)
-                    printModel(MODEL)
+                    if self.debug_level > 1:
+                        printModel(MODEL)
+
+                    # Each model movement must reorder state of result list while ordering for get updated row positions
                     R[R.index(dest)] = R[dest]
                     R[dest] = dest
                     changed = True
             done = not changed
-                        
-        # for idx in R:
-        #     y += 1
-        #     if idx != y and y not in done:# and idx not in done:
-        #         for x in range(1,NUM_COLS):
-        #             tmp = self.table.takeItem(y,x)
-        #             self.table.setItem(y,x,self.table.takeItem(idx,x))
-        #             self.table.setItem(idx,x,tmp)
-        #         done.append(y)
+
+        # Ending with an update of table state
         self.updateStateString()
+        # Send signal of end model modification
         MODEL.layoutChanged.emit()
         return
-        UP = 1
-        DOWN = 0
-        if dir == 'UP':
-            dir = UP
-        else:
-            dir = DOWN
-        MODEL = self.table.model()
-        MODEL.layoutAboutToBeChanged.emit()
-        CURRENT_ROW = row
-        PREV_ROW = row -1
-        NEXT_ROW = row +1
-        FIXED_COLUMN = self.headerItemNames.index('fixed')
-        LINKED_COLUMN = self.headerItemNames.index('linked')
-        def NUM_COLS():
-            return MODEL.columnCount()
-        def NUM_ROWS():
-            return MODEL.rowCount()
-        def LAST_ROW():
-            return NUM_ROWS()-1
-        def LAST_COL():
-            return NUM_COLS()-1
-        PRIVATE_COLUMN = LAST_COL()
-        def DATA(row,col,take=False):
-            role = Qt.DisplayRole
-            idx = MODEL.index(row,col)
-            if col == LAST_COL():
-                role = Qt.UserRole
-            data = MODEL.data(idx,role)
-            if take:
-                MODEL.setData(idx,None)
-            return data
-        def PUTDATA(row,col,data):
-            role = Qt.DisplayRole
-            if col == PRIVATE_COLUMN:
-                role = Qt.UserRole
-            if col == 3:
-                data = "JAJAJa"
-            return MODEL.setData(MODEL.index(row,col),data,role)
-        def TAKE(row,col):
-            return DATA(row,col,True)
-        def RowEmpty(row):
-             if DATA(row,PRIVATE_COLUMN):
-                 return False
-             return True
-        def RowIsLocked(row):
-            return DATA(row,FIXED_COLUMN)
-        def RowIsLinked(row):
-            return DATA(row,LINKED_COLUMN)
-        def getId(row):
-            return DATA(CURRENT_ROW,PRIVATE_COLUMN)
-        # def searchPositionId(id):
-        #     for i in range(0,LAST_ROW()):
-        #         if id == getId(i):
-        #             return i
-        def getLinkedRowGroup(row):
-            rowgroup=[]
-            if not RowIsLinked(row):
-                return []
-            else:
-                rowgroup.append(row)
-            
-            for r in range(row-1,-1,-1):
-                if RowIsLinked(r):
-                    rowgroup.append(r)
-                else:
-                    break
-        
-            for r in range(row+1,NUM_ROWS()):
-                if RowIsLinked(r):
-                    rowgroup.append(r)
-                else:
-                    break
-            return sorted(rowgroup)
-        def anyLocked(linked_group):
-            for r in linked_group:
-                if RowIsLocked(r):
-                    return True
-            return False
-        def firstOfGroup(linked_group):
-            return linked_group[0]
-        def lastOfGroup(linked_group):
-            return linked_group[-1]
-        # def searchPlace(rows,size):
-        #     i=0
-        #     last_start=None
-        #     for r in rows:
-        #         if not RowIsLocked(r):
-        #             if not last_start:
-        #                 last_start=r
-        #             i+=1
-        #         else:
-        #             i=0
-        #             last_start=None
-        #         if i == size:
-        #             return last_start
-        #     qDebug("Error searching place")
-        #     return None
-        # def searchPlaceDown(fromrow,size):
-        #     place = searchPlace(range(fromrow+1,NUM_ROWS()),size)
-        #     return lastOfGroup(getLinkedRowGroup(place))+1
-        # def searchPlaceUp(fromrow,size):
-        #     place = searchPlace(range(fromrow-1,-1,-1),size)
-        #     return firstOfGroup(getLinkedRowGroup(place))
 
-        # Deprecated: Impossible movements aren't triggered
-        #
-        # if RowIsLocked(CURRENT_ROW):
-        #    qDebug("Can't move locked cell")
-        #    return
-        def takeAllRowItems(row):
-            items = []
-            for x in range(0,NUM_COLS()):
-                items.append(TAKE(row,x))
-            return items
-        self.k=None
-        def putAllRowItems(row,items):
-            x=0
-            for i in items:
-                if isinstance(i,bool):
-                    self.k=items[x]
-                else:
-                    self.k=items[x]
-                print('{} {}'.format(self.k,PUTDATA(row,x,self.k)))
-                #print(PUTDATA(row,x,i))
-                x+=1
-        def extractFixedRows():
-            fixed_rows = {}
-            for y in range(0,NUM_ROWS()):
-                if RowIsLocked(y):
-                    fixed_rows.setdefault(y,takeAllRowItems(y))
-                    continue
-                if RowIsLinked(y):
-                    if anyLocked(getLinkedRowGroup(y)):
-                        fixed_rows.setdefault(y,takeAllRowItems(y))
-            return fixed_rows
-        def printTable():
-            for y in range(NUM_ROWS()):
-                str=''
-                for x in range(1,3):
-                    i=DATA(y,x)
-                    if i:
-                        str+=' {}'.format(i.data(Qt.DisplayRole))
-                    else:
-                        str+=' {}'.format(None)
-                qDebug(str)
-        def analyzeTable():
-            for y in range(NUM_ROWS()):
-                pass
-        if RowIsLinked(CURRENT_ROW):
-            CURRENT_LINKED=True
-        else:
-            CURRENT_LINKED=False
-        current_id=getId(CURRENT_ROW)
-        # Store fixed rows { num_row : [ QTableItem ] }
-        fixed_rows = extractFixedRows()
-        for y in fixed_rows:
-            #self.table.insertRow(0)
-            #self.table.removeRow(y)
-            #self.table.insertRow(y)
-            putAllRowItems(y,fixed_rows[y])
-        MODEL.layoutChanged.emit()
-        return
-        # linked rows = [ ( num_row , [QTableItem] ),( num_row , [QTableItem] ) ]
-        # group all linked rows = [ linked_rows , linked_rows ]
-        def extractLinkedRows():
-            groups = []
-            for y in range(0,NUM_ROWS()):
-                if RowIsLinked(y):
-                    linked_rows = []
-                    for r in getLinkedRowGroup(y):
-                        linked_rows.append((r,takeAllRowItems(r)))
-                    groups.append(linked_rows)
-            return groups
-
-        groups_linked = extractLinkedRows()
-
-        def extractSingleRows():
-            single_rows = {}
-            for y in range(0,NUM_ROWS()):
-                if not RowEmpty(y):
-                    single_rows.setdefault(y,takeAllRowItems(y))
-            return single_rows
-
-        single_rows = extractSingleRows()
-        sum_linked = 0
-        for g in groups_linked:
-            sum_linked += len(g)
-        if NUM_ROWS() != len(single_rows) + len(fixed_rows) + sum_linked:
-            qDebug("Error")
-        #self.table.clearContents()
-        #self.table.reset()
-        #self.table.repaint()
-        #self.table.setRowCount(0)
-
-        #self.table.reset()
-        #self.table.repaint()
-        #if not CURRENT_LINKED:
-            
-
-        return
-        # Locked cells can't be here trying to move
-        # Only 2 cell types can be here, with no action or linked cell(without lock)
-
-        linked_group = []
-        if RowIsLinked(CURRENT_ROW):
-            linked_group = getLinkedRowGroup(CURRENT_ROW)
-            if dir == UP:
-                place = searchPlaceUp(CURRENT_ROW,len(linked_group))
-                # move all group up are the same as moving down previous cell before the group
-                # groups with first and last rows, are blocked and can't be triggered
-                moving_rows = []
-                offset=0
-                for x in linked_group:
-                    moving_rows.append((x+offset*2,place+offset))
-                    offset+=1
-            else:
-                place = searchPlaceDown(CURRENT_ROW,len(linked_group))
-                # move all group down are the same as moving up next cell after the group
-                # groups with first and last rows, are blocked and can't be triggered
-                moving_rows = []
-                offset=0
-                for x in linked_group:
-                    moving_rows.append((x+offset,place+offset))
-                    offset+=1
-                row = lastOfGroup(linked_group)+1
-                onrow = firstOfGroup(linked_group)
-        else: # Normal cell (without action), need to jump throught locked/linked cells
-            # Remember row mem address to move (when relocating, needed row index is changed)
-            first_of_row = self.table.item(CURRENT_ROW,0)
-            the_id = id(self.table.item(CURRENT_ROW,0))
-            for y in range(NUM_ROWS()):
-                if RowIsLocked(y):
-                    items = []
-                    for x in range(NUM_COLS()):
-                        items.append(self.table.takeItem(y,x))
-                    fixed_rows.setdefault(y,items)
-            # After store, remove rows 
-            offset=0 # while removing rows top-bottom higher indexes are changing
-            for y in sorted(fixed_rows):
-                self.table.removeRow(y-offset)
-                offset+=1
-            # Update new position
-            found = False # Make sure that element are found
-            for y in range(NUM_ROWS()):
-                newid = id(self.table.item(y,0))
-                if newid == the_id:
-                    qDebug("found")
-                if self.table.item(y,0) is first_of_row:
-                    row = y
-                    found = True
-                    break
-            if not found:
-                qDebug("Error searching element")
-                return
-
-            # Calculate origin and destination
-            if dir == UP:
-                onrow = row -1
-            else:
-                onrow = row +2
-        
-        # Insert moved row
-        self.table.insertRow(onrow)
-        # With insertion the indexes were modified
-        if row > onrow:
-            row += 1
-
-        for col in range(NUM_COLS()):
-            self.table.setItem(onrow,col,self.table.takeItem(row,col))
-        self.table.removeRow(row)
-        
-        # Insert remaning fixed rows into his position
-        for y in fixed_rows:
-            self.table.insertRow(y)
-            for x in range(NUM_COLS()):
-                self.table.setItem(y,x,fixed_rows[y][x])
-
+    # Method for create and insert new row triggered for action bar or menu
     def makeRow(self, item="", table=None):
         if table is None and self.table is not None:
             table = self.table
@@ -1517,6 +1205,7 @@ class tableHelper(QObject):
             self.makeRow(item)
             self.updateStateString()
 
+# class for pdf preview object
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None
     actions = None
@@ -1539,6 +1228,7 @@ class previewPrinter(QPrintPreviewDialog):
         print_preview_data(self.preview)
         print_printer_data(self.parent.printer)
 
+# Helper class with pdf stuff related things
 class helperPDF():
 
     header_table_cols = 3
@@ -1729,6 +1419,7 @@ class helperPDF():
 
         return document
 
+# Custom object for display content questions
 class Box(QGroupBox):
     closedBox = Signal(str)
     button_space = 4
@@ -1765,6 +1456,7 @@ class Box(QGroupBox):
     def closeBox(self):
         self.closedBox.emit(self.id)
 
+# Class with helper to manage grid content used for question contents
 class gridHelper(QObject):
     def __init__(self, grid=None, parent=None):
         super().__init__()
@@ -1850,6 +1542,7 @@ class gridHelper(QObject):
         self.addToGrid(on,[[label,textedit]])
         
 
+# Main class of application
 class AppMainWindow(QApplication):
     def __init__(self):
         super().__init__([])
@@ -1932,6 +1625,7 @@ class AppMainWindow(QApplication):
             action = Helper.genAction(name=name,fn=self.test,icon=TESTICON,tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
 
+# Starting point of execution
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = AppMainWindow()
