@@ -17,9 +17,11 @@ from sys import exit
 from time import time
 from enum import Enum,IntEnum,auto,unique
 
+# Thread limit
+NUM_THREADS = 1
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
-DEBUG_LEVEL = 0
+DEBUG_LEVEL = 2
 # Replay longer queries, auto-activating debug_level = 2 for debug sequence
 PAUSE_WHEN_SEEMS_WRONG = True
 @unique
@@ -470,6 +472,8 @@ class Resolver:
 #
 # Cache stores results from resolver into dictionary, with key built with compound table state and conditions (queries + assertions from user)
 class ResolverCached():
+    cache = {}
+
     def __init__(self,*args,**kwargs):
         global DEBUG_LEVEL
         self.debug_level = DEBUG_LEVEL
@@ -653,9 +657,126 @@ class ResolverCached():
 # 	exit(0)
 
 class BuildPersistentCache():
-    def __init__():
+    def __init__(self):
         r = ResolverCached()
     
+from queue import Queue
+
+class Worker (QRunnable):
+    #start = Signal()
+    #stop = Signal()
+
+    def __init__(self,parent,id):
+        super().__init__()
+        self.parent = parent
+        self.id = id
+        self.daemon = True
+        self.joblist = parent.jobs
+        self.model = parent.model
+        self.resolver = ResolverCached()
+        self.terminate = False
+        #self.start()
+        #self.start.connect(self.run)
+        #self.stop.connect(self.stopRequested)
+
+    @Slot()
+    def stopRequested(self):
+        self.terminate = True
+    @Slot()
+    def run(self):
+        while not self.terminate:
+            state,row,direction = self.joblist.get()
+            print('Running worker {}'.format(self.id))
+            self.resolver.configureResolver(state,row,direction)
+            stime = time()
+            R = self.resolver.getResults()
+            duration = "{0:4.2f}".format(time() - stime)
+            flagdirection = True if R else False
+            result = R[0] if R else []
+            self.parent.model[row][direction] = flagdirection
+            self.parent.model[row][self.parent.modelStateOffset+direction] = True
+            self.parent.model[row][self.parent.modelResultOffset+direction] = result
+            print('End worker {} --> {} [ {} ]'.format(self.id,R,duration))
+            self.parent.newResult.emit(row,direction,R)
+            self.joblist.task_done()
+
+
+class UpdatePool(QObject):
+    newResult = Signal(int,int,str)
+    modelItemSize = 6
+    modelStateOffset = 2
+    modelResultOffset = 4
+    def __init__(self,parent):
+        QObject.__init__(self)
+        self.parent = parent
+        global NUM_THREADS
+        self.jobs = Queue(NUM_THREADS)
+        self.workers = []
+        self.threads = []
+        # Model for movements list of rows, row with (upstate,downstate,updatestate)
+        self.model = []
+        self.stateString = ''
+        self.levels = 0
+        self.newResult.connect(self.newResultCompleted)
+        self.threadpool = QThreadPool()
+        self.threadpool.setMaxThreadCount(NUM_THREADS)
+        for w in range(1,NUM_THREADS+1):
+            print("{}Initializing worker {}".format('\r'*50,w),end='')
+            # worker = Worker(self,w)
+            # self.workers.append(worker)
+            # thread = QThread()
+            # #thread.started.connect()
+            # #thread.finished.connect()
+            # worker.moveToThread(thread)
+            # self.threads.append(thread)
+            # thread.start()
+            worker = Worker(self,w)
+            self.threadpool.globalInstance().start(worker)
+        print('')
+    
+    @Slot(int,int,str)
+    def newResultCompleted(self,row,dir,result):
+        self.parent.newResultCompleted(row,dir,result)
+
+    def set_stateString(self,stateString):
+        if stateString != self.stateString:
+            self.stateString = stateString
+            self.levels = int(len(stateString)/2)
+            self.invalidate_model()
+
+    def invalidate_model(self):
+        self.model = []
+        self.model.append([0,1,True,False,None,None])
+        for x in range(1,self.levels-1):
+            self.model.append([1,1,False,False,None,None])
+        self.model.append([1,0,False,True,None,None])
+        for row in range(self.levels):
+            if row==0:
+                self.jobs.put((self.stateString,row,Direction.DOWN.value))
+            elif row==self.levels:
+                self.jobs.put((self.stateString,row,Direction.UP.value))
+            else:
+                self.jobs.put((self.stateString,row,Direction.UP.value))
+                self.jobs.put((self.stateString,row,Direction.DOWN.value))
+
+    def get_model_dirstate(self,state,row,direction):
+        if state != self.stateString:
+            self.set_stateString(state)
+        state = self.model[row][direction]
+        valid = self.model[row][self.modelStateOffset+direction]
+        if not valid:
+            self.jobs.put((self.stateString,row,direction))
+        return state
+    def get_model_moveresult(self,state,row,direction):
+        if state != self.stateString:
+            self.set_stateString(state)
+        state = self.model[row][self.modelStateOffset+direction]
+        result = self.model[row][self.modelResultOffset+direction]
+        if not state:
+            self.jobs.put((self.stateString,row,direction))
+            return None
+        return [result]
+
 
 
 #
@@ -806,7 +927,7 @@ class tableDrawer(QStyledItemDelegate):
                 go = 'UP'
                 direction = Direction.UP.value
             # Call for a helper function that manages if cell can be enabled or disabled
-            if self.canMove(index,direction):
+            if self.parent.canMove(index,direction):
                 # If button was enabled emit signal for movement
                 self.parent.cellMoveClick.emit(index.row(),go)
             else:
@@ -904,74 +1025,6 @@ class tableDrawer(QStyledItemDelegate):
     #         if s:
     #             self.parent.resolver.addCondition(s,Direction.FIXED.value)
 
-    # Function called from editorevent manager
-    # Check if one row can move up or down taking number, position and states of all rows
-    def canMove(self, index, direction):
-        if direction not in [Direction.UP.value,Direction.DOWN.value]:
-            return False
-        # current row searching movement
-        ROW = index.row()
-        # internal id for selected row
-        ID = chr(65+ROW)
-
-        ROW_COUNT = index.model().rowCount()
-        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        
-        # First can't go up and Last can't go down
-        if ROW == 0 and direction == Direction.UP:
-            return False
-        if ROW == ROW_COUNT -1 and direction == Direction.DOWN:
-            return False
-        # Fixed rows can't move
-        if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-            return False
-        
-        # Linked rows with any of them fixed , can't move
-        if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-            idx = ROW -1
-            # search upward fixed row on linked group
-            while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
-                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
-                    return False
-                else:
-                    idx -= 1
-            # search downward fixed row on linked group
-            idx = ROW +1
-            while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
-                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
-                    return False
-                else:
-                    idx += 1
-        # Configure resolver for query if it's a possible movement (if there is a solution with movement applied)
-        #self.configureResolver(index,direction)
-        self.parent.resolver.configureResolver(self.parent.stateString,ROW,direction)
-
-        # debug timming counters
-        stime = time()
-        if self.debug_level > 0:
-            print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
-
-        # Run cached resolver returning result
-        R = self.parent.resolver.getResults()
-
-        duration = time() - stime
-        if self.debug_level > 0:
-            ipad = ''
-            epad = ''
-            if duration > 5.0:
-                ipad = Color.RED.value
-                epad = Color.RESET.value
-            print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
-        
-        global PAUSE_WHEN_SEEMS_WRONG
-        if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
-            self.parent.resolver.configureResolver(self.parent.stateString,ROW,direction)
-            R = self.parent.resolver.getResults(debug=True)
-        if duration > 0.05:
-            print(duration)
-        return True if R else False
-
     # Repaint function for question table
     def paint(self, painter, option, index):
         if not index.isValid():
@@ -1004,7 +1057,7 @@ class tableDrawer(QStyledItemDelegate):
                 #opt.iconSize = QSize(option.rect.height(),option.rect.height())
 
                 # Set all button state
-                if self.canMove(index,DIRECTION_IDX):
+                if self.parent.canMove(index,DIRECTION_IDX):
                     opt.state = ws.State_Enabled
                 else:
                     opt.state = ws.State_Off
@@ -1076,7 +1129,8 @@ class tableHelper(QObject):
         # this state represents number of rows, and state linked or fixed for each row
         self.stateString = ''
         # create new cachedresolver for query movements
-        self.resolver = ResolverCached()
+        #self.resolver = ResolverCached()
+        self.pool = UpdatePool(self)
 
     # initialize internal data from table provided and setup table for store and view questions
     # initialize callbacks for custom menu on cells
@@ -1112,7 +1166,8 @@ class tableHelper(QObject):
     # Need to update statestring when rows are modified
     def updateStateString(self):
         self.stateString = self.getStateString()
-        self.resolver.reset()
+        #self.resolver.reset()
+        self.pool.set_stateString(self.stateString)
 
     # build new state string representing table
     # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells
@@ -1128,6 +1183,19 @@ class tableHelper(QObject):
         #if self.controller:
         #    self.controller.window.statusbar.showMessage("State = {}".format(states),10*1000)
         return states
+    
+    # call update graphics from native widget to update movement buttons
+    def updateCellGraphics(self,rows='all',cols='all'):
+        qDebug('Updating graphics for {} {}'.format(rows,cols))
+        if rows == 'all':
+            rows = list(range(self.model.rowCount()))
+        if cols == 'all':
+            cols = list(range(self.model.columnCount()))
+        if not isinstance(rows,list) and not isinstance(cols,list):
+            return
+        for y in rows:
+            for x in cols:
+                self.table.update(self.model.index(y,x))
     
     # Callback from delegate class when click is done on cells linked (col 2) or fixed (col 1)
     @Slot(int, int)
@@ -1151,11 +1219,7 @@ class tableHelper(QObject):
         # if there isn't a minium of two rows, linked action isn't available
         if NUM_ROWS < 2 and column == LINKED_COL:
             return True
-        # call update graphics from native widget to update movement buttons
-        def updateCellGraphics():
-            ORDER_COL = self.headerItemNames.index('order')
-            for i in range(FIRST_ROW,NUM_ROWS):
-                self.table.update(self.model.index(i,ORDER_COL))
+
         # get cell state for a row and col
         def getCellState(row,col):
             return self.model.data(self.model.index(row,col),Qt.DisplayRole)
@@ -1214,7 +1278,7 @@ class tableHelper(QObject):
         if flipCellState(rows,columns):
             removeAloneLinks()
             self.updateStateString()
-            updateCellGraphics()
+            self.updateCellGraphics(rows='all',cols=[self.headerItemNames.index('order')])
         return True
 
     # Build custom menu for each row
@@ -1251,6 +1315,81 @@ class tableHelper(QObject):
         if self.controller:
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
 
+    def newResultCompleted(self,row,dir,result):
+        qDebug('New result: {} {} {}'.format(row,dir,result))
+        self.updateCellGraphics(rows=[row],cols=[dir])
+
+    # Function called from editorevent manager
+    # Check if one row can move up or down taking number, position and states of all rows
+    def canMove(self, index, direction):
+        if direction not in [Direction.UP.value,Direction.DOWN.value]:
+            return False
+        # current row searching movement
+        ROW = index.row()
+        # internal id for selected row
+        ID = chr(65+ROW)
+
+        ROW_COUNT = index.model().rowCount()
+        LINKED_COLUMN = self.headerItemNames.index('linked')
+        FIXED_COLUMN = self.headerItemNames.index('fixed')
+        
+        # First can't go up and Last can't go down
+        if ROW == 0 and direction == Direction.UP:
+            return False
+        if ROW == ROW_COUNT -1 and direction == Direction.DOWN:
+            return False
+        # Fixed rows can't move
+        if index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
+            return False
+        
+        # Linked rows with any of them fixed , can't move
+        if index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
+            idx = ROW -1
+            # search upward fixed row on linked group
+            while idx > 0 and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx -= 1
+            # search downward fixed row on linked group
+            idx = ROW +1
+            while idx < ROW_COUNT and index.sibling(idx,LINKED_COLUMN).data(Qt.DisplayRole):
+                if index.sibling(idx,FIXED_COLUMN).data(Qt.DisplayRole):
+                    return False
+                else:
+                    idx += 1
+        # Configure resolver for query if it's a possible movement (if there is a solution with movement applied)
+        #self.configureResolver(index,direction)
+        #self.resolver.configureResolver(self.stateString,ROW,direction)
+        #self.pool.get_model_dirstate(self.stateString,ROW,direction)
+
+        # debug timming counters
+        stime = time()
+        if self.debug_level > 0:
+            print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+
+        # Run cached resolver returning result
+        # R = self.resolver.getResults()
+        R = self.pool.get_model_dirstate(self.stateString,ROW,direction)
+
+        duration = time() - stime
+        if self.debug_level > 0:
+            ipad = ''
+            epad = ''
+            if duration > 5.0:
+                ipad = Color.RED.value
+                epad = Color.RESET.value
+            print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
+        
+        global PAUSE_WHEN_SEEMS_WRONG
+        if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
+            pass
+            #self.resolver.configureResolver(self.parent.stateString,ROW,direction)
+            #R = self.resolver.getResults(debug=True)
+        if duration > 0.05:
+            print(duration)
+        return True if R else False
+
     # Callback for move rows triggered from movement buttons on col 0
     # Impossible movements was filtered from delegate class rendering buttons
     # Impossible movements has disabled button that doesn't trigger signal through this callback
@@ -1276,8 +1415,6 @@ class tableHelper(QObject):
                 print('>{}{}: {}'.format('\t',y,' | '.join(s)))
         
         MODEL = self.table.model()
-        # Emit signal while model are changing
-        MODEL.layoutAboutToBeChanged.emit()
         # Change to integer for direction
         if dir == 'DOWN':
             dir = Direction.DOWN.value
@@ -1286,14 +1423,20 @@ class tableHelper(QObject):
 
         # Need to get what row movement need to be done
         #self.delegate.configureResolver(MODEL.index(row,0),dir)
-        self.resolver.configureResolver(self.stateString,row,dir)
+        #self.resolver.configureResolver(self.stateString,row,dir)
 
         # Results always will be available on cache otherwise action would be disabled
-        R = self.resolver.getResults()
+        #R = self.resolver.getResults()
+        R = self.pool.get_model_moveresult(self.stateString,row,dir)
         # Change movements from sequence of chars to list of integers with new rows order
         if R:
             R = [ ord(x)-65 for x in R[0] ]
+        else:
+            self.controller.window.statusbar.showMessage("Thinking... please wait",10*1000)
+            return
 
+        # Emit signal while model are changing
+        MODEL.layoutAboutToBeChanged.emit()
         # REORDER ROWS TO GET THE SAME ORDER AS ONE RETURNED FROM RESOLVER
         y = -1
         NUM_COLS = MODEL.columnCount()
