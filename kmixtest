@@ -74,6 +74,7 @@ class Resolver:
         print(msg)
 
     def __init__(self,*args,**kwargs):
+        self.terminate = False
         thing = kwargs.get('thing',None)
         complete = kwargs.get('complete',None)
         debug_level = kwargs.get('debug_level',None)
@@ -105,6 +106,8 @@ class Resolver:
             print(Color.makecolor('Not valid',Color.RED))
             exit(1)
 
+    def abort(self):
+        self.terminate = True
     # function to print metric counters when debugging
     def print_debug_info(self):
         if self.debug_level > 0:
@@ -301,6 +304,8 @@ class Resolver:
     # initialcall: flag to identify if it's a recursive call or not, debugging purposes
     def tree(self,level=1,used='',initialcall=True):
         # Debugging counters for metrics
+        if self.terminate:
+            return
         if initialcall and self.debug_level > 0:
             self.stime = time()
 
@@ -476,9 +481,14 @@ class ResolverCached():
 
     def __init__(self,*args,**kwargs):
         global DEBUG_LEVEL
+        self.terminate = False
         self.debug_level = DEBUG_LEVEL
         self.fullreset()
     
+    def abort(self):
+        self.terminate = True
+        self.resolver.abort()
+
     # get results from cache or run a recursive resolver
     def getResults(self,*args,**kwargs):
         if kwargs.get('debug'):
@@ -498,10 +508,11 @@ class ResolverCached():
 
     # Make a new resolver initialized
     def newQuery(self,*args,**kwargs):
-        self.resolver = Resolver(*args,**kwargs)
-        self.key = self.resolver.thing
-        self.key_result = ''
-        self.conditions = {}
+        if not self.terminate:
+            self.resolver = Resolver(*args,**kwargs)
+            self.key = self.resolver.thing
+            self.key_result = ''
+            self.conditions = {}
 
     # Reset all
     def fullreset(self,*args,**kwargs):
@@ -529,16 +540,17 @@ class ResolverCached():
     # Recursive call to run resolver if not exists one cached key
     def tree(self):
         # Calculates key
-        k = self.makekey()
-        if k not in self.cache:
-            # Configure conditions into resolver
-            k = self.makekey(inserting=True)
-            # Run resolver
-            self.resolver.tree()
-            # Print results from resolver
-            self.resolver.print_results()
-            # Stores into cache the results
-            self.cache[k] = self.resolver.getResults()
+        if not self.terminate:
+            k = self.makekey()
+            if k not in self.cache:
+                # Configure conditions into resolver
+                k = self.makekey(inserting=True)
+                # Run resolver
+                self.resolver.tree()
+                # Print results from resolver
+                self.resolver.print_results()
+                # Stores into cache the results
+                self.cache[k] = self.resolver.getResults()
     
     # Stores dynamic conditions (queries) for running resolver
     # Need conditions (questions and tablestate) to query cache
@@ -682,9 +694,11 @@ class Worker (QRunnable):
     @Slot()
     def stopRequested(self):
         self.terminate = True
+        self.resolver.abort()
+
     @Slot()
     def run(self):
-        while not self.terminate:
+        while not self.parent.terminate:
             state,row,direction = self.joblist.get()
             print('Running worker {}'.format(self.id))
             self.resolver.configureResolver(state,row,direction)
@@ -718,8 +732,9 @@ class UpdatePool(QObject):
         self.stateString = ''
         self.levels = 0
         self.newResult.connect(self.newResultCompleted)
-        self.threadpool = QThreadPool()
+        self.threadpool = QThreadPool.globalInstance()
         self.threadpool.setMaxThreadCount(NUM_THREADS)
+        self.terminate = False
         for w in range(1,NUM_THREADS+1):
             print("{}Initializing worker {}".format('\r'*50,w),end='')
             # worker = Worker(self,w)
@@ -731,13 +746,19 @@ class UpdatePool(QObject):
             # self.threads.append(thread)
             # thread.start()
             worker = Worker(self,w)
-            self.threadpool.globalInstance().start(worker)
+            self.workers.append(worker)
+            self.threadpool.start(worker)
         print('')
     
     @Slot(int,int,str)
     def newResultCompleted(self,row,dir,result):
         self.parent.newResultCompleted(row,dir,result)
 
+    def abort(self):
+        for x in self.workers:
+            x.stopRequested()
+        self.threadpool.cancel()
+        
     def set_stateString(self,stateString):
         if stateString != self.stateString:
             self.stateString = stateString
@@ -1854,6 +1875,16 @@ class AppMainWindow(QApplication):
         self.scroll = gridHelper(self.window.gridEdition, self)
         self.window.previewButton.clicked.connect(self.clickedPreview)
         self.sheet = None
+        self.aboutToQuit.connect(self.exitting)
+
+    @Slot()
+    def exitting(self):
+        qDebug("exitting")
+        self.tableQuestions.pool.terminate = True
+        self.tableQuestions.pool.abort()
+        self.tableQuestions.pool.threadpool.clear()
+        for x in self.tableQuestions.pool.workers:
+            self.tableQuestions.pool.threadpool.cancel(x)
 
     @Slot(int)
     def editingQuestion(self, row):
