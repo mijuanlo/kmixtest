@@ -18,7 +18,7 @@ from time import time
 from enum import Enum,IntEnum,auto,unique
 
 # Thread limit
-NUM_THREADS = 1
+NUM_THREADS = 10
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
 DEBUG_LEVEL = 2
@@ -47,7 +47,7 @@ class Color(Enum):
             return
         return '{}{}{}'.format(color.value,thing,Color.RESET.value)
      
-class Resolver:
+class Resolver(QObject):
     # class testclass:
     #     A = '00 00 10 11 01 10 00 01 01'
     #     # A 0 0
@@ -74,6 +74,7 @@ class Resolver:
         print(msg)
 
     def __init__(self,*args,**kwargs):
+        super().__init__()
         self.terminate = False
         thing = kwargs.get('thing',None)
         complete = kwargs.get('complete',None)
@@ -107,6 +108,7 @@ class Resolver:
             exit(1)
 
     def abort(self):
+        qDebug('Aborting resolver')
         self.terminate = True
     # function to print metric counters when debugging
     def print_debug_info(self):
@@ -306,6 +308,7 @@ class Resolver:
         # Debugging counters for metrics
         if self.terminate:
             return
+        QCoreApplication.processEvents()
         if initialcall and self.debug_level > 0:
             self.stime = time()
 
@@ -476,18 +479,22 @@ class Resolver:
 # This class it's needed cause resolver is called from update graphic functions from gui
 #
 # Cache stores results from resolver into dictionary, with key built with compound table state and conditions (queries + assertions from user)
-class ResolverCached():
+class ResolverCached(QObject):
     cache = {}
 
     def __init__(self,*args,**kwargs):
+        super().__init__()
         global DEBUG_LEVEL
         self.terminate = False
         self.debug_level = DEBUG_LEVEL
+        self.resolver = None
         self.fullreset()
     
     def abort(self):
+        qDebug("Aborting resolver cached")
         self.terminate = True
-        self.resolver.abort()
+        if self.resolver:
+            self.resolver.abort()
 
     # get results from cache or run a recursive resolver
     def getResults(self,*args,**kwargs):
@@ -672,47 +679,45 @@ class BuildPersistentCache():
     def __init__(self):
         r = ResolverCached()
     
-from queue import Queue
+from queue import Queue, Empty
 
-class Worker (QRunnable):
-    #start = Signal()
-    #stop = Signal()
-
-    def __init__(self,parent,id):
-        super().__init__()
-        self.parent = parent
+class Worker (QRunnable,QObject):
+    newResult = Signal(int,int,str)
+    def __init__(self,joblist,mutex,id):
+        QObject.__init__(self)
+        QRunnable.__init__(self)
+        self.joblist = joblist
+        self.lock = mutex
         self.id = id
-        self.daemon = True
-        self.joblist = parent.jobs
-        self.model = parent.model
+        self.daemon = False
         self.resolver = ResolverCached()
         self.terminate = False
-        #self.start()
-        #self.start.connect(self.run)
-        #self.stop.connect(self.stopRequested)
+        self.terminated = False
 
-    @Slot()
-    def stopRequested(self):
+    def abort(self):
+        qDebug("Aborting worker {}".format(self.id))
         self.terminate = True
+        self.joblist = None
         self.resolver.abort()
 
-    @Slot()
     def run(self):
-        while not self.parent.terminate:
-            state,row,direction = self.joblist.get()
-            print('Running worker {}'.format(self.id))
+        while not self.terminate:
+            try:
+                state,row,direction = self.joblist.get(block=True,timeout=0.01)
+            except Empty:
+                continue
+            print('Running worker {} {} {} {}'.format(self.id,state,row,direction))
             self.resolver.configureResolver(state,row,direction)
             stime = time()
             R = self.resolver.getResults()
             duration = "{0:4.2f}".format(time() - stime)
             flagdirection = True if R else False
             result = R[0] if R else []
-            self.parent.model[row][direction] = flagdirection
-            self.parent.model[row][self.parent.modelStateOffset+direction] = True
-            self.parent.model[row][self.parent.modelResultOffset+direction] = result
-            print('End worker {} --> {} [ {} ]'.format(self.id,R,duration))
-            self.parent.newResult.emit(row,direction,R)
-            self.joblist.task_done()
+            print('End worker {} [ {} sec ]--> Sending: \'{}\' \'{}\' \'{}\' '.format(self.id,duration,row,direction,R))
+            self.newResult.emit(row,direction,result)
+            if self.joblist:
+                self.joblist.task_done()
+        self.terminated = True
 
 
 class UpdatePool(QObject):
@@ -728,7 +733,8 @@ class UpdatePool(QObject):
         self.workers = []
         self.threads = []
         # Model for movements list of rows, row with (upstate,downstate,updatestate)
-        self.model = []
+        self.model = {}
+        self.lock = QMutex()
         self.stateString = ''
         self.levels = 0
         self.newResult.connect(self.newResultCompleted)
@@ -745,19 +751,47 @@ class UpdatePool(QObject):
             # worker.moveToThread(thread)
             # self.threads.append(thread)
             # thread.start()
-            worker = Worker(self,w)
+            worker = Worker(self.jobs,self.lock,w)
+            worker.newResult.connect(self.newResultCompleted)
+            worker.setAutoDelete(True)
             self.workers.append(worker)
             self.threadpool.start(worker)
         print('')
     
     @Slot(int,int,str)
     def newResultCompleted(self,row,dir,result):
+        qDebug("New Result {} {} {}".format(row,dir,result))
+        if row not in self.model:
+            self.lock.lock()
+            self.model.setdefault(row,[False,False,False,False,None,None])
+            self.lock.unlock()
+        
+        state = self.model[row][0:2]
+        valid = self.model[row][2:4]
+        res = self.model[row][4:6]
+        if result:
+            state[dir]=True
+            res[dir]=result
+            valid[dir]=True
+        l = state + valid + res
+        self.lock.lock()
+        self.model[row] = l
+        self.lock.unlock()
+        #if not self.model[row][2+dir]:
+        for y in self.model:
+            s =''
+            for x in self.model[y]:
+                s+=' {}'.format(x)
+            print(s)
         self.parent.newResultCompleted(row,dir,result)
 
     def abort(self):
+        qDebug("Aborting UpdatePool")
+        self.jobs = None
         for x in self.workers:
-            x.stopRequested()
-        self.threadpool.cancel()
+            #self.threadpool.cancel(x)
+            x.abort()
+        self.threadpool.clear()
         
     def set_stateString(self,stateString):
         if stateString != self.stateString:
@@ -766,11 +800,21 @@ class UpdatePool(QObject):
             self.invalidate_model()
 
     def invalidate_model(self):
-        self.model = []
-        self.model.append([0,1,True,False,None,None])
-        for x in range(1,self.levels-1):
-            self.model.append([1,1,False,False,None,None])
-        self.model.append([1,0,False,True,None,None])
+        self.lock.lock()
+        qDebug("Invalidating")
+        while not self.jobs.empty():
+            self.jobs.get()
+        if not self.model:
+            self.model = {}
+            self.model[0] =[False,True,True,False,None,None]
+            for x in range(1,self.levels-1):
+                self.model[x]=[True,True,False,False,None,None]
+            self.model[self.levels] =[True,False,False,True,None,None]
+        else:
+            for x in self.model:
+                self.model[x][2]=False
+                self.model[x][3]=False
+        self.lock.unlock()
         for row in range(self.levels):
             if row==0:
                 self.jobs.put((self.stateString,row,Direction.DOWN.value))
@@ -783,16 +827,24 @@ class UpdatePool(QObject):
     def get_model_dirstate(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
-        state = self.model[row][direction]
-        valid = self.model[row][self.modelStateOffset+direction]
+        if row in self.model:
+            state = self.model[row][direction]
+            valid = self.model[row][self.modelStateOffset+direction]
+        else:
+            state = False
+            valid = False
         if not valid:
             self.jobs.put((self.stateString,row,direction))
         return state
+
     def get_model_moveresult(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
-        state = self.model[row][self.modelStateOffset+direction]
-        result = self.model[row][self.modelResultOffset+direction]
+        if row in self.model:
+            state = self.model[row][self.modelStateOffset+direction]
+            result = self.model[row][self.modelResultOffset+direction]
+        else:
+            state = False
         if not state:
             self.jobs.put((self.stateString,row,direction))
             return None
@@ -1883,8 +1935,9 @@ class AppMainWindow(QApplication):
         self.tableQuestions.pool.terminate = True
         self.tableQuestions.pool.abort()
         self.tableQuestions.pool.threadpool.clear()
-        for x in self.tableQuestions.pool.workers:
-            self.tableQuestions.pool.threadpool.cancel(x)
+        exit(0)
+        # for x in self.tableQuestions.pool.workers:
+        #     self.tableQuestions.pool.threadpool.cancel(x)
 
     @Slot(int)
     def editingQuestion(self, row):
