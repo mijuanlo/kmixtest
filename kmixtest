@@ -21,9 +21,9 @@ from enum import Enum,IntEnum,auto,unique
 NUM_THREADS = 10
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
-DEBUG_LEVEL = 2
+DEBUG_LEVEL = 0
 # Replay longer queries, auto-activating debug_level = 2 for debug sequence
-PAUSE_WHEN_SEEMS_WRONG = True
+# PAUSE_WHEN_SEEMS_WRONG = True
 @unique
 class Direction(IntEnum):
     UP = 0
@@ -71,7 +71,7 @@ class Resolver(QObject):
             msg = Color.makecolor(msg,Color.YELLOW)
         else:
             msg = Color.makecolor(msg,Color.RED)
-        print(msg)
+        qDebug(msg)
 
     def __init__(self,*args,**kwargs):
         super().__init__()
@@ -119,7 +119,7 @@ class Resolver(QObject):
                 cur = end-ini
                 acu += cur
                 s.append('{0:4.2f}'.format(cur))
-            print("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
+            qDebug("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
 
     # Configure conditions into resolver, conditions represent questions that resolver try to answer with valid combination
     # Example) if we want to answer if one row can go down, i will add one or more conditions that this row need to be on any of target rows
@@ -295,7 +295,7 @@ class Resolver(QObject):
         
         # Assertion that list of possible elements for selecting next branch is the same reordered
         if len(possible) != len(out):
-            print('Error')
+            qDebug('Error')
             exit(1)
         return out
 
@@ -471,7 +471,7 @@ class Resolver(QObject):
             else:
                 r += ' (first result)'
         if self.debug_level > 0:
-            print(Color.makecolor(r,Color.BLUE))
+            qDebug(Color.makecolor(r,Color.BLUE))
         # Print metric counters
         self.print_debug_info()
 
@@ -684,6 +684,8 @@ from queue import Queue, Empty
 class Worker (QRunnable,QObject):
     newResult = Signal(int,int,str)
     def __init__(self,joblist,mutex,id):
+        global DEBUG_LEVEL
+        self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
         QRunnable.__init__(self)
         self.joblist = joblist
@@ -700,23 +702,83 @@ class Worker (QRunnable,QObject):
         self.joblist = None
         self.resolver.abort()
 
+    def row_is(self,state,row,col):
+        return True if state[2*row+col] == '1' else False
+    def row_is_linked(self,state,row):
+        return self.row_is(state,row,1)
+    def row_is_fixed(self,state,row):
+        return self.row_is(state,row,0)
+
     def run(self):
         while not self.terminate:
             try:
                 state,row,direction = self.joblist.get(block=True,timeout=0.01)
             except Empty:
                 continue
-            print('Running worker {} {} {} {}'.format(self.id,state,row,direction))
-            self.resolver.configureResolver(state,row,direction)
-            stime = time()
-            R = self.resolver.getResults()
-            duration = "{0:4.2f}".format(time() - stime)
-            flagdirection = True if R else False
-            result = R[0] if R else []
-            print('End worker {} [ {} sec ]--> Sending: \'{}\' \'{}\' \'{}\' '.format(self.id,duration,row,direction,R))
-            self.newResult.emit(row,direction,result)
+            ID = chr(row+65)
+            ROW_COUNT = int(len(state)/2)
+
+            strstate=state
+            if self.debug_level > 0:
+                strstate=''
+                for x in range(len(state)):
+                    level = int(x / 2)
+                    change = x % 2
+                    if change:
+                        strstate += '{}({}{}) '.format(chr(65+level),state[x-1],state[x])
+                qDebug('Running worker {} {} {} {}'.format(self.id,strstate,row,direction))
+
+            ret = False
+            # First can't go up and Last can't go down
+            if row == 0 and direction == Direction.UP:
+                ret = True
+            if not ret and row == ROW_COUNT -1 and direction == Direction.DOWN:
+                ret = True
+            # Fixed rows can't move
+            if not ret and self.row_is_fixed(state,row):
+                ret = True
+            
+            # Linked rows with any of them fixed , can't move
+            if not ret and self.row_is_linked(state,row):
+                idx = row -1
+                # search upward fixed row on linked group
+                while idx > 0 and self.row_is_linked(state,idx):
+                    if self.row_is_fixed(state,idx):
+                        ret = True
+                        break
+                    else:
+                        idx -= 1
+                # search downward fixed row on linked group
+                idx = row +1
+                while idx < ROW_COUNT and self.row_is_linked(state,idx):
+                    if self.row_is_fixed(state,idx):
+                        ret = True
+                        break
+                    else:
+                        idx += 1
+            if ret:
+                self.newResult.emit(row,direction,'')
+            else:
+                self.resolver.configureResolver(state,row,direction)
+                stime = time()
+                if self.debug_level > 0:
+                    qDebug('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+                R = self.resolver.getResults()
+                dur = time()-stime
+                duration = "{0:4.2f}".format(dur)
+                flagdirection = True if R else False
+                result = R[0] if R else []
+                s = '{} can move {}? {} [ {} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
+                if dur > 2.0:
+                    qDebug(Color.makecolor(s,Color.RED))
+                else:
+                    if self.debug_level > 0:
+                        qDebug(Color.makecolor(s,Color.GREEN))
+                if self.debug_level > 0:
+                    qDebug('End worker {} [ {} sec ]--> Sending: \'{}\' \'{}\' \'{}\' '.format(self.id,duration,row,direction,R))
+                self.newResult.emit(row,direction,result)
             if self.joblist:
-                self.joblist.task_done()
+               self.joblist.task_done()
         self.terminated = True
 
 
@@ -726,6 +788,8 @@ class UpdatePool(QObject):
     modelStateOffset = 2
     modelResultOffset = 4
     def __init__(self,parent):
+        global DEBUG_LEVEL
+        self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
         self.parent = parent
         global NUM_THREADS
@@ -742,7 +806,7 @@ class UpdatePool(QObject):
         self.threadpool.setMaxThreadCount(NUM_THREADS)
         self.terminate = False
         for w in range(1,NUM_THREADS+1):
-            print("{}Initializing worker {}".format('\r'*50,w),end='')
+            qDebug("Initializing worker {}".format(w))
             # worker = Worker(self,w)
             # self.workers.append(worker)
             # thread = QThread()
@@ -756,11 +820,12 @@ class UpdatePool(QObject):
             worker.setAutoDelete(True)
             self.workers.append(worker)
             self.threadpool.start(worker)
-        print('')
+        qDebug('')
     
     @Slot(int,int,str)
     def newResultCompleted(self,row,dir,result):
-        qDebug("New Result {} {} {}".format(row,dir,result))
+        if self.debug_level > 1:
+            qDebug("(Update pool) New Result \'{}\' \'{}\' \'{}\'".format(row,dir,result))
         if row not in self.model:
             self.lock.lock()
             self.model.setdefault(row,[False,False,False,False,None,None])
@@ -769,20 +834,25 @@ class UpdatePool(QObject):
         state = self.model[row][0:2]
         valid = self.model[row][2:4]
         res = self.model[row][4:6]
+        
         if result:
             state[dir]=True
-            res[dir]=result
-            valid[dir]=True
+        else:
+            state[dir]=False
+        res[dir]=result
+        valid[dir]=True
+        
         l = state + valid + res
         self.lock.lock()
         self.model[row] = l
         self.lock.unlock()
         #if not self.model[row][2+dir]:
-        for y in self.model:
-            s =''
-            for x in self.model[y]:
-                s+=' {}'.format(x)
-            print(s)
+        if self.debug_level > 2:
+            for y in self.model:
+                s =''
+                for x in self.model[y]:
+                    s+=' \'{}\''.format(x)
+                qDebug(s)
         self.parent.newResultCompleted(row,dir,result)
 
     def abort(self):
@@ -801,7 +871,8 @@ class UpdatePool(QObject):
 
     def invalidate_model(self):
         self.lock.lock()
-        qDebug("Invalidating")
+        if self.debug_level > 1:
+            qDebug("Invalidating")
         while not self.jobs.empty():
             self.jobs.get()
         if not self.model:
@@ -1259,7 +1330,8 @@ class tableHelper(QObject):
     
     # call update graphics from native widget to update movement buttons
     def updateCellGraphics(self,rows='all',cols='all'):
-        qDebug('Updating graphics for {} {}'.format(rows,cols))
+        if self.debug_level > 1:
+            qDebug('Updating graphics for {} {}'.format(rows,cols))
         if rows == 'all':
             rows = list(range(self.model.rowCount()))
         if cols == 'all':
@@ -1389,7 +1461,8 @@ class tableHelper(QObject):
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
 
     def newResultCompleted(self,row,dir,result):
-        qDebug('New result: {} {} {}'.format(row,dir,result))
+        if self.debug_level > 1:
+            qDebug('(tablehelper) New result: \'{}\' \'{}\' \'{}\''.format(row,dir,result))
         self.updateCellGraphics(rows=[row],cols=[dir])
 
     # Function called from editorevent manager
@@ -1436,31 +1509,17 @@ class tableHelper(QObject):
         #self.resolver.configureResolver(self.stateString,ROW,direction)
         #self.pool.get_model_dirstate(self.stateString,ROW,direction)
 
-        # debug timming counters
-        stime = time()
-        if self.debug_level > 0:
-            print('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
-
         # Run cached resolver returning result
         # R = self.resolver.getResults()
         R = self.pool.get_model_dirstate(self.stateString,ROW,direction)
 
-        duration = time() - stime
-        if self.debug_level > 0:
-            ipad = ''
-            epad = ''
-            if duration > 5.0:
-                ipad = Color.RED.value
-                epad = Color.RESET.value
-            print('{0:s}{1:s} can move {2:s}? {3:s} [ {4:4.2f} secs ]{5:s}'.format(ipad,ID,'DOWN' if direction else 'UP','YES' if R else 'NO',duration,epad))
-        
-        global PAUSE_WHEN_SEEMS_WRONG
-        if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
-            pass
-            #self.resolver.configureResolver(self.parent.stateString,ROW,direction)
-            #R = self.resolver.getResults(debug=True)
-        if duration > 0.05:
-            print(duration)
+        # global PAUSE_WHEN_SEEMS_WRONG
+        # if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
+        #     pass
+        #     #self.resolver.configureResolver(self.parent.stateString,ROW,direction)
+        #     #R = self.resolver.getResults(debug=True)
+        # if duration > 0.05:
+        #     print(duration)
         return True if R else False
 
     # Callback for move rows triggered from movement buttons on col 0
@@ -1477,7 +1536,7 @@ class tableHelper(QObject):
 
         # Debug function printing model on terminal
         def printModel(m):
-            print('MODEL')
+            qDebug('MODEL')
             for y in range(0,m.rowCount()):
                 s = []
                 for x in range(1,m.columnCount()):
@@ -1485,7 +1544,7 @@ class tableHelper(QObject):
                     if a == 'None':
                         a=str(m.data(m.index(y,x),Qt.UserRole))
                     s.append(a)
-                print('>{}{}: {}'.format('\t',y,' | '.join(s)))
+                qDebug('>{}{}: {}'.format('\t',y,' | '.join(s)))
         
         MODEL = self.table.model()
         # Change to integer for direction
