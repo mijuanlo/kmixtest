@@ -140,6 +140,7 @@ class Resolver(QObject):
         item = item_tmp
         # Get starting item position
         i = self.combination.index(item)
+        fixed = [x for x in self.options['places'] if self.options['places'][x]]
         # If fixed position, add condition with only one possible position for each
         if direction == Direction.FIXED:
             i+=1
@@ -153,14 +154,19 @@ class Resolver(QObject):
                 offset+=1
                 l = list(range(i+offset,-1+offset,-1))
                 # Conditions going up need to be reversed with nearest (greatest) positions first
+                # Remove fixed
+                l = [ x for x in l if x not in fixed]
                 self.conditions.append((x,l))
         # If is going down, add a list of possible positions for each element
         elif direction == Direction.DOWN:
             offset=1
             for x in item:
                 offset+=1
+                l = list(range(i+offset,self.levels+2))
                 # Conditions going down need to be growing with nearest (lowest) positions first
-                self.conditions.append((x,list(range(i+offset,self.levels+2))))
+                # Remove fixed
+                l = [ x for x in l if x not in fixed]
+                self.conditions.append((x,l))
 
     # Check if it's valid combination
     # Combination (thing) can be complete or partial combination, this function validate partial combination to avoid go through 
@@ -334,7 +340,7 @@ class Resolver(QObject):
                     # possible values are: whatever element if not used until now and not fixed on any position,
                     possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
                     # optimize order of branches, selecting more probable branch first
-                    possible = self.reorder(used,possible)
+                    #possible = self.reorder(used,possible)
                 # launch recursion tree
                 for x in possible:
                     ret = self.tree(level+1,used + x,False)
