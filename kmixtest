@@ -804,6 +804,28 @@ class UpdatePool(QObject):
         if self.debug_level > 0:
             qDebug(msg)
 
+    def row_is(self,state,row,col):
+        return True if state[2*row+col] == '1' else False
+    def row_is_linked(self,state,row):
+        return self.row_is(state,row,1)
+    def row_is_fixed(self,state,row):
+        return self.row_is(state,row,0)
+    def first_of_linked_group(self,state,row):
+        if not self.row_is_linked(state,row):
+            return None
+        r=row
+        for i in range(2*r+1,-1,-2):
+            if state[i] == '1':
+                row-=1
+                continue
+            else:
+                row+=1
+                break
+        if row > -1:
+            return row
+        else:
+            return None
+
     # Timed enqueue for running jobs
     @Slot()
     def runQueue(self):
@@ -892,10 +914,19 @@ class UpdatePool(QObject):
         self.lock.unlock()
 
         # Enqueue jobs for running
+        done=[]
         for row in range(self.levels):
-            if row==0:
+            r = row
+            if r in done:
+                continue
+            if self.row_is_linked(self.stateString,r):
+                first = self.first_of_linked_group(self.stateString,r)
+                if first is not None:
+                    done.append(first)
+                    r = first        
+            if r==0:
                 self.jobs.put((self.stateString,row,Direction.DOWN.value))
-            elif row==self.levels:
+            elif r==self.levels:
                 self.jobs.put((self.stateString,row,Direction.UP.value))
             else:
                 self.jobs.put((self.stateString,row,Direction.UP.value))
@@ -905,6 +936,10 @@ class UpdatePool(QObject):
     def get_model_dirstate(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
+        if self.row_is_linked(self.stateString,row):
+            first = self.first_of_linked_group(self.stateString,row)
+            if first:
+                row = first
         if row in self.model:
             state = self.model[row][direction]
             valid = self.model[row][self.modelStateOffset+direction]
@@ -919,6 +954,10 @@ class UpdatePool(QObject):
     def get_model_moveresult(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
+        if self.row_is_linked(self.stateString,row):
+            first = self.first_of_linked_group(self.stateString,row)
+            if first:
+                row = first
         if row in self.model:
             state = self.model[row][self.modelStateOffset+direction]
             result = self.model[row][self.modelResultOffset+direction]
@@ -1399,7 +1438,29 @@ class tableHelper(QObject):
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
             qDebug('(tablehelper) New result: \'{}\' \'{}\' \'{}\''.format(row,dir,result))
-        self.updateCellGraphics(rows=[row],cols=[dir])
+        
+        LINKED_COLUMN = self.headerItemNames.index('linked')
+        NUM_ROWS = self.model.rowCount()
+
+        def getCellState(row,col):
+            return self.model.data(self.model.index(row,col),Qt.DisplayRole)
+        
+        rows = []
+        if getCellState(row,LINKED_COLUMN):
+            rows.append(row)
+            for i in range(row,-1,-1):
+                if getCellState(i,LINKED_COLUMN):
+                    rows.append(i)
+                else:
+                    break
+            for i in range(row,NUM_ROWS):
+                if getCellState(i,LINKED_COLUMN):
+                    rows.append(i)
+                else:
+                    break
+            self.updateCellGraphics(rows=rows,cols=[dir])
+        else:
+            self.updateCellGraphics(rows=[row],cols=[dir])
 
     # Function called from editorevent manager
     # Check if one row can move up or down taking number, position and states of all rows
@@ -1538,7 +1599,7 @@ class tableHelper(QObject):
         # i = QTableWidgetItem("{}".format(item))
         # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # table.setItem(last_row,3,i)
-        self.model.setData(self.model.index(last_row,3),"{}".format(item))
+        self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,item))
 
         col = self.model.columnCount() -1
         idx=self.model.index(last_row,col)
