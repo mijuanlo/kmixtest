@@ -9,21 +9,19 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
-TESTICON="option.svg"
-TESTICONLINKED="linked.svg"
-TESTICONFIXED="fixed.svg"
-ICONCLOSE="close.svg"
+ICONS = {'up':'go-up.svg','down':'go-down.svg','linked':'linked.svg', 'fixed': 'fixed.svg', 'close': 'close.svg', 'option': 'option.svg'}
 from sys import exit
 from time import time
 from enum import Enum,IntEnum,auto,unique
+from os import cpu_count
+from queue import Queue, Empty
 
 # Thread limit
-NUM_THREADS = 10
+NUM_THREADS = cpu_count()
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
 DEBUG_LEVEL = 0
-# Replay longer queries, auto-activating debug_level = 2 for debug sequence
-# PAUSE_WHEN_SEEMS_WRONG = True
+
 @unique
 class Direction(IntEnum):
     UP = 0
@@ -46,7 +44,26 @@ class Color(Enum):
         if not isinstance(color,Color):
             return
         return '{}{}{}'.format(color.value,thing,Color.RESET.value)
-     
+
+chars = ''
+def mychr(num): 
+    global chars
+    if chars:
+        return chars[num]
+    else:
+        for i in range(49,58):
+            chars += chr(i)
+        for i in range(65,91):
+            chars += chr(i)
+        for i in range(97,123):
+            chars += chr(i)
+        for i in range(192,768):
+            chars += chr(i)
+def unmychr(char):
+    global chars
+    if chars:
+        return chars.index(char)+1
+
 class Resolver(QObject):
     # class testclass:
     #     A = '00 00 10 11 01 10 00 01 01'
@@ -108,7 +125,8 @@ class Resolver(QObject):
             exit(1)
 
     def abort(self):
-        qDebug('Aborting resolver')
+        if self.debug_level > 0:
+            qDebug('Aborting resolver')
         self.terminate = True
     # function to print metric counters when debugging
     def print_debug_info(self):
@@ -225,23 +243,6 @@ class Resolver(QObject):
                     if x != thing[idx]:
                         self.dprint(thing,False)
                         return False
-                   
-        # if option.get('linked'):
-        #     llist = option.get('list')
-        #     xlist = len(llist)
-        #     a=l
-        #     # Check that all linked elements are joined
-        #     for x in range(llist.index(thing[l-1]),-1,-1):
-        #         a-=1
-        #         if a < 0:
-        #             self.dprint(thing,False)
-        #             return False
-        #         if a >=0 and a < len(thing):
-        #             if thing[a] != llist[x]:
-        #                 self.dprint(thing,False)
-        #                 return False
-        #         else:
-        #             print('ERROR BACKWARD')
 
         # If it's full, one solution was found
         if full:
@@ -263,47 +264,34 @@ class Resolver(QObject):
             return None
 
     # Reorder apply heuristic over possible recursion branches, improving time to answer and finding solution
-    def reorder(self,used,possible):
-        out = []
-        level = len(used)
-        # Try to use first whatever that has conditions applied and it's not used
-        l=[elem for elem,places in self.conditions]
-        for p in possible:
-            if p in used:
-                raise ValueError('Can\'t reorder {} because it\'s used and try to mark as possible'.format(p))
-            if p not in l:
-            # not conditionated elements insert at the end
-                out.append(p)
-            else:
-                # conditionated elements first , try to get quickly fail or success
-                for elem,places in self.conditions:
-                    if p == elem:
-                        if not len(places):
-                            raise ValueError('Condition without candidate position')
-                        if level in places:
-                            out.insert(0,p)
-                        else:
-                            out.append(p)
-
-                #             # try to insert at right position
-                #             out.insert(places[0]-1,p)
-                #         else:
-                #             out.append(p)
-
-        # BUT.... First LINKED elements
-        # if used:
-        #     if self.options['names'][used[-1]].get('linked'):
-        #         linked_elements = self.options['names'][used[-1]].get('list')
-        #         where = linked_elements.index(used[-1])
-        #         for x in range(where+1,len(linked_elements)):
-        #             out.remove(linked_elements[x])
-        #             out.insert(0,self.options['names'][used[-1]].get('list')[x])
+    # DISABLED FUNCTION
+    # def reorder(self,used,possible):
+    #     out = []
+    #     level = len(used)
+    #     # Try to use first whatever that has conditions applied and it's not used
+    #     l=[elem for elem,places in self.conditions]
+    #     for p in possible:
+    #         if p in used:
+    #             raise ValueError('Can\'t reorder {} because it\'s used and try to mark as possible'.format(p))
+    #         if p not in l:
+    #         # not conditionated elements insert at the end
+    #             out.append(p)
+    #         else:
+    #             # conditionated elements first , try to get quickly fail or success
+    #             for elem,places in self.conditions:
+    #                 if p == elem:
+    #                     if not len(places):
+    #                         raise ValueError('Condition without candidate position')
+    #                     if level in places:
+    #                         out.insert(0,p)
+    #                     else:
+    #                         out.append(p)
         
-        # Assertion that list of possible elements for selecting next branch is the same reordered
-        if len(possible) != len(out):
-            qDebug('Error')
-            exit(1)
-        return out
+    #     # Assertion that list of possible elements for selecting next branch is the same reordered
+    #     if len(possible) != len(out):
+    #         qDebug('Error')
+    #         exit(1)
+    #     return out
 
     # tree function makes recursive tree trying to find a valid combination
     # Parameters:
@@ -311,10 +299,14 @@ class Resolver(QObject):
     # used: combination used at this point of branch
     # initialcall: flag to identify if it's a recursive call or not, debugging purposes
     def tree(self,level=1,used='',initialcall=True):
-        # Debugging counters for metrics
+        # Allow abort recursion when program exit
         if self.terminate:
             return
+        # Allow process qt events
         QCoreApplication.processEvents()
+        QCoreApplication.sendPostedEvents()
+
+        # Debugging metric counters
         if initialcall and self.debug_level > 0:
             self.stime = time()
 
@@ -340,7 +332,8 @@ class Resolver(QObject):
                     # possible values are: whatever element if not used until now and not fixed on any position,
                     possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
                     # optimize order of branches, selecting more probable branch first
-                    #possible = self.reorder(used,possible)
+                    # disabled function
+                    # possible = self.reorder(used,possible)
                 # launch recursion tree
                 for x in possible:
                     ret = self.tree(level+1,used + x,False)
@@ -403,7 +396,7 @@ class Resolver(QObject):
         #    table = '--- TABLE ---\n'
         for i in range(self.levels):
             # each row has a string representation of one ascii character, example: three rows -> ABC
-            name = chr(65+i)
+            name = mychr(i)
             self.combination += name
             mark_fixed = thing[2*i]
             mark_linked = thing[2*i+1]
@@ -453,7 +446,7 @@ class Resolver(QObject):
         
         # Build 'places' structure with fixed positions
         for i in range(self.levels):
-            name = chr(65+i)
+            name = mychr(i)
             if self.options['names'][name]['fixed']:
                 self.options['places'][i+1] = name
             else:
@@ -497,7 +490,8 @@ class ResolverCached(QObject):
         self.fullreset()
     
     def abort(self):
-        qDebug("Aborting resolver cached")
+        if self.debug_level > 0:
+            qDebug("Aborting resolver cached")
         self.terminate = True
         if self.resolver:
             self.resolver.abort()
@@ -510,7 +504,9 @@ class ResolverCached(QObject):
             self.debug_level=2
             this_is_for_putting_debug_breakpoint_call_is_replaying=True
             # Remove key from cache
-            del self.cache[self.makekey()]
+            key = self.makekey()
+            if key in self.cache:
+                del self.cache[key]
         # get the cache key for current state
         k = self.makekey()
         if not k or not k in self.cache:
@@ -591,7 +587,7 @@ class ResolverCached(QObject):
         ROW_COUNT = int(len(state)/2)
 
         # row to id representing row into resolver
-        ID = chr(65+row)
+        ID = mychr(row)
         
         # starts new cachedresolver for query state & conditions
         self.newQuery(thing = state, complete = False, debug_level = self.debug_level)
@@ -622,7 +618,7 @@ class ResolverCached(QObject):
                 count-=1
             # build condition for remaning rows
             for i in range(r,ROW_COUNT):
-                s += chr(65+i)
+                s += mychr(i)
             # remove current row to avoid duplicate condition on selected row
             s = s.replace(ID,'')
             # add optimization conditions
@@ -649,43 +645,12 @@ class ResolverCached(QObject):
                 count-=1
             # build condition for remaning rows
             for i in range(r,-1,-1):
-                s = chr(65+i)+s
+                s = mychr(i)+s
             # remove current row to avoid duplicate condition on selected row
             s = s.replace(ID,'')
             # add optimization conditions
             if s:
                 self.addCondition(s,Direction.FIXED.value)
-
-# COMENTED SINGLE CALLS TO RESOLVER
-# COPIED FROM RESOLVER PYTHON DEVELOPED FILE
-#
-# if __name__ == "__main__":
-# 	debug_level = 0
-# 	complete = False
-# 	resolver = Resolver(thing = Resolver.testclass.A, complete = complete, debug_level = debug_level)
-# 	resolver.addCondition('A',Resolver.direction.DOWN)
-# 	resolver.tree()
-# 	print(resolver.getResults())
-# 	resolver.print_results()
-    
-# 	print('With resolver')
-# 	resolver = ResolverCached()
-# 	resolver.newQuery(thing = Resolver.testclass.A, complete = complete, debug_level = debug_level)
-# 	resolver.addCondition('A',Resolver.direction.DOWN)
-# 	print(resolver.getResults())
-# 	resolver.newQuery(thing = Resolver.testclass.A, complete = complete, debug_level = debug_level)
-# 	resolver.addCondition('B',Resolver.direction.DOWN)
-# 	print(resolver.getResults())
-# 	resolver.newQuery(thing = Resolver.testclass.A, complete = complete, debug_level = debug_level)
-# 	resolver.addCondition('A',Resolver.direction.DOWN)
-# 	print(resolver.getResults())
-# 	exit(0)
-
-class BuildPersistentCache():
-    def __init__(self):
-        r = ResolverCached()
-    
-from queue import Queue, Empty
 
 class Worker (QRunnable,QObject):
     newResult = Signal(int,int,str)
@@ -694,16 +659,17 @@ class Worker (QRunnable,QObject):
         self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
         QRunnable.__init__(self)
+        # Queue of available jobs to do
         self.joblist = joblist
         self.lock = mutex
         self.id = id
-        self.daemon = False
         self.resolver = ResolverCached()
         self.terminate = False
         self.terminated = False
 
     def abort(self):
-        qDebug("Aborting worker {}".format(self.id))
+        if self.debug_level > 0:
+            qDebug("Aborting worker {}".format(self.id))
         self.terminate = True
         self.joblist = None
         self.resolver.abort()
@@ -718,10 +684,12 @@ class Worker (QRunnable,QObject):
     def run(self):
         while not self.terminate:
             try:
+                # Try to get a job from queue
                 state,row,direction = self.joblist.get(block=True,timeout=0.01)
             except Empty:
                 continue
-            ID = chr(row+65)
+
+            ID = mychr(row)
             ROW_COUNT = int(len(state)/2)
 
             strstate=state
@@ -731,7 +699,7 @@ class Worker (QRunnable,QObject):
                     level = int(x / 2)
                     change = x % 2
                     if change:
-                        strstate += '{}({}{}) '.format(chr(65+level),state[x-1],state[x])
+                        strstate += '{}({}{}) '.format(mychr(level),state[x-1],state[x])
                 qDebug('Running worker {} {} {} {}'.format(self.id,strstate,row,direction))
 
             ret = False
@@ -768,13 +736,13 @@ class Worker (QRunnable,QObject):
                 self.resolver.configureResolver(state,row,direction)
                 stime = time()
                 if self.debug_level > 0:
-                    qDebug('{0:s} can move {1:s}? (Thinking...)'.format(ID,'DOWN' if direction else 'UP'))
+                    qDebug('{0:s} can move {1:s}? (Thinking...)'.format(unmychr(ID),'DOWN' if direction else 'UP'))
                 R = self.resolver.getResults()
                 dur = time()-stime
                 duration = "{0:4.2f}".format(dur)
                 flagdirection = True if R else False
                 result = R[0] if R else []
-                s = '{} can move {}? {} [ {} secs ]'.format(ID,'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
+                s = '{} can move {}? {} [ {} secs ]'.format(unmychr(ID),'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
                 if dur > 2.0:
                     qDebug(Color.makecolor(s,Color.RED))
                 else:
@@ -799,35 +767,52 @@ class UpdatePool(QObject):
         QObject.__init__(self)
         self.parent = parent
         global NUM_THREADS
-        self.jobs = Queue(NUM_THREADS)
+        # Possible job queue
+        self.jobs = Queue(10000)
+        # Jobs timed enqueued for run
+        self.dispatched = Queue(10000)
         self.workers = []
-        self.threads = []
         # Model for movements list of rows, row with (upstate,downstate,updatestate)
         self.model = {}
+        # Model lock
         self.lock = QMutex()
+
         self.stateString = ''
         self.levels = 0
+
         self.newResult.connect(self.newResultCompleted)
+
         self.threadpool = QThreadPool.globalInstance()
         self.threadpool.setMaxThreadCount(NUM_THREADS)
+
         self.terminate = False
+
+        # Timed enqueue for running
+        self.timer = QTimer()
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.runQueue)
+        self.timer.start()
+
+        msg = 'Initializing worker'
         for w in range(1,NUM_THREADS+1):
-            qDebug("Initializing worker {}".format(w))
-            # worker = Worker(self,w)
-            # self.workers.append(worker)
-            # thread = QThread()
-            # #thread.started.connect()
-            # #thread.finished.connect()
-            # worker.moveToThread(thread)
-            # self.threads.append(thread)
-            # thread.start()
-            worker = Worker(self.jobs,self.lock,w)
+            msg += " {}".format(w)
+            worker = Worker(self.dispatched,self.lock,w)
             worker.newResult.connect(self.newResultCompleted)
             worker.setAutoDelete(True)
             self.workers.append(worker)
             self.threadpool.start(worker)
-        qDebug('')
-    
+        if self.debug_level > 0:
+            qDebug(msg)
+
+    # Timed enqueue for running jobs
+    @Slot()
+    def runQueue(self):
+        if self.debug_level > 0:
+            qDebug('Running {} jobs'.format(self.jobs.qsize()))
+        while not self.jobs.empty():
+            self.dispatched.put(self.jobs.get())
+
+    # Signal for process new result
     @Slot(int,int,str)
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
@@ -837,36 +822,45 @@ class UpdatePool(QObject):
             self.model.setdefault(row,[False,False,False,False,None,None])
             self.lock.unlock()
         
+        # Copy current status
         state = self.model[row][0:2]
         valid = self.model[row][2:4]
         res = self.model[row][4:6]
         
+        # Mark as enabled or disabled view results
         if result:
             state[dir]=True
         else:
             state[dir]=False
+        # Copy result
         res[dir]=result
+        # Mark as updated
         valid[dir]=True
-        
+        # Build list
         l = state + valid + res
+        # Update model
         self.lock.lock()
         self.model[row] = l
         self.lock.unlock()
-        #if not self.model[row][2+dir]:
+
         if self.debug_level > 2:
             for y in self.model:
                 s =''
                 for x in self.model[y]:
                     s+=' \'{}\''.format(x)
                 qDebug(s)
+
+        # Send signal for update graphics
         self.parent.newResultCompleted(row,dir,result)
 
     def abort(self):
-        qDebug("Aborting UpdatePool")
+        if self.debug_level > 0:
+            qDebug("Aborting UpdatePool")
         self.jobs = None
+        self.dispatched = None
         for x in self.workers:
-            #self.threadpool.cancel(x)
             x.abort()
+        self.timer.stop()
         self.threadpool.clear()
         
     def set_stateString(self,stateString):
@@ -876,11 +870,14 @@ class UpdatePool(QObject):
             self.invalidate_model()
 
     def invalidate_model(self):
-        self.lock.lock()
         if self.debug_level > 1:
-            qDebug("Invalidating")
+            qDebug("Invalidating pool model")
+        # Remove current job queue
         while not self.jobs.empty():
             self.jobs.get()
+
+        self.lock.lock()
+        # Initially create new model 
         if not self.model:
             self.model = {}
             self.model[0] =[False,True,True,False,None,None]
@@ -888,10 +885,13 @@ class UpdatePool(QObject):
                 self.model[x]=[True,True,False,False,None,None]
             self.model[self.levels] =[True,False,False,True,None,None]
         else:
+            # Invalidate all model
             for x in self.model:
                 self.model[x][2]=False
                 self.model[x][3]=False
         self.lock.unlock()
+
+        # Enqueue jobs for running
         for row in range(self.levels):
             if row==0:
                 self.jobs.put((self.stateString,row,Direction.DOWN.value))
@@ -901,6 +901,7 @@ class UpdatePool(QObject):
                 self.jobs.put((self.stateString,row,Direction.UP.value))
                 self.jobs.put((self.stateString,row,Direction.DOWN.value))
 
+    # Get status for enable/disable movement buttons, called from table delegate class
     def get_model_dirstate(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
@@ -914,6 +915,7 @@ class UpdatePool(QObject):
             self.jobs.put((self.stateString,row,direction))
         return state
 
+    # Get movement for clicked move cell
     def get_model_moveresult(self,state,row,direction):
         if state != self.stateString:
             self.set_stateString(state)
@@ -1024,9 +1026,9 @@ class tableDrawer(QStyledItemDelegate):
         self.debug_level = DEBUG_LEVEL
         super().__init__()
         self.parent = helper
-        self.iconFixed = QIcon(TESTICONFIXED)
-        self.iconLinked = QIcon(TESTICONLINKED)
-        self.icons = ["go-up.svg","go-down.svg"]
+        self.iconFixed = QIcon(ICONS['fixed'])
+        self.iconLinked = QIcon(ICONS['linked'])
+        self.icons = [ICONS['up'],ICONS['down']]
         self.widgets = []
         for i in self.icons:
             w = QPushButton()
@@ -1060,11 +1062,17 @@ class tableDrawer(QStyledItemDelegate):
 
     # Implementation for managing events into table
     def editorEvent(self, event, model, option, index):
+        column = index.column()
+
         # Disable not click release events
-        if event.type() != QEvent.MouseButtonRelease:
+        disabled = True
+        if column == 3 and event.type() == QEvent.MouseButtonDblClick:
+            disabled = False
+        elif column != 3 and event.type() != QEvent.MouseButtonRelease:
+            disabled = False
+        if disabled:
             return True
         
-        column = index.column()
         # First column providing up and down movement for rows
         # Model doesn't contain anything for this column
         if column == 0:
@@ -1094,86 +1102,8 @@ class tableDrawer(QStyledItemDelegate):
         # Column 3 (text) does not handle event here
         if column == 3:
             self.parent.editingQuestion.emit(index.row())
-            return True
 
         return super().editorEvent(event, model, option, index) # same as return False
-
-    # # Configure CachedResolver function
-    # # Initializes call to resolver without resetting cache adding some optimization conditions
-    # # Called from Delegated table class that update graphics
-    # def configureResolver(self, index, direction):
-    #     # current row updating graphics
-    #     ROW = index.row()
-    #     ROW_COUNT = index.model().rowCount()
-    #     LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-    #     FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-
-    #     # row to id representing row into resolver
-    #     ID = chr(65+ROW)
-    #     # state from cells for use with resolver
-    #     STATE = self.parent.stateString
-    #     # starts new cachedresolver for query state & conditions
-    #     self.parent.resolver.newQuery(thing = STATE, complete = False, debug_level = self.debug_level)
-    #     # add query (as condition) to get answer if one row can move or not
-    #     self.parent.resolver.addCondition(ID,direction)
-
-    #     #
-    #     # Optimization conditions (specially going up, because going down recursion are easiest)
-    #     #
-    #     # If query if one row can go up, maybe down rows can be fixed
-    #     if direction == Direction.UP:
-    #         # rows fixed for optimization
-    #         s = ''
-    #         # row pointer
-    #         r = ROW
-    #         # count bottom linked rows
-    #         count=0
-    #         # count down rows that are linked
-    #         for i in range(r-1,-1,-1):
-    #             if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
-    #                 count+=1
-    #         # move row pointer to end linked element (if current ID it's linked)
-    #         while ROW < ROW_COUNT and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-    #             ROW += 1
-    #         # move row pointer to allow down row linked elements going up
-    #         while ROW < ROW_COUNT and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-    #             ROW += 1
-    #             count-=1
-    #         # build condition for remaning rows
-    #         for i in range(ROW,ROW_COUNT):
-    #             s += chr(65+i)
-    #         # remove current row to avoid duplicate condition on selected row
-    #         s = s.replace(ID,'')
-    #         # add optimization conditions
-    #         if s:
-    #             self.parent.resolver.addCondition(s,Direction.FIXED.value)
-    #     # If query if one row can go down, maybe up rows can be fixed
-    #     if direction == Direction.DOWN:
-    #         # rows fixed for optimization
-    #         s = ''
-    #         # row pointer
-    #         r = ROW
-    #         # count upper linked rows
-    #         count = 0
-    #         # count upper rows that are linked
-    #         for i in range(r+1,ROW_COUNT):
-    #             if index.sibling(i,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(i,FIXED_COLUMN).data(Qt.DisplayRole):
-    #                 count+=1
-    #         # move row pointer to first element linked if ID it's linked
-    #         while ROW > -1 and index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole):
-    #             ROW -= 1
-    #         # move row pointer to allow upper elements go down
-    #         while ROW > -1 and count > 0 and not index.sibling(ROW,LINKED_COLUMN).data(Qt.DisplayRole) and not index.sibling(ROW,FIXED_COLUMN).data(Qt.DisplayRole):
-    #             ROW -= 1
-    #             count-=1
-    #         # build condition for remaning rows
-    #         for i in range(ROW,-1,-1):
-    #             s = chr(65+i)+s
-    #         # remove current row to avoid duplicate condition on selected row
-    #         s = s.replace(ID,'')
-    #         # add optimization conditions
-    #         if s:
-    #             self.parent.resolver.addCondition(s,Direction.FIXED.value)
 
     # Repaint function for question table
     def paint(self, painter, option, index):
@@ -1443,8 +1373,8 @@ class tableHelper(QObject):
         qm = QMenu('titulo', self.table)
         if item.column()!=0:
             for seq in range(1,4):
-                qm.addAction(Helper.genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=TESTICON,shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
-            qm.addAction(Helper.genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=TESTICON,shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
+                qm.addAction(Helper.genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=ICONS['option'],shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
+            qm.addAction(Helper.genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())
@@ -1479,7 +1409,7 @@ class tableHelper(QObject):
         # current row searching movement
         ROW = index.row()
         # internal id for selected row
-        ID = chr(65+ROW)
+        ID = mychr(ROW)
 
         ROW_COUNT = index.model().rowCount()
         LINKED_COLUMN = self.headerItemNames.index('linked')
@@ -1510,22 +1440,10 @@ class tableHelper(QObject):
                     return False
                 else:
                     idx += 1
-        # Configure resolver for query if it's a possible movement (if there is a solution with movement applied)
-        #self.configureResolver(index,direction)
-        #self.resolver.configureResolver(self.stateString,ROW,direction)
-        #self.pool.get_model_dirstate(self.stateString,ROW,direction)
 
-        # Run cached resolver returning result
-        # R = self.resolver.getResults()
+        # Get status from updatepool
         R = self.pool.get_model_dirstate(self.stateString,ROW,direction)
 
-        # global PAUSE_WHEN_SEEMS_WRONG
-        # if duration > 1.0 and PAUSE_WHEN_SEEMS_WRONG:
-        #     pass
-        #     #self.resolver.configureResolver(self.parent.stateString,ROW,direction)
-        #     #R = self.resolver.getResults(debug=True)
-        # if duration > 0.05:
-        #     print(duration)
         return True if R else False
 
     # Callback for move rows triggered from movement buttons on col 0
@@ -1559,16 +1477,11 @@ class tableHelper(QObject):
         else:
             dir = Direction.UP.value
 
-        # Need to get what row movement need to be done
-        #self.delegate.configureResolver(MODEL.index(row,0),dir)
-        #self.resolver.configureResolver(self.stateString,row,dir)
-
-        # Results always will be available on cache otherwise action would be disabled
-        #R = self.resolver.getResults()
+        # Get results from update pool
         R = self.pool.get_model_moveresult(self.stateString,row,dir)
         # Change movements from sequence of chars to list of integers with new rows order
         if R:
-            R = [ ord(x)-65 for x in R[0] ]
+            R = [ unmychr(x)-1 for x in R[0] ]
         else:
             self.controller.window.statusbar.showMessage("Thinking... please wait",10*1000)
             return
@@ -1865,7 +1778,7 @@ class Box(QGroupBox):
         super().__init__(title="{}-{}".format(title,self.id[-6:]),parent=parent)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
-        self.button = QPushButton(QIcon(ICONCLOSE),"",self)
+        self.button = QPushButton(QIcon(ICONS['close']),"",self)
         self.button.setFlat(True)
         self.button.setStyleSheet('border: none')
         self.button.setIconSize(QSize(self.button_size,self.button_size))
@@ -1996,13 +1909,11 @@ class AppMainWindow(QApplication):
 
     @Slot()
     def exitting(self):
-        qDebug("exitting")
+        qDebug("Exitting")
         self.tableQuestions.pool.terminate = True
         self.tableQuestions.pool.abort()
         self.tableQuestions.pool.threadpool.clear()
         exit(0)
-        # for x in self.tableQuestions.pool.workers:
-        #     self.tableQuestions.pool.threadpool.cancel(x)
 
     @Slot(int)
     def editingQuestion(self, row):
@@ -2068,7 +1979,7 @@ class AppMainWindow(QApplication):
             name_with_shortcut = self.calculate_default_menubar_shortcut(name)
             self.menu.setdefault(name,[])
             self.menu[name].append(self.window.menubar.addMenu(name_with_shortcut))
-            action = Helper.genAction(name=name,fn=self.test,icon=TESTICON,tip=name,parent=self.menu[name][0],data=name)
+            action = Helper.genAction(name=name,fn=self.test,icon=ICONS['option'],tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
 
 # Starting point of execution
