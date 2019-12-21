@@ -18,6 +18,7 @@ from queue import Queue, Empty
 
 # Thread limit
 NUM_THREADS = cpu_count()
+NUM_THREADS = 1
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
 DEBUG_LEVEL = 0
@@ -93,6 +94,7 @@ class Resolver(QObject):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.terminate = False
+        self.killing = False
         thing = kwargs.get('thing',None)
         complete = kwargs.get('complete',None)
         debug_level = kwargs.get('debug_level',None)
@@ -128,6 +130,10 @@ class Resolver(QObject):
         if self.debug_level > 0:
             qDebug('Aborting resolver')
         self.terminate = True
+    def reset(self):
+        if self.debug_level > 0:
+            qDebug('Killing resolver')
+        self.killing = True
     # function to print metric counters when debugging
     def print_debug_info(self):
         if self.debug_level > 0:
@@ -146,6 +152,7 @@ class Resolver(QObject):
     # item: string with one or more characters representing rows
     # direction: enum setting direction
     def addCondition(self,item,direction):
+        self.killing = False
         item_tmp = ''
         # If item is a linked item, link all elements into condition
         for i in item:
@@ -205,6 +212,9 @@ class Resolver(QObject):
                 self.debug_info['counter']['full'] += 1
             else:
                 self.debug_info['counter']['partial'] += 1
+        if self.debug_info['counter']['full'] > 200000:
+            print('POSSIBLE ERROR/'*20)
+            exit(0)
 
         # First validation, combination it's empty
         if not thing:
@@ -262,7 +272,38 @@ class Resolver(QObject):
         else:
             self.dprint(thing,None)
             return None
+    def reorder(self,used,possible):
+        out = possible.copy()
+        level = len(used)
+        i = level
 
+        for cond,places in self.conditions:
+            if cond not in possible:
+                continue
+            if not len(places):
+                continue
+            first = places[0]
+            out.insert(first-level,cond)
+        # rep = []
+        # delete = []
+        # for i in range(len(out)):
+        #     if out[i] in rep:
+        #         delete.append(i)
+        #     else:
+        #         rep.append(out[i])
+        # for i in delete:
+        #     del out[i]
+        out = list(dict.fromkeys(out))
+
+        # for x in range(len(possible)):
+        #     if out[x] != possible[x]:
+        #         print('{}\n{}'.format(possible,out))
+        #         print('/CHANGE/REORDER'*10)
+        
+        if len(possible) != len(out):
+            qDebug('Error')
+            exit(1)
+        return out
     # Reorder apply heuristic over possible recursion branches, improving time to answer and finding solution
     # DISABLED FUNCTION
     # def reorder(self,used,possible):
@@ -302,6 +343,8 @@ class Resolver(QObject):
         # Allow abort recursion when program exit
         if self.terminate:
             return
+        if self.killing:
+            return
         # Allow process qt events
         QCoreApplication.processEvents()
         QCoreApplication.sendPostedEvents()
@@ -333,7 +376,7 @@ class Resolver(QObject):
                     possible = [ o for o in self.options['names'] if o not in used and o not in self.options['places'] ]
                     # optimize order of branches, selecting more probable branch first
                     # disabled function
-                    # possible = self.reorder(used,possible)
+                    #possible = self.reorder(used,possible)
                 # launch recursion tree
                 for x in possible:
                     ret = self.tree(level+1,used + x,False)
@@ -451,7 +494,7 @@ class Resolver(QObject):
                 self.options['places'][i+1] = name
             else:
                 self.options['places'][i+1] = None
-        
+        self.killing = False
         return True
 
     # Get internal stored found results 
@@ -485,7 +528,9 @@ class ResolverCached(QObject):
         super().__init__()
         global DEBUG_LEVEL
         self.terminate = False
+        self.killing = False
         self.debug_level = DEBUG_LEVEL
+        self.terminate = False
         self.resolver = None
         self.fullreset()
     
@@ -507,16 +552,20 @@ class ResolverCached(QObject):
             key = self.makekey()
             if key in self.cache:
                 del self.cache[key]
-        # get the cache key for current state
-        k = self.makekey()
-        if not k or not k in self.cache:
-            # run expansion tree with resolver, when resolver ends, results are stored into cache
-            self.tree()
-        # return result from cache
-        return self.cache[k]
+        if not self.terminate and not self.killing:
+            # get the cache key for current state
+            k = self.makekey()
+            if not k or not k in self.cache:
+                # run expansion tree with resolver, when resolver ends, results are stored into cache
+                self.tree()
+            # return result from cache
+        if not self.terminate and not self.killing:
+            return self.cache[k]
+        return None
 
     # Make a new resolver initialized
     def newQuery(self,*args,**kwargs):
+        self.killing = False
         if not self.terminate:
             self.resolver = Resolver(*args,**kwargs)
             self.key = self.resolver.thing
@@ -526,13 +575,15 @@ class ResolverCached(QObject):
     # Reset all
     def fullreset(self,*args,**kwargs):
         self.cache = {}
-        self.key_result = ''
-        self.conditions = {}
+        self.reset()
 
     # Reset conditions but not cached results
     def reset(self,*args,**kwargs):
         self.key_result = ''
         self.conditions = {}
+        if self.resolver:
+            self.killing = True
+            self.resolver.reset()
 
     # Make a cache key built from table state and dynamic conditions
     # Parameters:
@@ -559,7 +610,8 @@ class ResolverCached(QObject):
                 # Print results from resolver
                 self.resolver.print_results()
                 # Stores into cache the results
-                self.cache[k] = self.resolver.getResults()
+                if not self.killing:
+                    self.cache[k] = self.resolver.getResults()
     
     # Stores dynamic conditions (queries) for running resolver
     # Need conditions (questions and tablestate) to query cache
@@ -673,6 +725,10 @@ class Worker (QRunnable,QObject):
         self.terminate = True
         self.joblist = None
         self.resolver.abort()
+    def killresolver(self):
+        if self.debug_level > 0:
+            qDebug("Killing on worker {} internal resolver".format(self.id))
+        self.resolver.reset()
 
     def row_is(self,state,row,col):
         return True if state[2*row+col] == '1' else False
@@ -736,7 +792,7 @@ class Worker (QRunnable,QObject):
                 self.resolver.configureResolver(state,row,direction)
                 stime = time()
                 if self.debug_level > 0:
-                    qDebug('{0:s} can move {1:s}? (Thinking...)'.format(unmychr(ID),'DOWN' if direction else 'UP'))
+                    qDebug('{} can move {}? (Thinking...)'.format(unmychr(ID),'DOWN' if direction else 'UP'))
                 R = self.resolver.getResults()
                 dur = time()-stime
                 duration = "{0:4.2f}".format(dur)
@@ -891,9 +947,16 @@ class UpdatePool(QObject):
             self.levels = int(len(stateString)/2)
             self.invalidate_model()
 
+    def resetWorkers(self):
+        if self.debug_level > 1:
+            qDebug("Resetting workers")
+        for w in self.workers:
+            w.killresolver()
+
     def invalidate_model(self):
         if self.debug_level > 1:
             qDebug("Invalidating pool model")
+        self.resetWorkers()
         # Remove current job queue
         while not self.jobs.empty():
             self.jobs.get()
