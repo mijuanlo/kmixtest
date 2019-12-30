@@ -11,7 +11,7 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 ICONS = {'up':'go-up.svg','down':'go-down.svg','linked':'linked.svg', 'fixed': 'fixed.svg', 'close': 'close.svg', 'option': 'option.svg'}
 from sys import exit
-from time import time
+from time import time,sleep
 from enum import Enum,IntEnum,auto,unique
 from os import cpu_count
 from queue import Queue, Empty
@@ -21,7 +21,11 @@ NUM_THREADS = cpu_count()
 NUM_THREADS = 1
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
-DEBUG_LEVEL = 0
+DEBUG_LEVEL = 2
+NATIVE_THREADS = False
+
+if not NATIVE_THREADS:
+    import threading
 
 @unique
 class Direction(IntEnum):
@@ -145,6 +149,13 @@ class Resolver(QObject):
                 s.append('{0:4.2f}'.format(cur))
             qDebug("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
 
+    def print_conditions(self):
+        s = 'Conditions:\n'
+        for c,places in self.conditions:
+            strplaces = [ str(x) for x in places ]
+            s += '{} --> {}\n'.format(c,','.join(strplaces))
+        qDebug(s)
+    
     # Configure conditions into resolver, conditions represent questions that resolver try to answer with valid combination
     # Example) if we want to answer if one row can go down, i will add one or more conditions that this row need to be on any of target rows
     #
@@ -605,6 +616,8 @@ class ResolverCached(QObject):
             if k not in self.cache:
                 # Configure conditions into resolver
                 k = self.makekey(inserting=True)
+                if self.debug_level > 1:
+                    self.resolver.print_conditions()
                 # Run resolver
                 self.resolver.tree()
                 # Print results from resolver
@@ -707,10 +720,11 @@ class ResolverCached(QObject):
 class Worker (QRunnable,QObject):
     newResult = Signal(int,int,str)
     def __init__(self,joblist,mutex,id):
-        global DEBUG_LEVEL
+        global DEBUG_LEVEL, NATIVE_THREADS
         self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
-        QRunnable.__init__(self)
+        if NATIVE_THREADS:
+            QRunnable.__init__(self)
         # Queue of available jobs to do
         self.joblist = joblist
         self.lock = mutex
@@ -741,7 +755,12 @@ class Worker (QRunnable,QObject):
         while not self.terminate:
             try:
                 # Try to get a job from queue
-                state,row,direction = self.joblist.get(block=True,timeout=0.01)
+                timeout = 0.01
+                if not self.joblist.empty():
+                    state,row,direction = self.joblist.get(block=True,timeout=timeout)
+                else:
+                    sleep(timeout)
+                    continue
             except Empty:
                 continue
 
@@ -792,13 +811,13 @@ class Worker (QRunnable,QObject):
                 self.resolver.configureResolver(state,row,direction)
                 stime = time()
                 if self.debug_level > 0:
-                    qDebug('{} can move {}? (Thinking...)'.format(unmychr(ID),'DOWN' if direction else 'UP'))
+                    qDebug('#{}({}) can move {}? (Thinking...)'.format(unmychr(ID),ID,'DOWN' if direction else 'UP'))
                 R = self.resolver.getResults()
                 dur = time()-stime
                 duration = "{0:4.2f}".format(dur)
                 flagdirection = True if R else False
                 result = R[0] if R else []
-                s = '{} can move {}? {} [ {} secs ]'.format(unmychr(ID),'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
+                s = '#{}({}) can move {}? {} [ {} secs ]'.format(unmychr(ID),ID,'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
                 if dur > 2.0:
                     qDebug(Color.makecolor(s,Color.RED))
                 else:
@@ -818,7 +837,7 @@ class UpdatePool(QObject):
     modelStateOffset = 2
     modelResultOffset = 4
     def __init__(self,parent):
-        global DEBUG_LEVEL
+        global DEBUG_LEVEL, NATIVE_THREADS
         self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
         self.parent = parent
@@ -838,8 +857,9 @@ class UpdatePool(QObject):
 
         self.newResult.connect(self.newResultCompleted)
 
-        self.threadpool = QThreadPool.globalInstance()
-        self.threadpool.setMaxThreadCount(NUM_THREADS)
+        if NATIVE_THREADS:
+            self.threadpool = QThreadPool.globalInstance()
+            self.threadpool.setMaxThreadCount(NUM_THREADS)
 
         self.terminate = False
 
@@ -850,13 +870,23 @@ class UpdatePool(QObject):
         self.timer.start()
 
         msg = 'Initializing worker'
+        if not NATIVE_THREADS:
+            import threading
+            self.threads = list()
+
         for w in range(1,NUM_THREADS+1):
             msg += " {}".format(w)
             worker = Worker(self.dispatched,self.lock,w)
             worker.newResult.connect(self.newResultCompleted)
-            worker.setAutoDelete(True)
             self.workers.append(worker)
-            self.threadpool.start(worker)
+
+            if NATIVE_THREADS:
+                worker.setAutoDelete(True)
+                self.threadpool.start(worker)
+            else:
+                t = threading.Thread(target=worker.run,name="Thread {}".format(w))
+                self.threads.append(t)
+                t.start()
         if self.debug_level > 0:
             qDebug(msg)
 
@@ -932,6 +962,8 @@ class UpdatePool(QObject):
         self.parent.newResultCompleted(row,dir,result)
 
     def abort(self):
+        global NATIVE_THREADS
+
         if self.debug_level > 0:
             qDebug("Aborting UpdatePool")
         self.jobs = None
@@ -939,7 +971,8 @@ class UpdatePool(QObject):
         for x in self.workers:
             x.abort()
         self.timer.stop()
-        self.threadpool.clear()
+        if NATIVE_THREADS:
+            self.threadpool.clear()
         
     def set_stateString(self,stateString):
         if stateString != self.stateString:
