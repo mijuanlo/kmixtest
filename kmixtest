@@ -163,21 +163,33 @@ class Resolver(QObject):
     # item: string with one or more characters representing rows
     # direction: enum setting direction
     def addCondition(self,item,direction):
+        if item in ['3','4'] and direction == Direction.DOWN and self.options['names'][item]['linked']:
+            stop = 1
         self.killing = False
         item_tmp = ''
         # If item is a linked item, link all elements into condition
+        
+        is_linked = False
+        size_linked = 0
         for i in item:
             if self.options['names'][i].get('linked'):
+                is_linked = True
                 linked_str = ''.join(self.options['names'][i].get('list'))
+                size_linked = len(linked_str)
                 if linked_str not in item_tmp:
                     item_tmp += linked_str
             else:
                 item_tmp += i
         item = item_tmp
+        
+        #linked_conditions = [ x for x in item if self.options['names'][x]['linked'] ]
+        
         # Get starting item position
         i = self.combination.index(item)
+        
         fixed = [x for x in self.options['places'] if self.options['places'][x]]
         # If fixed position, add condition with only one possible position for each
+
         if direction == Direction.FIXED:
             i+=1
             for x in item:
@@ -190,9 +202,42 @@ class Resolver(QObject):
                 offset+=1
                 l = list(range(i+offset,-1+offset,-1))
                 # Conditions going up need to be reversed with nearest (greatest) positions first
-                # Remove fixed
-                l = [ x for x in l if x not in fixed]
+                holes = []
+                acu = []
+                if is_linked:
+                    # search for holes
+                    #s = size_linked
+                    
+                    for li in l:
+                        #s -= 1
+                        if li in fixed:
+                            acu = []
+                            #s = size_linked
+                            
+                            continue
+                        acu.append(li)
+                        
+                        #if s == 0:
+                        if len(acu) == size_linked:
+                            acu = [ j for j in acu if j not in holes ]
+                            holes.extend(acu)
+                            acu = []
+                            #s += 1
+                #if len(acu):
+                #    holes.extend(acu)
+                if is_linked:
+                    if not holes:
+                        # make impossible
+                        holes = [-1]
+                    else:
+                        for j in range(size_linked-1-item.index(x),0,-1):
+                            del holes[0]
+                    l = holes
+                else:
+                    # Remove fixed
+                    l = [ x for x in l if x not in fixed]
                 self.conditions.append((x,l))
+
         # If is going down, add a list of possible positions for each element
         elif direction == Direction.DOWN:
             offset=1
@@ -200,9 +245,55 @@ class Resolver(QObject):
                 offset+=1
                 l = list(range(i+offset,self.levels+2))
                 # Conditions going down need to be growing with nearest (lowest) positions first
+                holes = []
+                acu = []
+                if is_linked:
+                    # search for holes
+                  
+                    for li in l:
+                        if li in fixed:
+                            acu = []
+                            
+                            continue
+                        acu.append(li)
+                        
+                        if len(acu) == size_linked:
+                            acu = [ j for j in acu if j not in holes ]
+                            holes.extend(acu)
+                            acu = []
+
+                if is_linked:
+                    if not holes:
+                        # make impossible
+                        holes = [-1]
+                    else:
+                        for j in range(offset,2,-1):
+                            del holes[0]
+                    l = holes
+                else:
                 # Remove fixed
-                l = [ x for x in l if x not in fixed]
+                    l = [ x for x in l if x not in fixed]
                 self.conditions.append((x,l))
+
+        # linked_conditions.sort()
+        # global chars
+        # done = False
+        # for x in chars:
+        #     if done:
+        #         break
+        #     if x not in linked_conditions:
+        #         continue
+        #     pos = linked_conditions.index(x)
+        #     if pos == len(linked_conditions):
+        #         continue
+        #     listlinked = len(self.options['names'][x]['list'])
+        #     size = len(listlinked)
+
+        pass
+        pass
+        a=1
+
+
 
     # Check if it's valid combination
     # Combination (thing) can be complete or partial combination, this function validate partial combination to avoid go through 
@@ -370,8 +461,12 @@ class Resolver(QObject):
         # If actual combination it's valid and it's partial solution (more elements need to be placed)
         if ret is None and level <= self.levels:
             # Check if this level has a fixed value specified from user selection
-            if self.options['places'][level]:
-                ret = self.tree(level+1,used+self.options['places'][level],False)
+            dyn_con = [ x for x,y in self.conditions if len(y)==1 and y[0] == level ]
+            if self.options['places'][level] or dyn_con:
+                candidate = self.options['places'][level]
+                if not candidate:
+                    candidate = dyn_con.pop()
+                ret = self.tree(level+1,used+candidate,False)
                 if ret:
                     if initialcall and self.debug_level > 0:
                         self.debug_info['times'].append((self.stime,time()))
@@ -775,7 +870,7 @@ class Worker (QRunnable,QObject):
                     change = x % 2
                     if change:
                         strstate += '{}({}{}) '.format(mychr(level),state[x-1],state[x])
-                qDebug('Running worker {} {} {} {}'.format(self.id,strstate,row,direction))
+                qDebug('Running worker #{} state={} row={} dir={}'.format(self.id,strstate,row,direction))
 
             ret = False
             # First can't go up and Last can't go down
@@ -2066,10 +2161,12 @@ class AppMainWindow(QApplication):
 
     @Slot()
     def exitting(self):
+        global NATIVE_THREADS
         qDebug("Exitting")
         self.tableQuestions.pool.terminate = True
         self.tableQuestions.pool.abort()
-        self.tableQuestions.pool.threadpool.clear()
+        if NATIVE_THREADS:
+            self.tableQuestions.pool.threadpool.clear()
         exit(0)
 
     @Slot(int)
