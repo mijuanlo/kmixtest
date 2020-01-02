@@ -2,8 +2,24 @@
 
 # This Python file uses the following encoding: utf-8
 
+#
+# START EDITABLE VARS
+#
+# IM_DEBUGGING: Fill editable vars with optimal values
+IM_DEBUGGING = False
+# Thread limit
+NUM_THREADS = cpu_count()
+# Debug level for internal resolver & movement, printing terminal messages
+#  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
+DEBUG_LEVEL = 0
+# Use Qt's thread workers
+NATIVE_THREADS = True
+# Job update interval
+TIMER_QUEUE=500
+#
+# END EDITABLE VARS
+#
 import sys
-
 from PySide2.QtCore import *
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
@@ -15,14 +31,13 @@ from time import time,sleep
 from enum import Enum,IntEnum,auto,unique
 from os import cpu_count
 from queue import Queue, Empty
+import signal
 
-# Thread limit
-NUM_THREADS = cpu_count()
-NUM_THREADS = 1
-# Debug level for internal resolver & movement, printing terminal messages
-#  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
-DEBUG_LEVEL = 2
-NATIVE_THREADS = False
+if IM_DEBUGGING:
+    NUM_THREADS = 1
+    DEBUG_LEVEL = 2
+    NATIVE_THREADS = False
+    TIMER_QUEUE=1000
 
 if not NATIVE_THREADS:
     import threading
@@ -163,7 +178,7 @@ class Resolver(QObject):
     # item: string with one or more characters representing rows
     # direction: enum setting direction
     def addCondition(self,item,direction):
-        if item in ['3','4'] and direction == Direction.DOWN and self.options['names'][item]['linked']:
+        if item in self.options['names'] and self.options['names'][item]['linked']:
             stop = 1
         self.killing = False
         item_tmp = ''
@@ -206,36 +221,28 @@ class Resolver(QObject):
                 acu = []
                 if is_linked:
                     # search for holes
-                    #s = size_linked
-                    
                     for li in l:
-                        #s -= 1
                         if li in fixed:
                             acu = []
-                            #s = size_linked
-                            
                             continue
                         acu.append(li)
                         
-                        #if s == 0:
-                        if len(acu) == size_linked:
+                        if len(acu) >= size_linked:
                             acu = [ j for j in acu if j not in holes ]
                             holes.extend(acu)
-                            acu = []
-                            #s += 1
-                #if len(acu):
-                #    holes.extend(acu)
+                            
                 if is_linked:
                     if not holes:
                         # make impossible
                         holes = [-1]
-                    else:
-                        for j in range(size_linked-1-item.index(x),0,-1):
-                            del holes[0]
+                    # else:
+                    #     for j in range(size_linked-1-item.index(x),0,-1):
+                    #         del holes[0]
                     l = holes
                 else:
                     # Remove fixed
                     l = [ x for x in l if x not in fixed]
+
                 self.conditions.append((x,l))
 
         # If is going down, add a list of possible positions for each element
@@ -257,43 +264,22 @@ class Resolver(QObject):
                             continue
                         acu.append(li)
                         
-                        if len(acu) == size_linked:
+                        if len(acu) >= size_linked:
                             acu = [ j for j in acu if j not in holes ]
                             holes.extend(acu)
-                            acu = []
 
                 if is_linked:
                     if not holes:
                         # make impossible
                         holes = [-1]
-                    else:
-                        for j in range(offset,2,-1):
-                            del holes[0]
+                    # else:
+                    #     for j in range(offset,2,-1):
+                    #         del holes[0]
                     l = holes
                 else:
                 # Remove fixed
                     l = [ x for x in l if x not in fixed]
                 self.conditions.append((x,l))
-
-        # linked_conditions.sort()
-        # global chars
-        # done = False
-        # for x in chars:
-        #     if done:
-        #         break
-        #     if x not in linked_conditions:
-        #         continue
-        #     pos = linked_conditions.index(x)
-        #     if pos == len(linked_conditions):
-        #         continue
-        #     listlinked = len(self.options['names'][x]['list'])
-        #     size = len(listlinked)
-
-        pass
-        pass
-        a=1
-
-
 
     # Check if it's valid combination
     # Combination (thing) can be complete or partial combination, this function validate partial combination to avoid go through 
@@ -932,7 +918,7 @@ class UpdatePool(QObject):
     modelStateOffset = 2
     modelResultOffset = 4
     def __init__(self,parent):
-        global DEBUG_LEVEL, NATIVE_THREADS
+        global DEBUG_LEVEL, NATIVE_THREADS, TIMER_QUEUE
         self.debug_level = DEBUG_LEVEL
         QObject.__init__(self)
         self.parent = parent
@@ -960,7 +946,7 @@ class UpdatePool(QObject):
 
         # Timed enqueue for running
         self.timer = QTimer()
-        self.timer.setInterval(1000)
+        self.timer.setInterval(TIMER_QUEUE)
         self.timer.timeout.connect(self.runQueue)
         self.timer.start()
 
@@ -1010,10 +996,13 @@ class UpdatePool(QObject):
     # Timed enqueue for running jobs
     @Slot()
     def runQueue(self):
-        if self.debug_level > 0:
-            qDebug('Running {} jobs'.format(self.jobs.qsize()))
-        while not self.jobs.empty():
-            self.dispatched.put(self.jobs.get())
+        if self.jobs:
+            if self.debug_level > 0:
+                njobs = self.jobs.qsize()
+                if njobs:
+                    qDebug('Running {} jobs'.format(njobs))
+            while not self.jobs.empty():
+                self.dispatched.put(self.jobs.get())
 
     # Signal for process new result
     @Slot(int,int,str)
@@ -1496,12 +1485,12 @@ class tableHelper(QObject):
     
     # call update graphics from native widget to update movement buttons
     def updateCellGraphics(self,rows='all',cols='all'):
-        if self.debug_level > 1:
-            qDebug('Updating graphics for {} {}'.format(rows,cols))
         if rows == 'all':
             rows = list(range(self.model.rowCount()))
         if cols == 'all':
             cols = list(range(self.model.columnCount()))
+        if self.debug_level > 1:
+            qDebug('Updating graphics for {} {}'.format(rows,cols))
         if not isinstance(rows,list) and not isinstance(cols,list):
             return
         for y in rows:
@@ -1632,6 +1621,10 @@ class tableHelper(QObject):
         
         LINKED_COLUMN = self.headerItemNames.index('linked')
         NUM_ROWS = self.model.rowCount()
+
+        if NUM_ROWS < 3:
+            self.updateCellGraphics()
+            return 
 
         def getCellState(row,col):
             return self.model.data(self.model.index(row,col),Qt.DisplayRole)
@@ -2167,7 +2160,7 @@ class AppMainWindow(QApplication):
         self.tableQuestions.pool.abort()
         if NATIVE_THREADS:
             self.tableQuestions.pool.threadpool.clear()
-        exit(0)
+        #exit(0)
 
     @Slot(int)
     def editingQuestion(self, row):
@@ -2236,8 +2229,14 @@ class AppMainWindow(QApplication):
             action = Helper.genAction(name=name,fn=self.test,icon=ICONS['option'],tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
 
+def exit_control_c(sig, frame):
+    print("User request exit")
+    app.exitting()
+
 # Starting point of execution
 if __name__ == "__main__":
+    for s in [signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]:
+        signal.signal(s, exit_control_c)
     QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = AppMainWindow()
     sys.exit(app.exec_())
