@@ -8,7 +8,7 @@
 # IM_DEBUGGING: Fill editable vars with optimal values
 IM_DEBUGGING = False
 # Thread limit
-NUM_THREADS = cpu_count()
+NUM_THREADS = 1
 # Debug level for internal resolver & movement, printing terminal messages
 #  values: 0 (disabled), 1 (less verbose), 2 (full debug messages)
 DEBUG_LEVEL = 0
@@ -38,6 +38,8 @@ if IM_DEBUGGING:
     DEBUG_LEVEL = 2
     NATIVE_THREADS = False
     TIMER_QUEUE=1000
+else:
+    NUM_THREADS = cpu_count()
 
 if not NATIVE_THREADS:
     import threading
@@ -2161,6 +2163,7 @@ class AppMainWindow(QApplication):
         if NATIVE_THREADS:
             self.tableQuestions.pool.threadpool.clear()
         #exit(0)
+        self.quit()
 
     @Slot(int)
     def editingQuestion(self, row):
