@@ -2,8 +2,10 @@
 # START EDITABLE VARS
 #
 
+RESOURCES_PATH = [ ".", "/usr/lib/kmixtest" ]
+
 # IM_DEBUGGING: Fill editable vars with optimal values
-IM_DEBUGGING = 1 # False
+IM_DEBUGGING = False
 
 # Thread limit
 NUM_THREADS = 1
@@ -31,7 +33,15 @@ ICONS = {
     'option': 'option.svg'
     }
 
+ARTWORK = {
+    'left':'college.png',
+    'center':'department.jpg'
+    }
+
+UI = "mainwindow.ui"
+
 from os import cpu_count
+import sys
 
 if IM_DEBUGGING:
     NUM_THREADS = 1
@@ -43,3 +53,51 @@ else:
 
 if not NATIVE_THREADS:
     import threading
+
+import os
+
+ICONPATH = ""
+UIPATH = ""
+ARTWORKPPATH = ""
+
+rdir = ""
+for resourcedir in RESOURCES_PATH:
+    resourcedir = os.path.abspath(resourcedir)
+    if os.path.isdir(resourcedir):
+        uidir = resourcedir + '/lib'
+        icondir = resourcedir + '/lib/icons'
+        artworkdir = resourcedir + '/lib/artwork'
+
+        uifile = uidir + '/' + UI
+        if not os.path.isfile(uifile):
+            print("{} not found!".format(uifile))
+        else:
+            UI = uifile
+            UIPATH = uidir
+
+        if os.path.isdir(icondir):
+            for x in ICONS:
+                icon = icondir + '/' + ICONS[x]
+                if not os.path.isfile(icon):
+                    print("{} not found!".format(icon))
+                else:
+                    ICONS[x] = icon
+            ICONPATH = icondir
+
+        if os.path.isdir(artworkdir):
+            for x in ARTWORK:
+                artfile = artworkdir + '/' + ARTWORK[x]
+                if not os.path.isfile(artfile):
+                    print("{} not found!".format(artfile))
+                else:
+                    ARTWORK[x] = artfile
+            ARTWORKPPATH = artworkdir
+        if ARTWORKPPATH and ICONPATH and UIPATH:
+            rdir = resourcedir
+
+if rdir:
+    RESOURCES_PATH = rdir
+else:
+    sys.exit(1)
+
+

@@ -6,6 +6,7 @@ from PySide2.QtUiTools import *
 
 from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data
 from .PreviewPrinter import previewPrinter
+from .Config import ARTWORK
 
 # Helper class with pdf stuff related things
 class helperPDF():
@@ -151,7 +152,7 @@ class helperPDF():
         document.print_(printer)
         
 
-    def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = {'left':'college.png','center':'department.jpg'}):
+    def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
         def setupCell(row=0,col=0):
             cell = table.cellAt(row,col)
             cursor = cell.firstCursorPosition()

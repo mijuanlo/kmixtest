@@ -5,7 +5,7 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
 from .Helper import Helper
-from .Config import ICONS, NATIVE_THREADS
+from .Config import ICONS, UI, NATIVE_THREADS
 from .TableHelper import tableHelper
 from .GridHelper import gridHelper
 from .HelperPDF import helperPDF
@@ -50,7 +50,8 @@ class AppMainWindow(QApplication):
         self.sheet.openWidget()
 
     def loadUi(self):
-        ui_file = QFile("mainwindow.ui")
+        global UI
+        ui_file = QFile(UI)
         ui_file.open(QFile.ReadOnly)
         ui_loader = QUiLoader(self)
         window = ui_loader.load(ui_file)
