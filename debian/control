@@ -1,0 +1,14 @@
+Source: kmixtest
+Section: utils
+Priority: optional
+Maintainer: M.Angel Juan <m.angel.juan@gmail.com>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+Homepage: https://github.com/lliurex/kmixtest
+Vcs-Git: https://github.com/lliurex/kmixtest.git
+
+Package: kmixtest
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Helper to write printed test exam
+ Tool that helps to write test exam mixing questions and formatting.
