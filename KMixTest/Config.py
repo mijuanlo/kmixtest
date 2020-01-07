@@ -70,7 +70,8 @@ for resourcedir in RESOURCES_PATH:
 
         uifile = uidir + '/' + UI
         if not os.path.isfile(uifile):
-            print("{} not found!".format(uifile))
+            if DEBUG_LEVEL > 1:
+                print("{} not found!".format(uifile))
         else:
             UI = uifile
             UIPATH = uidir
@@ -79,7 +80,8 @@ for resourcedir in RESOURCES_PATH:
             for x in ICONS:
                 icon = icondir + '/' + ICONS[x]
                 if not os.path.isfile(icon):
-                    print("{} not found!".format(icon))
+                    if DEBUG_LEVEL > 1:
+                        print("{} not found!".format(icon))
                 else:
                     ICONS[x] = icon
             ICONPATH = icondir
@@ -88,7 +90,8 @@ for resourcedir in RESOURCES_PATH:
             for x in ARTWORK:
                 artfile = artworkdir + '/' + ARTWORK[x]
                 if not os.path.isfile(artfile):
-                    print("{} not found!".format(artfile))
+                    if DEBUG_LEVEL > 1:
+                        print("{} not found!".format(artfile))
                 else:
                     ARTWORK[x] = artfile
             ARTWORKPPATH = artworkdir
