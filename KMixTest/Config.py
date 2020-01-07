@@ -64,9 +64,9 @@ rdir = ""
 for resourcedir in RESOURCES_PATH:
     resourcedir = os.path.abspath(resourcedir)
     if os.path.isdir(resourcedir):
-        uidir = resourcedir + '/lib'
-        icondir = resourcedir + '/lib/icons'
-        artworkdir = resourcedir + '/lib/artwork'
+        uidir = resourcedir + '/'
+        icondir = resourcedir + '/icons'
+        artworkdir = resourcedir + '/artwork'
 
         uifile = uidir + '/' + UI
         if not os.path.isfile(uifile):
