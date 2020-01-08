@@ -24,6 +24,20 @@ class Box(QGroupBox):
         self.button.resize(self.button_size,self.button_size)
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
         self.button.clicked.connect(self.closeBox)
+        self.data = None
+        self.datadict = {}
+
+    def setData(self,key=None,value=None):
+        if key is not None and value is None:
+            self.data = key
+        if key is not None and value is not None:
+            self.data[datakey] = datavalue
+
+    def getData(self,key=None):
+        if key is None:
+            return self.data
+        else:
+            return self.datadict.get(key,None)
 
     def getId(self):
         return self.id
@@ -35,8 +49,11 @@ class Box(QGroupBox):
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
         super().resizeEvent(event)
     
-    def addTo(self, on):
-        on.addWidget(self)
+    def addTo(self, on, row=None, col=None):
+        if row and col:
+            on.addWidget(self,row,col)
+        else:
+            on.addWidget(self)
         return self,self.layout
 
     Slot()

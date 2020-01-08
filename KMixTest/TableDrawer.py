@@ -55,6 +55,9 @@ class tableDrawer(QStyledItemDelegate):
 
         # Disable not click release events
         disabled = True
+        # Selected row, emit signal for update other view
+        if column == 3 and event.type() == QEvent.MouseButtonRelease:
+            self.parent.rowSelection.emit(index.row())
         if column == 3 and event.type() == QEvent.MouseButtonDblClick:
             disabled = False
         elif column != 3 and event.type() != QEvent.MouseButtonRelease:

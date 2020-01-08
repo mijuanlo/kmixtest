@@ -17,6 +17,8 @@ class tableHelper(QObject):
     cellMoveClick = Signal(int,str)
     # editingquestion trigger editor for cell string 
     editingQuestion = Signal(int)
+    # rowSelection trigger selection for a question
+    rowSelection = Signal(int)
 
     # class initialization with:
     #  table: qtablewidget view

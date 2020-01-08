@@ -24,6 +24,7 @@ class AppMainWindow(QApplication):
         self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
         self.scroll = gridHelper(self.window.gridEdition, self)
         self.window.previewButton.clicked.connect(self.clickedPreview)
+        self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
         self.sheet = None
         self.aboutToQuit.connect(self.exitting)
 
