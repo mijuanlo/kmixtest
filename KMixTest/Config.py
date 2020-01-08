@@ -2,7 +2,7 @@
 # START EDITABLE VARS
 #
 
-RESOURCES_PATH = [ ".", "/usr/lib/kmixtest" ]
+RESOURCES_PATH = [ ".", "./lib", "/usr/lib/kmixtest" ]
 
 # IM_DEBUGGING: Fill editable vars with optimal values
 IM_DEBUGGING = False
