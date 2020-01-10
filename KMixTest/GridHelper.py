@@ -91,7 +91,6 @@ class gridHelper(QObject):
         self.addTitleEditor(b.getGrid())
         #self.spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
         #self.addToGrid(self.grid,self.spacer)
-        #self.printGridInformation()
         self.reorderGrid()
         self.printGridInformation()
 
@@ -107,7 +106,6 @@ class gridHelper(QObject):
             #    self.grid.removeItem(self.spacer)
             #    self.init(self.grid)
             self.grid.update()
-        #self.printGridInformation()
         self.reorderGrid()
         self.printGridInformation()
 

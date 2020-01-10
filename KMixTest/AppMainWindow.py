@@ -9,6 +9,7 @@ from .Config import ICONS, UI, NATIVE_THREADS
 from .TableHelper import tableHelper
 from .GridHelper import gridHelper
 from .HelperPDF import helperPDF
+from .Persistence import Persistence
 
 # Main class of application
 class AppMainWindow(QApplication):
@@ -27,6 +28,7 @@ class AppMainWindow(QApplication):
         self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
         self.sheet = None
         self.aboutToQuit.connect(self.exitting)
+        self.persistence = Persistence()
 
     @Slot()
     def exitting(self):
