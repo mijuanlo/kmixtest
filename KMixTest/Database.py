@@ -2,7 +2,8 @@ import sqlite3
 import os.path
 
 class Database():
-    def __init__(self):
+    def __init__(self, debug=False):
+        self.debug = debug
         self.use_extension_file = 'kmt'
         self.data = {} # dbname : { path : path/filename , memory: bool , conn : { namecon : { objcon : objconn1 , cursors : { namecursor : objcursor }} }
     def createConnection(self,filename=None,path=None,memory=False,name=None):
@@ -113,31 +114,88 @@ class Database():
             if cursor:
                 return cursor
 
+    def getStrings(self,thingattr=[],thingconstraint=[]):
+        try:
+            return '{} {}'.format(self.getAttrString(thingattr),self.getConstraintString(thingconstraint))
+        except Exception as e:
+            return None
+
+    def getConstraintString(self, thing=[]):
+        if not isinstance(thing, list):
+            return ''
+        constraints = []
+        for t in thing:
+            try:
+                lt = len(t)
+                if lt == 3:
+                    attr, table, ref = t
+                    constraints.append('FOREIGN KEY({}) REFERENCES {}({})'.format(ref,table,attr))
+                else:
+                    continue
+            except Exception as e:
+                continue
+        if constraints:
+            constraints = ','.join(constraints)
+            return ',' + constraints
+        return ''
+
     def getAttrString(self, thing):
         if not isinstance(thing, list):
-            return None
+            return ''
         types = []
         for t in thing:
             try:
-                name,typedef = t
+                lt = len(t)
+                if lt == 5:
+                    name, typedef, pk, auto, null = t
+                if lt == 4:
+                    name, typedef, pk, auto = t 
+                    null = False
+                elif lt == 3:
+                    name, typedef, pk = t
+                    if pk:
+                        auto = True
+                    else:
+                        auto = False
+                    null = False
+                elif lt == 2:
+                    name, typedef = t
+                    pk = False
+                    auto = False
+                    null = False
+                else:
+                    continue
             except Exception as e:
                 continue
             if not isinstance(typedef,type):
                 continue
             if not isinstance(name,str):
                 continue
+
+            pktxt = ''
+            if pk:
+                pktxt = 'PRIMARY KEY'
+            
+            autotxt = ''
+            if auto:
+                autotxt = 'AUTOINCREMENT'
+            
+            nulltxt = 'NOT NULL'
+            if null:
+                nulltxt = ''
+            
             if typedef is bool:
-                types.append('{} {}'.format(name,'integer'))
+                types.append('{} {} {} {}'.format(name, 'integer', pktxt, nulltxt))
             elif typedef is str:
-                types.append('{} {}'.format(name,'text'))
+                types.append('{} {} {} {}'.format(name, 'text', pktxt, nulltxt))
             elif typedef is int:
-                types.append('{} {}'.format(name,'integer'))
+                types.append('{} {} {} {}'.format(name, 'integer', pktxt, nulltxt))
         if types:
             types = ','.join(types)
             return types
-        return None
+        return ''
 
-    def createTable(self,conn=None,table=None,attributes=None,overwrite=False):
+    def createTable(self,conn=None,table=None,attributes=None,constraints=None,overwrite=False):
         if not (table and attributes):
             return None
         if not conn:
@@ -145,7 +203,7 @@ class Database():
         extra = ''
         if not overwrite:
             extra = 'if not exists'
-        sentence = 'create table {} {}({})'.format(extra,table,self.getAttrString(attributes))
+        sentence = 'create table {} {} ({})'.format(extra,table,self.getStrings(attributes,constraints))
         result = self.execute(what=sentence,conn=conn)
         return result
 
@@ -174,6 +232,8 @@ class Database():
             return
         result = None
         try:
+            if self.debug:
+                print("Executing: {}".format(what))
             cursor = self.getFirstCursorAvailable(conn)
             cursor.execute(what)
             result = cursor.fetchall()

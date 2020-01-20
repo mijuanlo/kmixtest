@@ -28,7 +28,7 @@ class AppMainWindow(QApplication):
         self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
         self.sheet = None
         self.aboutToQuit.connect(self.exitting)
-        self.persistence = Persistence()
+        self.persistence = Persistence(debug=True)
 
     @Slot()
     def exitting(self):
