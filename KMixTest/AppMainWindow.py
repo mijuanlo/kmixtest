@@ -13,6 +13,7 @@ from .Persistence import Persistence
 
 # Main class of application
 class AppMainWindow(QApplication):
+    
     def __init__(self):
         super().__init__([])
         self.menu = {}
@@ -74,6 +75,7 @@ class AppMainWindow(QApplication):
         qDebug("senderData:{}".format(data))
         self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
         self.tableQuestions.addItem(data)
+        self.persistence.addQuestion()
         pass
 
     def calculate_default_menubar_shortcut(self,name):

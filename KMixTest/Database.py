@@ -148,7 +148,7 @@ class Database():
                 lt = len(t)
                 if lt == 5:
                     name, typedef, pk, auto, null = t
-                if lt == 4:
+                elif lt == 4:
                     name, typedef, pk, auto = t 
                     null = False
                 elif lt == 3:
@@ -185,11 +185,11 @@ class Database():
                 nulltxt = ''
             
             if typedef is bool:
-                types.append('{} {} {} {}'.format(name, 'integer', pktxt, nulltxt))
+                types.append('{} {} {} {} {}'.format(name, 'integer', pktxt, autotxt, nulltxt))
             elif typedef is str:
-                types.append('{} {} {} {}'.format(name, 'text', pktxt, nulltxt))
+                types.append('{} {} {} {} {}'.format(name, 'text', pktxt, autotxt, nulltxt))
             elif typedef is int:
-                types.append('{} {} {} {}'.format(name, 'integer', pktxt, nulltxt))
+                types.append('{} {} {} {} {}'.format(name, 'integer', pktxt, autotxt, nulltxt))
         if types:
             types = ','.join(types)
             return types
@@ -212,21 +212,93 @@ class Database():
             conn = self.getFirstConnectionAvailable()
         sentence = 'SELECT name from sqlite_master where type="table"'
         result = self.execute(what=sentence,conn=conn)
+        # type|name|tbl_name|rootpage|sql
         r = []
         for x in result:
             r.append(x[0])
         return r
 
-    def insert(self,table=None,values=None):
-        pass
+    def describeTable(self,conn=None,table=None):
+        if not table:
+            table=''
+        else:
+            table='and name = "{}"'.format(table)
+        if not conn:
+            conn = self.getFirstConnectionAvailable()
+        sentence = 'SELECT sql from sqlite_master where type="table" {}'.format(table)
+        result = self.execute(what=sentence,conn=conn)
+        # type|name|tbl_name|rootpage|sql
+        r = []
+        for x in result:
+            r.append(x[0])
+        return r
+    
+    def getFields(self,conn=None,table=None):
+        if not table:
+            return None
+        if not conn:
+            conn = self.getFirstConnectionAvailable()
+        sentence = 'pragma table_info("{}")'.format(table)
+        result = self.execute(what=sentence,conn=conn)
+        r = []
+        # cid|name|type|notnull|dflt_value|pk
+        for x in result:
+            r.append(x[1])
+        return r
+
+    def insert(self,conn=None,table=None,values=None):
+        if not table or not values:
+            return None
+        if not isinstance(values,list):
+            return None
+        if not conn:
+            conn = self.getFirstConnectionAvailable()
+        tableitems = self.getFields(conn,table)
+        names = []
+        vals = []
+        for li in values:
+            if not isinstance(li,list):
+                return None
+            if len(names) < 1:
+                for li2 in li:
+                    names.append(li2)
+                    if li2 not in names:
+                        print('Wrong attribute name when inserting')
+                        return None
+            else:
+                if len(li) != len(names):
+                    print('Distinct number of values when inserting')
+                    return None
+                txt = ','.join(li)
+                vals.append('("{}")'.format(txt))
+        namestxt = ','.join(names)
+        valuestxt = '({})'.format(','.join(vals))
+        sentence = 'insert into {} ({}) values ({})'.format(table,namestxt,valuestxt)
+        result = self.execute(what=sentence,conn=conn)
+        r = []
+        for x in result:
+            r.append(x[0])
+        return r
+
     def update(self,table=None,attributes=None,values=None,where=None):
         pass
     def select(self,table=None,what=None,where=None):
         pass
     def delete(self,table=None,what=None,where=None):
         pass
-    def dropTable(self,table=None):
-        pass
+
+    def dropTable(self,conn=None,table=None):
+        if not table:
+            return None
+        if not conn:
+            conn = self.getFirstConnectionAvailable()
+        sentence = 'drop table {}'.format(table)
+        result = self.execute(what=sentence,conn=conn)
+        r = []
+        for x in result:
+            r.append(x[0])
+        return r
+
     def execute(self,what=None,conn=None):
         if not (conn and what):
             return
