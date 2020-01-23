@@ -67,15 +67,15 @@ class AppMainWindow(QApplication):
             action_obj = getattr(self.window,action)
             if isinstance(action_obj,QAction):
                 action_obj.setData(action_obj.text())
-                action_obj.triggered.connect(self.test)
+                action_obj.triggered.connect(self.newQuestion)
 
     @Slot()
-    def test(self):
+    def newQuestion(self):
         data = self.sender().data()
         qDebug("senderData:{}".format(data))
         self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
         self.tableQuestions.addItem(data)
-        self.persistence.addQuestion()
+        self.persistence.addQuestion(data)
         pass
 
     def calculate_default_menubar_shortcut(self,name):
@@ -108,5 +108,5 @@ class AppMainWindow(QApplication):
             name_with_shortcut = self.calculate_default_menubar_shortcut(name)
             self.menu.setdefault(name,[])
             self.menu[name].append(self.window.menubar.addMenu(name_with_shortcut))
-            action = Helper.genAction(name=name,fn=self.test,icon=ICONS['option'],tip=name,parent=self.menu[name][0],data=name)
+            action = Helper.genAction(name=name,fn=self.newQuestion,icon=ICONS['option'],tip=name,parent=self.menu[name][0],data=name)
             self.menu[name][0].addAction(action)
