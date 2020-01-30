@@ -33,7 +33,6 @@ class AppMainWindow(QApplication):
         super().__init__([])
         try:
             self.window = self.loadUi()
-
             self.menu = MenuItem()
             self.menu.name = 'ROOT'
             self.menu.menu = self.window.menubar
@@ -49,9 +48,10 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.addMenuItem([{"File":["New Exam","Load Exam","Save Exam"]},{"Mixer":["Generate Mix"]},{"Print":["Print Exam"]},"Exit"])
+            self.addMenuItem([{"Exam":["New","-","Load Exam","-","Save","Save as"]},{"Mixer":["Generate Mix"]},{"Print":["Print Exam"]},"Exit"])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
+            print("Exception when initializing, {}".format(e))
             self.exitting()
     @Slot()
     def exitting(self):
@@ -153,23 +153,25 @@ class AppMainWindow(QApplication):
         print('Menu "{}" click'.format(data))
         if data == 'Exit':
             self.exitting()
-        elif data == 'Load Exam':
+        elif data == 'Load':
             filename = self.openfiledialog()
             if filename:
                 self.tableQuestions.clearTable()
                 self.persistence.newExam()
                 examData = self.persistence.loadExam(filename)
                 self.useExamData(examData)
-        elif data == 'New Exam':
+        elif data == 'New':
             self.tableQuestions.clearTable()
             self.persistence.newExam()
-        elif data == 'Save Exam':
+        elif data == 'Save as':
             filename = self.savefiledialog()
             if filename:
                 examData = self.buildExamData()
                 result = self.persistence.saveExam(filename,examData)
         elif data == 'Print Exam':
             self.clickedPreview(True)
+        else:
+            qDebug("No action declared for '{}' menuaction".format(data))
 
     def addMenuItem(self, *args, **kwargs):
         if bool(args) == bool(kwargs):
@@ -204,11 +206,18 @@ class AppMainWindow(QApplication):
                 self.addMenuItem(what=v,on=item)
         elif isinstance(what,str):
             if on.menu:
-                icon = ICONS['option']
-                if on is self.menu:
-                    icon = None
-                action = Helper.genAction(name=what,fn=self.menuController,icon=icon,tip=what,parent=on.menu,data=what)
-                on.action = action                    
-                on.menu.addAction(action)
+                if what in ['-','_']:
+                    on.menu.addSeparator()
+                else:
+                    # icon = ICONS['option']
+                    # if on is self.menu:
+                    #     icon = None
+                    if on.menu == self.window.menubar:
+                        icon = None
+                    else:
+                        icon = QIcon(' ')
+                    action = Helper.genAction(name=what,fn=self.menuController,icon=icon,tip=what,parent=on.menu,data=what)
+                    on.action = action
+                    on.menu.addAction(action)
         else:
             raise ValueError()

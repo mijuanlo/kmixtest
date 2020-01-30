@@ -29,6 +29,8 @@ class Helper():
                     pass
                 else:
                     icon = None
+            else:
+                icon = None
             # icon can be filename (string) or QIcon
             if icon:
                 action = QAction(icon,name,parent)
