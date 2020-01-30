@@ -45,7 +45,7 @@ def mychr(num):
             chars += chr(i)
 def unmychr(char):
     global chars
-    if chars:
+    if chars and isinstance(char,str):
         return chars.index(char)+1
 
 # Function for debugging page printer configuration

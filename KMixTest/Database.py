@@ -7,10 +7,11 @@ class Database():
         self.use_extension_file = 'kmt'
         self.data = {} # dbname : { path : path/filename , memory: bool , conn : { namecon : { objcon : objconn1 , cursors : { namecursor : objcursor }} }
 
-    def createConnection(self,filename=None,path=None,memory=False,name=None):
-        if not filename:
-            raise ValueError()
-        
+    def openConnection(self,*args, **kwargs):
+        kwargs['opening']=True
+        return self.createConnection(**kwargs)
+    def createConnection(self,name=None,filename=None,path=None,dbfilename=None,opening=False,memory=False):
+
         if path is None or not os.path.exists(path):
             path = '.'
         path = os.path.realpath(path)
@@ -18,7 +19,16 @@ class Database():
         if self.use_extension_file[0] != '.':
             self.use_extension_file = '.' + self.use_extension_file
 
-        dbfilename = '{}/{}{}'.format(path,filename,self.use_extension_file)
+        if dbfilename:
+            filename,extension=os.path.splitext(os.path.basename(dbfilename))
+            path = os.path.dirname(dbfilename)
+        else:
+            if opening and not filename:
+                raise ValueError()
+            dbfilename = '{}/{}{}'.format(path,filename,self.use_extension_file)
+        
+        if opening and not os.path.exists(dbfilename):
+           raise ValueError()
 
         mode = ''
         if memory:
@@ -31,12 +41,12 @@ class Database():
                 connames.append(c)
         if name:
             if name in connames:
-                name == None
+                name = None
         if not name:
             i = 0
             while True:
                 if str(i) not in connames:
-                    name = str(i)
+                    name = 'conname'+str(i)
                     break
                 i += 1
         conndict = {}
@@ -80,10 +90,10 @@ class Database():
                 return database
 
     def getConnection(self,database=None,attr=None):
-        if not database:
-            database = self.getFirstDatabaseAvailable()
         if isinstance(attr,sqlite3.Connection):
             return self.getParentData(attr)
+        if not database:
+            database = self.getFirstDatabaseAvailable()
         if not attr:
             return self.getFirstConnectionAvailable(database)
         if attr not in database:
@@ -214,7 +224,7 @@ class Database():
 
         return ' '.join(l)
 
-    def createTable(self,conn=None,table=None,attributes=None,constraints=None,overwrite=False):
+    def createTable(self,conn=None,table=None,attributes=None,constraints=None,index=None,overwrite=False):
         if not (table and attributes):
             raise ValueError()
         if not conn:
@@ -224,6 +234,14 @@ class Database():
             extra = 'if not exists'
         sentence = 'create table {} {} ({})'.format(extra,table,self.getStrings(attributes,constraints))
         result = self.execute(what=sentence,conn=conn)
+        
+        if index:
+            columns = index
+            if isinstance(columns[0],str):
+                columns = [ columns ]
+            for c in columns:
+                sentence = 'create unique index {} on {}({})'.format('_'.join([table]+c),table,','.join(c))
+                result = self.execute(what=sentence,conn=conn)
         return result
 
     def listTables(self,conn=None):
@@ -261,40 +279,51 @@ class Database():
             conn = self.getFirstConnectionAvailable()
         sentence = 'pragma table_info("{}")'.format(table)
         result = self.execute(what=sentence,conn=conn)
-        r = []
+        r = {}
         # cid|name|type|notnull|dflt_value|pk
         if result:
             for x in result:
-                r.append(x[1])
+                r.setdefault(x[1],x[2])
         return r
 
-    def insert(self,conn=None,table=None,values=None):
-        if not table or not values:
+    def insert(self,conn=None,table=None,allvalues=None):
+        if not table or not allvalues:
             raise ValueError()
-        if not isinstance(values,list):
+        if not isinstance(allvalues,list):
             raise ValueError()
         if not conn:
             conn = self.getFirstConnectionAvailable()
         tableitems = self.getFields(conn,table)
         names = []
-        vals = []
-        for li in values:
-            if not isinstance(li,list):
+        vals = []        
+        for values in allvalues:
+            if not isinstance(values,list):
                 raise ValueError()
+            # first list its a column names
             if len(names) < 1:
-                for li2 in li:
-                    names.append(li2)
-                    if li2 not in names:
+                for column in values:
+                    names.append(column)
+                    if column not in names:
                         raise ValueError('Wrong attribute name when inserting')
             else:
-                if len(li) != len(names):
+                tuplevals = []
+                if len(values) != len(names):
                     raise ValueError('Distinct number of values when inserting')
-                li = [ '"{}"'.format(x) for x in li ]
-                txt = ','.join(li)
-                vals.append(txt)
+                val_idx = 0
+                for columnname in names:
+                    if columnname not in tableitems:
+                        raise ValueError()
+                    typename = tableitems.get(columnname)
+                    if typename in ['integer','int']:
+                        tuplevals.append(str(values[val_idx]))
+                    elif typename in ['text']:
+                        tuplevals.append('"{}"'.format(values[val_idx]))
+                    val_idx+=1
+                txt = ','.join(tuplevals)
+                vals.append('({})'.format(txt))
         namestxt = ','.join(names)
         valuestxt = '{}'.format(','.join(vals))
-        sentence = 'insert into {} ({}) values ({})'.format(table,namestxt,valuestxt)
+        sentence = 'insert or replace into {} ({}) values {}'.format(table,namestxt,valuestxt)
         result = self.execute(what=sentence,conn=conn)
         r = []
         if result:
@@ -305,33 +334,40 @@ class Database():
     def update(self,conn=None,table=None,attributes=None,values=None,where=None):
         pass
 
-    def select(self,conn=None,table=None,what=None,where=None):
-        if not table or not what:
+    def select(self,conn=None,table=None,what=None,where=None,extra=None):
+        
+        if isinstance(what,(list,str)):
+            if isinstance(what,str):
+                what = [ what ]
+            whatquery = ','.join(what)
+        else:
             raise ValueError()
+        if isinstance(table,(list,str)):
+            if isinstance(table,str):
+                table = [table]
+            tablequery = ','.join(table)
+        else:
+            raise ValueError()
+        if where:               
+            if isinstance(where,list):
+                where = ' AND '.join(where)
+            if not isinstance(where,str):
+                raise ValueError()
+            sentence = 'select {} from {} where ( {} )'.format(whatquery,tablequery,where)
+        else:
+            sentence = 'select {} from {}'.format(whatquery,tablequery)
+
+        if extra and isinstance(extra,str):
+            sentence += ' ' + extra
+
         if not conn:
             conn = self.getFirstConnectionAvailable()
-        
-        if isinstance(table,list):
-            table = ','.join(table)
-        if not isinstance(table,str):
-            raise ValueError()
-                
-        if isinstance(what,list):
-            what = ','.join(what)
-        if not isinstance(what,str):
-            raise ValueError()
 
-        if isinstance(where,list):
-            where = ' AND '.join(where)
-        if not isinstance(where,str):
-            raise ValueError()
-        
-        sentence = 'select {} from {} where ( {} )'.format(what,table,where)
         result = self.execute(what=sentence,conn=conn)
         r = []
         if result:
             for x in result:
-                r.append(x[0])
+                r.append(x[0:len(what)])
         return r
 
     def delete(self,conn=None,table=None,what=None,where=None):
@@ -360,6 +396,8 @@ class Database():
             cursor = self.getFirstCursorAvailable(conn)
             cursor.execute(what)
             result = cursor.fetchall()
+            if self.debug:
+                print("Result: {}".format(result))
             conn.commit()
         except sqlite3.Error as Err:
             print(Err)

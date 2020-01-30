@@ -63,6 +63,18 @@ class tableHelper(QObject):
         self.table.customContextMenuRequested.connect(self.customMenu)
         self.table.cellClicked.connect(self.ClickOnCell)
 
+    def dumpTableModel(self):
+        dumpColumns = ['fixed','linked','question type']
+        columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
+        NUM_ROWS = self.model.rowCount()
+        model = list()
+        for y in range(NUM_ROWS):
+            row = list()
+            for x in columns:
+                row.append(self.model.data(self.model.index(y,x),Qt.DisplayRole))
+            model.append(row)
+        return model
+
     # Create header for tableview
     def configureHeader(self):
         self.headerItemNames = []
@@ -225,10 +237,22 @@ class tableHelper(QObject):
     @Slot()
     def deleteContextAction(self):
         data = self.sender().data()
-        self.table.removeRow(data)
-        self.updateStateString()
+        self.deleteItem(data)
         if self.controller:
             self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
+
+    def deleteItem(self, item):
+        if item and isinstance(item,list):
+            for i in item:
+                self.deleteItem(i)
+        else:
+            self.table.removeRow(item)
+            self.updateStateString()
+
+    def clearTable(self):
+        for x in range(self.table.rowCount(),-1,-1):
+            self.table.removeRow(x)
+        self.updateStateString()
 
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
@@ -412,3 +436,15 @@ class tableHelper(QObject):
         else:
             self.makeRow(item)
             self.updateStateString()
+
+    def addItemWithState(self,item,fixed,linked):
+        self.makeRow(item)
+        lastrow = self.model.rowCount()-1
+        if fixed:
+            FIXED_COL = self.headerItemNames.index('fixed')
+            self.model.setData(self.model.index(lastrow,FIXED_COL),fixed,Qt.DisplayRole)
+        if linked:
+            LINKED_COL = self.headerItemNames.index('linked')
+            self.model.setData(self.model.index(lastrow,LINKED_COL),linked,Qt.DisplayRole)
+        self.updateStateString()
+        self.updateCellGraphics()

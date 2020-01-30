@@ -46,7 +46,6 @@ class UpdatePool(QObject):
         self.timer = QTimer()
         self.timer.setInterval(TIMER_QUEUE)
         self.timer.timeout.connect(self.runQueue)
-        self.timer.start()
 
         msg = 'Initializing worker'
         if not NATIVE_THREADS:
@@ -61,13 +60,26 @@ class UpdatePool(QObject):
 
             if NATIVE_THREADS:
                 worker.setAutoDelete(True)
-                self.threadpool.start(worker)
+                #self.threadpool.start(worker)
             else:
                 t = threading.Thread(target=worker.run,name="Thread {}".format(w))
                 self.threads.append(t)
-                t.start()
+                #t.start()
         if self.debug_level > 0:
             qDebug(msg)
+    
+    def start_threads(self):
+        num = 0
+        self.timer.start()
+        if NATIVE_THREADS:
+            for w in self.workers:
+                self.threadpool.start(w)
+                num += 1
+        else:
+            for t in self.threads:
+                t.start()
+                num += 1
+        qDebug("Started {} threads + timer".format(num))
 
     def row_is(self,state,row,col):
         return True if state[2*row+col] == '1' else False
