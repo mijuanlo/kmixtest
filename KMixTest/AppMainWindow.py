@@ -37,18 +37,27 @@ class AppMainWindow(QApplication):
             self.menu.name = 'ROOT'
             self.menu.menu = self.window.menubar
 
+            self.menutoolbar = MenuItem()
+            self.menutoolbar.name = 'ROOT'
+            self.menutoolbar.menu = QToolBar()
+            self.window.gridEdition.addWidget(self.menutoolbar.menu)
+            self.menutoolbar.menu.hide()
+            #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
             self.window.show()
             self.bind_toolbar_actions()
             self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
             self.tableQuestions.editingQuestion.connect(self.editingQuestion)
             self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
+
             self.scroll = gridHelper(self.window.gridEdition, self)
             self.window.previewButton.clicked.connect(self.clickedPreview)
+            self.window.previewButton.hide()
             self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.addMenuItem([{"Exam":["New","-","Load Exam","-","Save","Save as"]},{"Mixer":["Generate Mix"]},{"Print":["Print Exam"]},"Exit"])
+            self.addMenuItem([{"Exam":["New|new","-","Load Exam","-","Save|save","Save as|save","-","Exit|exit"]},{"Mixer":["Configure header","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
+            self.addMenuItem(on=self.menutoolbar,what=["Add option|add","Remove option|remove"])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
@@ -209,13 +218,22 @@ class AppMainWindow(QApplication):
                 if what in ['-','_']:
                     on.menu.addSeparator()
                 else:
-                    # icon = ICONS['option']
-                    # if on is self.menu:
-                    #     icon = None
-                    if on.menu == self.window.menubar:
+                    override = False
+                    if '|' in what:
+                        override = True
+                        tmp = what.split('|')
+                        what = tmp[0]
+                        icon = tmp[1]
+                        if icon in ICONS:
+                            icon = ICONS[icon]
+                        if not what:
+                            what = ' '
+                    else:
+                        icon = ' '
+                    if on.name == 'ROOT' and not override:
                         icon = None
                     else:
-                        icon = QIcon(' ')
+                        icon = QIcon(icon)
                     action = Helper.genAction(name=what,fn=self.menuController,icon=icon,tip=what,parent=on.menu,data=what)
                     on.action = action
                     on.menu.addAction(action)

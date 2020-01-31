@@ -18,15 +18,23 @@ class gridHelper(QObject):
         #self.init(self.grid)
 
     def init(self, grid):
+        self.addToGrid(self.toolbar)
+        self.action = QAction("COSA")
+        self.toolbar.addAction(self.action)
+        self.toolbar1 = QMenuBar(self.parent.window.scrollAreaContentsAnswers)
+        self.addToGrid(self.toolbar1)
+        self.action1 = QAction("COSA2")
+        self.toolbar1.addAction(self.action1)
+        return
         for i in range(5):
             self.idbox += 1
             b = Box("Frame #{}".format(self.idbox))
-            b.addTo(grid)
+            self.addToGrid(b)
             b.closedBox.connect(self.closeBox)
             self.boxes.setdefault(b.getId(),b)
             self.addTitleEditor(b.getGrid())
         self.spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
-        self.addToGrid(self.grid,self.spacer)
+        self.addToGrid(self.spacer)
 
     def printGridInformation(self):
         gridData = self.getGridData()
@@ -70,12 +78,26 @@ class gridHelper(QObject):
     
     def reorderGrid(self):
         ordered = {}
+        typeRemove=(Box)
+        hide = False
+        if not len(self.boxes):
+            hide = True
         for b in self.boxes:
             ordered.setdefault('{}{}'.format(self.boxes[b].getData()[0][0],b),self.boxes[b])
-        while self.grid.takeAt(0):
-            pass
+        toRemove = []
+        for j in range(self.grid.count()):
+            item = self.grid.itemAt(j).widget()
+            if isinstance(item,typeRemove):
+                toRemove.append(j)
+            else:
+                if hide:
+                    item.hide()
+                else:
+                    item.show()
+        while toRemove:
+            self.grid.takeAt(toRemove.pop())
         for w in sorted(ordered):
-            ordered[w].addTo(self.grid)
+            self.addToGrid(ordered[w])
         self.grid.update()
 
     Slot(int)
@@ -85,7 +107,7 @@ class gridHelper(QObject):
         datarow = data[row]
         b = Box("{}".format(datarow[3]))
         b.setData(datarow[3:])
-        b.addTo(self.grid)
+        self.addToGrid(b)
         b.closedBox.connect(self.closeBox)
         self.boxes.setdefault(b.getId(),b)
         self.addTitleEditor(b.getGrid())
@@ -109,7 +131,11 @@ class gridHelper(QObject):
         self.reorderGrid()
         self.printGridInformation()
 
-    def addToGrid(self, on, what, x=None, y=None ):
+    def addToGrid(self, what ,on=None, x=None, y=None ):
+        if not what:
+            raise ValueError
+        if not on:
+            on = self.grid
         if y is None:
             y = on.rowCount()
         if x is None:
@@ -134,7 +160,7 @@ class gridHelper(QObject):
                     all_list = False
             if all_widget:
                 for i in what:
-                    self.addToGrid(on,i)
+                    self.addToGrid(i,on)
             if all_list:
                 all_widget = True
                 for i in what:
@@ -151,12 +177,12 @@ class gridHelper(QObject):
                     offset_x=0
                     for i in what:
                         for j in i:
-                            self.addToGrid(on,j,x+offset_x,y)
+                            self.addToGrid(j,on,x+offset_x,y)
                             offset_x+=1
         return
 
     def addTitleEditor(self, on):
         label = QLabel("Title")
         textedit = QTextEdit()
-        self.addToGrid(on,[[label,textedit]])
+        self.addToGrid([[label,textedit]],on)
  

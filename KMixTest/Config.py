@@ -30,7 +30,15 @@ ICONS = {
     'linked':'linked.svg',
     'fixed': 'fixed.svg',
     'close': 'close.svg',
-    'option': 'option.svg'
+    'option': 'option.svg',
+    'add': 'add.png',
+    'exit': 'exit.png',
+    'new': 'new.png',
+    'nok': 'nok.png',
+    'ok': 'ok.png',
+    'print': 'print.png',
+    'remove': 'remove.png',
+    'save': 'save.png'
     }
 
 ARTWORK = {

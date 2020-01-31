@@ -49,12 +49,12 @@ class Box(QGroupBox):
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
         super().resizeEvent(event)
     
-    def addTo(self, on, row=None, col=None):
-        if row and col:
-            on.addWidget(self,row,col)
-        else:
-            on.addWidget(self)
-        return self,self.layout
+    # def addTo(self, on, row=None, col=None):
+    #     if row and col:
+    #         on.addWidget(self,row,col)
+    #     else:
+    #         on.addWidget(self)
+    #     return self,self.layout
 
     Slot()
     def closeBox(self):
