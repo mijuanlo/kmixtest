@@ -18,23 +18,7 @@ class gridHelper(QObject):
         #self.init(self.grid)
 
     def init(self, grid):
-        self.addToGrid(self.toolbar)
-        self.action = QAction("COSA")
-        self.toolbar.addAction(self.action)
-        self.toolbar1 = QMenuBar(self.parent.window.scrollAreaContentsAnswers)
-        self.addToGrid(self.toolbar1)
-        self.action1 = QAction("COSA2")
-        self.toolbar1.addAction(self.action1)
-        return
-        for i in range(5):
-            self.idbox += 1
-            b = Box("Frame #{}".format(self.idbox))
-            self.addToGrid(b)
-            b.closedBox.connect(self.closeBox)
-            self.boxes.setdefault(b.getId(),b)
-            self.addTitleEditor(b.getGrid())
-        self.spacer = QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding)
-        self.addToGrid(self.spacer)
+        pass
 
     def printGridInformation(self):
         gridData = self.getGridData()
@@ -106,6 +90,7 @@ class gridHelper(QObject):
         data = self.getTableData()
         datarow = data[row]
         b = Box("{}".format(datarow[3]))
+        b.menu.itemActivation.connect(self.parent.menuController)
         b.setData(datarow[3:])
         self.addToGrid(b)
         b.closedBox.connect(self.closeBox)

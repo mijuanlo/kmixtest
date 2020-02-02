@@ -10,38 +10,24 @@ from .TableHelper import tableHelper
 from .GridHelper import gridHelper
 from .HelperPDF import helperPDF
 from .Persistence import Persistence
+from .MenuItem import MenuItem
 
 from os.path import expanduser
-class MenuItem():
-    def __init__(self):
-        self.children = {}
-        self.name = None
-        self.action = None
-        self.menu = None
-        self.parent = None
-    def _get_names(self):
-        if self.name:
-            l = [ self.name ]
-        else:
-            l = []
-        for c in self.children:
-            l.extend(self.children[c]._get_names())
-        return l
+
 # Main class of application
 class AppMainWindow(QApplication):    
     def __init__(self):
         super().__init__([])
         try:
             self.window = self.loadUi()
-            self.menu = MenuItem()
-            self.menu.name = 'ROOT'
-            self.menu.menu = self.window.menubar
+            self.menu = MenuItem(menu=self.window.menubar,parent=self)
+            self.menu.itemActivation.connect(self.menuController)
+            #self.menutoolbar = MenuItem()
+            #self.menutoolbar.name = 'ROOT'
+            #self.menutoolbar.menu = QToolBar()
+            #self.window.gridEdition.addWidget(self.menutoolbar.menu)
+            #self.menutoolbar.menu.hide()
 
-            self.menutoolbar = MenuItem()
-            self.menutoolbar.name = 'ROOT'
-            self.menutoolbar.menu = QToolBar()
-            self.window.gridEdition.addWidget(self.menutoolbar.menu)
-            self.menutoolbar.menu.hide()
             #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
             self.window.show()
             self.bind_toolbar_actions()
@@ -56,8 +42,8 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.addMenuItem([{"Exam":["New|new","-","Load Exam","-","Save|save","Save as|save","-","Exit|exit"]},{"Mixer":["Configure header","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
-            self.addMenuItem(on=self.menutoolbar,what=["Add option|add","Remove option|remove"])
+            self.menu.addMenuItem([{"Project":["New|new","-","Load Exam","-","Save|save","Save as|save","-","Exit|exit"]},{"Mixer":["Configure header","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
+            #self.addMenuItem(on=self.menutoolbar,what=["Add option|add","Remove option|remove"])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
@@ -103,31 +89,13 @@ class AppMainWindow(QApplication):
 
     @Slot()
     def newQuestion(self):
-        data = self.sender().data()
+        if self.sender():
+            data = self.sender().data()
+        else:
+            raise ValueError("No sender detected")
         qDebug("senderData:{}".format(data))
         self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
         self.tableQuestions.addItem(data)
-
-    def calculate_default_menubar_shortcut(self,name):
-        used = []
-        print('names: {}'.format(self.menu._get_names()))
-        for item in self.menu._get_names():
-            for character in item:
-                if character in used:
-                    continue
-                else:
-                    used.append(character)
-                    break
-        newname = ""
-        done = False
-        for character in name:
-            if done or character in used:
-                newname += character
-            else:
-                newname += "&" + character
-                done = True
-
-        return newname
 
     def openfiledialog(self):
         f = QFileDialog().getOpenFileName(None,self.tr("Open Exam"),expanduser("~"),self.tr("Exam files (*.kmt)"))
@@ -157,8 +125,11 @@ class AppMainWindow(QApplication):
             self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked))
         return None
 
+    @Slot(str)
     def menuController(self,*args,**kwargs):
-        data = self.sender().data()
+        if not args:
+            return
+        data = args[0]
         print('Menu "{}" click'.format(data))
         if data == 'Exit':
             self.exitting()
@@ -182,60 +153,3 @@ class AppMainWindow(QApplication):
         else:
             qDebug("No action declared for '{}' menuaction".format(data))
 
-    def addMenuItem(self, *args, **kwargs):
-        if bool(args) == bool(kwargs):
-            raise ValueError()
-        if args:
-            on = self.menu
-            what = args
-        elif kwargs:
-            on = kwargs.get('on',None)
-            what = kwargs.get('what',None)
-            if on is None or what is None:
-                raise ValueError()
-        if not isinstance(on,MenuItem):
-            raise ValueError()
-        
-        if isinstance(what,(list,tuple)):
-            for x in what:
-                self.addMenuItem(what=x,on=on)
-        elif isinstance(what,dict):
-            for k in what:
-                if k not in on.children:
-                    menuname_with_shortcut = self.calculate_default_menubar_shortcut(k)
-                    menu = on.menu.addMenu(menuname_with_shortcut)
-                    item = MenuItem()
-                    item.name = k
-                    item.menu = menu
-                    item.parent = on
-                    on.children.setdefault(item.name,item)
-                else:
-                    item = on.children.get(k)
-                v = what[k]
-                self.addMenuItem(what=v,on=item)
-        elif isinstance(what,str):
-            if on.menu:
-                if what in ['-','_']:
-                    on.menu.addSeparator()
-                else:
-                    override = False
-                    if '|' in what:
-                        override = True
-                        tmp = what.split('|')
-                        what = tmp[0]
-                        icon = tmp[1]
-                        if icon in ICONS:
-                            icon = ICONS[icon]
-                        if not what:
-                            what = ' '
-                    else:
-                        icon = ' '
-                    if on.name == 'ROOT' and not override:
-                        icon = None
-                    else:
-                        icon = QIcon(icon)
-                    action = Helper.genAction(name=what,fn=self.menuController,icon=icon,tip=what,parent=on.menu,data=what)
-                    on.action = action
-                    on.menu.addAction(action)
-        else:
-            raise ValueError()
