@@ -34,6 +34,9 @@ class tableHelper(QObject):
             self.controller = parent
 
         if table:
+            self.number_columns_to_set_into_model = 6
+            self.private_last_columns = 2
+            self.headerItemNames = []
             # initialize internal data with table data
             self.setTableView(table)
             # connect signals from table with local functions as callback
@@ -56,10 +59,11 @@ class tableHelper(QObject):
         # Maybe create own model in future
         # (model) QStandardItemModel(0,5)
         # (view) setModel(self.model)
-        self.table.setColumnCount(5)
+        self.table.setColumnCount(self.number_columns_to_set_into_model)
         self.model = table.model()
         # Last column is hidden, private data here
-        self.table.setColumnHidden(self.table.columnCount()-1,True)
+        for x in range(1,self.private_last_columns+1):
+            self.table.setColumnHidden(self.table.columnCount()-x,True)
         self.configureHeader()
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.customMenu)
@@ -87,7 +91,11 @@ class tableHelper(QObject):
                 header.setSectionResizeMode(i,QHeaderView.ResizeToContents)
                 self.headerItemNames.append(str.lower(item.text()))
             else:
-                self.headerItemNames.append("PRIVATE")
+                #self.headerItemNames.append("PRIVATE")
+                if i == 4:
+                    self.headerItemNames.append("_UUID_")
+                if i == 5:
+                    self.headerItemNames.append("_TYPE_")
         self.table.horizontalHeader().setStretchLastSection(True)
 
     # Update internal statestring used by resolver
@@ -127,6 +135,99 @@ class tableHelper(QObject):
             for x in cols:
                 self.table.update(self.model.index(y,x))
     
+    def getCellContent(self,row=None,col=None,named=False):
+        if col:
+            if not isinstance(col,list):
+                col = [col]
+            else:
+                for i in range(len(col)):
+                    if isinstance(col[i],str):
+                        if col[i] in self.headerItemNames:
+                            col[i] = self.headerItemNames.index(col[i])
+                        else:
+                            raise ValueError()
+                    elif not isinstance(col[i],int):
+                        raise ValueError()
+                    if col[i] < 0 or col[i] >= self.number_columns_to_set_into_model:
+                        raise ValueError()
+        else:
+            col = list(range(self.table.columnCount()))
+        if row:
+            if not isinstance(row,list):
+                row = [row]
+            else:
+                for i in range(len(row)):
+                    if not isinstance(row[i],int):
+                        raise ValueError()
+                    if row[i] < 0 or row[i] >= self.table.rowCount():
+                        raise ValueError()
+        else:
+            row = list(range(self.table.rowCount()))
+
+        result = []
+        if len(row) == 1 and len(col) == 1:
+            role = Qt.DisplayRole
+            name = self.headerItemNames[col[0]]
+            if name[0] == "_":
+                role = Qt.UserRole
+            value = self.model.data(self.model.index(row[0],col[0]),role)
+            if named:
+                return {name:value}
+            else:
+                return value
+        elif len(row) == 1 and len(col) != 1:
+            result = []
+            result_dict = {}
+            for x in col:
+                role = Qt.DisplayRole
+                name = self.headerItemNames[x]
+                if name[0] == "_":
+                    role = Qt.UserRole
+                value = self.model.data(self.model.index(row[0],x),role)
+                if named:
+                    result_dict.setdefault(name,value)
+                else:
+                    result.append(value)
+            if named:
+                return [result_dict]
+            else:
+                return result
+        elif len(row) != 1 and len(col) == 1:
+            result = []
+            for y in row:
+                role = Qt.DisplayRole
+                name = self.headerItemNames[col[0]]
+                if name[0] == "_":
+                    role = Qt.UserRole
+                value = self.model.data(self.model.index(y,col[0]),role)
+                if named:
+                    result.append({name:value})
+                else:
+                    result.append(value)
+            return result
+        elif len(row) != 1 and len(col) != 1:
+            result = []
+            for y in row:
+                sub_result = []
+                sub_result_dict = {}
+                for x in col:
+                    role = Qt.DisplayRole
+                    name = self.headerItemNames[x]
+                    if name[0] == "_":
+                        role = Qt.UserRole
+                    value = self.model.data(self.model.index(y,x),role)
+                    if named:
+                        sub_result_dict.setdefault(name,value)
+                    else:
+                        sub_result.append(value)
+                if named:
+                    result.append(sub_result_dict)
+                else:
+                    result.append(sub_result)
+            return result
+        else:
+            raise ValueError()
+
     # Callback from delegate class when click is done on cells linked (col 2) or fixed (col 1)
     @Slot(int, int)
     def ClickOnCell(self, row, column):
@@ -427,10 +528,18 @@ class tableHelper(QObject):
         # table.setItem(last_row,3,i)
         self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,item))
 
-        col = self.model.columnCount() -1
+        # private columns
+        
+        col = self.headerItemNames.index('_UUID_')
         idx=self.model.index(last_row,col)
         # Store as UserRole into hidden column
         self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
+
+        col = self.headerItemNames.index('_TYPE_')
+        idx=self.model.index(last_row,col)
+        # Store as UserRole into hidden column
+        self.model.setData(idx,"{}".format(item.lower()),Qt.UserRole)
+
 
     def addItem(self, item):
         if item and isinstance(item,list):

@@ -41,17 +41,17 @@ class gridHelper(QObject):
         self.getTableData()
 
     def getTableData(self):
-        data = []
         table = self.parent.tableQuestions
-        model = table.model
-        for y in range(model.rowCount()):
-            row = []
-            for x in range(model.columnCount()):
-                d = model.data(model.index(y,x),Qt.DisplayRole)
-                if not d:
-                    d = model.data(model.index(y,x),Qt.UserRole)
-                row.append(d)
-            data.append(row)
+        # model = table.model
+        # for y in range(model.rowCount()):
+        #     row = []
+        #     for x in range(model.columnCount()):
+        #         d = model.data(model.index(y,x),Qt.DisplayRole)
+        #         if not d:
+        #             d = model.data(model.index(y,x),Qt.UserRole)
+        #         row.append(d)
+        #     data.append(row)
+        data= table.getCellContent(named=True)
         self.syncMapTableData(data)
         return data
     
@@ -96,7 +96,7 @@ class gridHelper(QObject):
     def syncMapTableData(self,data):
         ids = []
         for x in data:
-            id_row = x[4]
+            id_row = x.get('_UUID_')
             self.tableDataMap.setdefault(id_row,None)
             ids.append(id_row)
         toRemove=[]
@@ -112,8 +112,9 @@ class gridHelper(QObject):
     def showQuestion(self, row):
         data = self.getTableData()
         datarow = data[row]
-        name_from_row = datarow[3]
-        id_from_row = datarow[4]
+        name_from_row = datarow['question type']
+        id_from_row = datarow['_UUID_']
+        type_from_row = datarow['_TYPE_']
         self.hide_all_boxes()
         id_box = self.tableDataMap.get(id_from_row)
         if id_box:
@@ -129,7 +130,8 @@ class gridHelper(QObject):
             self.addToGrid(b)
             b.closedBox.connect(self.closeBox)
             self.boxes.setdefault(id_box,b)
-            self.addTitleEditor(b.getGrid(),name_from_row)
+            content = '{} with type {}'.format(name_from_row,type_from_row)
+            self.addTitleEditor(b.getGrid(),content)
         #self.reorderGrid()
         self.printGridInformation()
 
