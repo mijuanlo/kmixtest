@@ -19,6 +19,8 @@ class tableHelper(QObject):
     editingQuestion = Signal(int)
     # rowSelection trigger selection for a question
     rowSelection = Signal(int)
+    #
+    tableChanged = Signal()
 
     # class initialization with:
     #  table: qtablewidget view
@@ -94,6 +96,7 @@ class tableHelper(QObject):
         self.stateString = self.getStateString()
         #self.resolver.reset()
         self.pool.set_stateString(self.stateString)
+        self.tableChanged.emit()
 
     # build new state string representing table
     # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells

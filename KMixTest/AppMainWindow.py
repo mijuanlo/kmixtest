@@ -30,6 +30,7 @@ class AppMainWindow(QApplication):
             self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
 
             self.scroll = gridHelper(self.window.gridEdition, self)
+            self.tableQuestions.tableChanged.connect(self.tableQuestionsChanged)
             self.window.previewButton.clicked.connect(self.clickedPreview)
             self.window.previewButton.hide()
             self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
@@ -53,6 +54,9 @@ class AppMainWindow(QApplication):
                     self.tableQuestions.pool.threadpool.clear()
         self.quit()
 
+    @Slot()
+    def tableQuestionsChanged(self):
+        self.scroll.updatedTableData()
     @Slot(int)
     def editingQuestion(self, row):
         qDebug("Editing {}".format(row))

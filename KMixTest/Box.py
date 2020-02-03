@@ -37,7 +37,8 @@ class Box(QGroupBox):
         if key is not None and value is None:
             self.data = key
         if key is not None and value is not None:
-            self.data[datakey] = datavalue
+            self.data = {}
+            self.data[key] = value
 
     def getData(self,key=None):
         if key is None:
