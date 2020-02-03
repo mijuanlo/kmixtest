@@ -13,6 +13,8 @@ class Box(QGroupBox):
     button_space = 4
     button_size = 22
 
+    contentChanged = Signal(str,str)
+
     def __init__(self,title=None,parent=None):
         self.id = str(id(self))
         # super().__init__(title="{}-{}".format(title,self.id[-6:]),parent=parent)
@@ -32,6 +34,7 @@ class Box(QGroupBox):
         self.button.clicked.connect(self.closeBox)
         self.data = None
         self.datadict = {}
+        self.editableItems = {}
 
     def setData(self,key=None,value=None):
         if key is not None and value is None:
@@ -59,3 +62,23 @@ class Box(QGroupBox):
     Slot()
     def closeBox(self):
         self.closedBox.emit(self.id)
+
+    def addTitleEditor(self, content=None ):
+        label = QLabel("Title")
+        if content:
+            textedit = QTextEdit(content)
+        else:
+            textedit = QTextEdit()
+        textedit.textChanged.connect(self.titleEditorChanged)
+        self.editableItems.setdefault('TITLE_EDITOR',textedit)
+        self.layout.addWidget(label,0,0)
+        self.layout.addWidget(textedit,0,1)
+
+    @Slot()
+    def titleEditorChanged(self):
+        self.contentChanged.emit(self.id,self.editableItems.get('TITLE_EDITOR').toPlainText())
+    
+    def updateTitle(self,content):
+        textedit = self.editableItems.get('TITLE_EDITOR')
+        if textedit and content and isinstance(content,str) :
+            textedit.setText(content)

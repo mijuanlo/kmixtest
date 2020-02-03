@@ -27,9 +27,11 @@ class AppMainWindow(QApplication):
             self.bind_toolbar_actions()
             self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
             self.tableQuestions.editingQuestion.connect(self.editingQuestion)
+            self.tableQuestions.questionChanged.connect(self.questionChanged)
             self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
 
             self.scroll = gridHelper(self.window.gridEdition, self)
+            self.scroll.boxIsUpdating.connect(self.updateTitleRow)
             self.tableQuestions.tableChanged.connect(self.tableQuestionsChanged)
             self.window.previewButton.clicked.connect(self.clickedPreview)
             self.window.previewButton.hide()
@@ -56,10 +58,24 @@ class AppMainWindow(QApplication):
 
     @Slot()
     def tableQuestionsChanged(self):
-        self.scroll.updatedTableData()
+        data = self.tableQuestions.getCellContent(named=True)
+        self.scroll.syncMapTableData(data)
+
     @Slot(int)
     def editingQuestion(self, row):
         qDebug("Editing {}".format(row))
+        self.editing_question = row
+    @Slot(int)
+    def questionChanged(self,row=None):
+        qDebug("Question changed?")
+        if row is not None and self.editing_question == row:
+            self.editing_question = None
+            qDebug("Question Changed {}".format(row))
+            self.tableQuestionsChanged()
+    @Slot(str,str)
+    def updateTitleRow(self,row_uuid,content):
+        qDebug("Updating title col")
+        self.tableQuestions.updateTitleRow(row_uuid,content)
 
     @Slot(bool)
     def clickedPreview(self,checked):
@@ -91,6 +107,7 @@ class AppMainWindow(QApplication):
         else:
             raise ValueError("No sender detected")
         qDebug("senderData:{}".format(data))
+        self.editing_question = None
         self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
         self.tableQuestions.addItem(data)
 

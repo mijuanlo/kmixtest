@@ -8,18 +8,22 @@ from .Box import Box
 
 # Class with helper to manage grid content used for question contents
 class gridHelper(QObject):
+
+    boxIsUpdating = Signal(str,str)
+
     def __init__(self, grid=None, parent=None):
         super().__init__()
         self.parent = parent
         self.grid = grid
+        # Links box_uuid with object
         self.boxes = {}
+        # Links row_uuid with box_uuid
         self.tableDataMap = {}
+        # Links box_uuid with row_uuid
+        self.tableDataMapReversed = {}
         self.orderedBoxes = {}
         self.idbox = 0
-        #self.init(self.grid)
-
-    def init(self, grid):
-        pass
+        self.last_tabledata = None
 
     def printGridInformation(self):
         gridData = self.getGridData()
@@ -37,23 +41,23 @@ class gridHelper(QObject):
             if not is_empty:
                 qDebug('Row: {} -> {}'.format(y,','.join(rowstr)))
 
-    def updatedTableData(self):
-        self.getTableData()
+    # def updatedTableData(self):
+    #     self.getTableData()
 
-    def getTableData(self):
-        table = self.parent.tableQuestions
-        # model = table.model
-        # for y in range(model.rowCount()):
-        #     row = []
-        #     for x in range(model.columnCount()):
-        #         d = model.data(model.index(y,x),Qt.DisplayRole)
-        #         if not d:
-        #             d = model.data(model.index(y,x),Qt.UserRole)
-        #         row.append(d)
-        #     data.append(row)
-        data= table.getCellContent(named=True)
-        self.syncMapTableData(data)
-        return data
+    # def getTableData(self):
+    #     table = self.parent.tableQuestions
+    #     # model = table.model
+    #     # for y in range(model.rowCount()):
+    #     #     row = []
+    #     #     for x in range(model.columnCount()):
+    #     #         d = model.data(model.index(y,x),Qt.DisplayRole)
+    #     #         if not d:
+    #     #             d = model.data(model.index(y,x),Qt.UserRole)
+    #     #         row.append(d)
+    #     #     data.append(row)
+    #     data= table.getCellContent(named=True)
+    #     self.syncMapTableData(data)
+    #     return data
     
     def getGridData(self):
         gridData=[]
@@ -94,6 +98,9 @@ class gridHelper(QObject):
             self.boxes.get(x).hide()
 
     def syncMapTableData(self,data):
+        if data:
+            self.last_tabledata = data
+        qDebug("Syncing table-grid data")
         ids = []
         for x in data:
             id_row = x.get('_UUID_')
@@ -107,10 +114,21 @@ class gridHelper(QObject):
             box_uuid = self.tableDataMap.get(x)
             self.deleteBox(box_uuid)
             del self.tableDataMap[x]
+        self.tableDataMapReversed = { v:k for k,v in self.tableDataMap.items() }
+        # update title
+        for x in data:
+            title = x.get('question type')
+            if not title:
+                raise ValueError()
+            id_row = x.get('_UUID_')
+            box_id = self.tableDataMap[id_row]
+            if box_id:
+                box = self.boxes.get(box_id)
+                box.updateTitle(title)
 
     Slot(int)
     def showQuestion(self, row):
-        data = self.getTableData()
+        data = self.last_tabledata
         datarow = data[row]
         name_from_row = datarow['question type']
         id_from_row = datarow['_UUID_']
@@ -127,13 +145,21 @@ class gridHelper(QObject):
             b.setData(name_from_row,id_from_row)
             id_box = b.getId()
             self.tableDataMap[id_from_row] = id_box
+            self.tableDataMapReversed[id_box] = id_from_row
             self.addToGrid(b)
             b.closedBox.connect(self.closeBox)
             self.boxes.setdefault(id_box,b)
             content = '{} with type {}'.format(name_from_row,type_from_row)
-            self.addTitleEditor(b.getGrid(),content)
-        #self.reorderGrid()
+            b.addTitleEditor(content)
+            b.contentChanged.connect(self.boxChanged)
         self.printGridInformation()
+
+    @Slot(str,str)
+    def boxChanged(self,box_uuid,content):
+        row_uuid = self.tableDataMapReversed.get(box_uuid)
+        if not row_uuid:
+            raise ValueError()
+        self.boxIsUpdating.emit(row_uuid,content)
 
     def deleteBox(self,uuid):
         if not uuid:
@@ -145,7 +171,6 @@ class gridHelper(QObject):
             self.grid.removeWidget(b)
             b.deleteLater()
             self.grid.update()
-        #self.reorderGrid()
         self.printGridInformation()
 
     Slot(str)
@@ -210,13 +235,13 @@ class gridHelper(QObject):
                             offset_x+=1
         return
 
-    def addTitleEditor(self, on=None, content=None ):
-        if not on:
-            raise ValueError()
-        label = QLabel("Title")
-        if content:
-            textedit = QTextEdit(content)
-        else:
-            textedit = QTextEdit()
-        self.addToGrid([[label,textedit]],on)
+    # def addTitleEditor(self, on=None, content=None ):
+    #     if not on:
+    #         raise ValueError()
+    #     label = QLabel("Title")
+    #     if content:
+    #         textedit = QTextEdit(content)
+    #     else:
+    #         textedit = QTextEdit()
+    #     self.addToGrid([[label,textedit]],on)
  

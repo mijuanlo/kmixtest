@@ -17,6 +17,8 @@ class tableHelper(QObject):
     cellMoveClick = Signal(int,str)
     # editingquestion trigger editor for cell string 
     editingQuestion = Signal(int)
+    # title changed
+    questionChanged = Signal(int)
     # rowSelection trigger selection for a question
     rowSelection = Signal(int)
     #
@@ -68,6 +70,12 @@ class tableHelper(QObject):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.customMenu)
         self.table.cellClicked.connect(self.ClickOnCell)
+        self.table.cellChanged.connect(self.cellChanged)
+
+    @Slot(int,int)
+    def cellChanged(self, row, col):
+        qDebug('Cell changed y={} x={}'.format(row,col))
+        self.questionChanged.emit(row)
 
     def dumpTableModel(self):
         dumpColumns = ['fixed','linked','question type']
@@ -81,6 +89,12 @@ class tableHelper(QObject):
             model.append(row)
         return model
 
+    def updateTitleRow(self,row_uuid,content):
+        for y in range(self.model.rowCount()):
+            uid = self.model.data(self.model.index(y,self.headerItemNames.index('_UUID_')),Qt.UserRole)
+            if uid == row_uuid:
+                self.model.setData(self.model.index(y,self.headerItemNames.index('question type')),content,Qt.DisplayRole)
+                break
     # Create header for tableview
     def configureHeader(self):
         self.headerItemNames = []
@@ -539,7 +553,6 @@ class tableHelper(QObject):
         idx=self.model.index(last_row,col)
         # Store as UserRole into hidden column
         self.model.setData(idx,"{}".format(item.lower()),Qt.UserRole)
-
 
     def addItem(self, item):
         if item and isinstance(item,list):
