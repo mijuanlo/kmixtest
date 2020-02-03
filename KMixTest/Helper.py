@@ -32,10 +32,12 @@ class Helper():
             else:
                 icon = None
             # icon can be filename (string) or QIcon
+            name_id=name.lower().replace(" ","_")
             if icon:
                 action = QAction(icon,name,parent)
             else:
                 action = QAction(name,parent)
+            action.setObjectName(name_id)
             
             # allow empty data included
             if data != None:

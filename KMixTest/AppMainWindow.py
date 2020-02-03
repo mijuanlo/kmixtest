@@ -22,12 +22,6 @@ class AppMainWindow(QApplication):
             self.window = self.loadUi()
             self.menu = MenuItem(menu=self.window.menubar,parent=self)
             self.menu.itemActivation.connect(self.menuController)
-            #self.menutoolbar = MenuItem()
-            #self.menutoolbar.name = 'ROOT'
-            #self.menutoolbar.menu = QToolBar()
-            #self.window.gridEdition.addWidget(self.menutoolbar.menu)
-            #self.menutoolbar.menu.hide()
-
             #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
             self.window.show()
             self.bind_toolbar_actions()
@@ -43,7 +37,6 @@ class AppMainWindow(QApplication):
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
             self.menu.addMenuItem([{"Project":["New|new","-","Load Exam","-","Save|save","Save as|save","-","Exit|exit"]},{"Mixer":["Configure header","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
-            #self.addMenuItem(on=self.menutoolbar,what=["Add option|add","Remove option|remove"])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
             print("Exception when initializing, {}".format(e))

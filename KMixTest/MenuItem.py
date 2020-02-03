@@ -20,7 +20,7 @@ class MenuItem(QObject):
             self.name = 'ROOT'
         
         if menu:
-            if isinstance(menu,QMenuBar) or isinstance(menu,QMenu):
+            if isinstance(menu,(QMenuBar,QMenu,QToolBar)):
                 self.menu = menu
             else:
                 raise ValueError()
@@ -41,6 +41,17 @@ class MenuItem(QObject):
             l.extend(self.children[c]._get_names())
         return l
 
+    def link_action_button_ids(self):
+        try:
+            content = self.menu.children()
+            for x in content:
+                if isinstance(x,QAbstractButton):
+                    action = x.defaultAction()
+                    if action in content:
+                        x.setObjectName(action.objectName())
+        except Exception as e:
+            pass
+
     def addMenuItem(self, *args, **kwargs):
         if bool(args) == bool(kwargs):
             raise ValueError()
@@ -58,6 +69,7 @@ class MenuItem(QObject):
         if isinstance(what,(list,tuple)):
             for x in what:
                 self.addMenuItem(what=x,on=on)
+            self.link_action_button_ids()
         elif isinstance(what,dict):
             for k in what:
                 if k not in on.children:
@@ -69,6 +81,7 @@ class MenuItem(QObject):
                     item = on.children.get(k)
                 v = what[k]
                 self.addMenuItem(what=v,on=item)
+            self.link_action_button_ids()
         elif isinstance(what,str):
             if on.menu:
                 if what in ['-','_']:
