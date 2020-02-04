@@ -40,24 +40,6 @@ class gridHelper(QObject):
                     rowstr.append('{}:<empty>'.format(x))
             if not is_empty:
                 qDebug('Row: {} -> {}'.format(y,','.join(rowstr)))
-
-    # def updatedTableData(self):
-    #     self.getTableData()
-
-    # def getTableData(self):
-    #     table = self.parent.tableQuestions
-    #     # model = table.model
-    #     # for y in range(model.rowCount()):
-    #     #     row = []
-    #     #     for x in range(model.columnCount()):
-    #     #         d = model.data(model.index(y,x),Qt.DisplayRole)
-    #     #         if not d:
-    #     #             d = model.data(model.index(y,x),Qt.UserRole)
-    #     #         row.append(d)
-    #     #     data.append(row)
-    #     data= table.getCellContent(named=True)
-    #     self.syncMapTableData(data)
-    #     return data
     
     def getGridData(self):
         gridData=[]
@@ -68,30 +50,6 @@ class gridHelper(QObject):
                 rowData.append(i)
             gridData.append(rowData)
         return gridData
-    
-    # def reorderGrid(self):
-    #     ordered = {}
-    #     typeRemove=(Box)
-    #     hide = False
-    #     if not len(self.boxes):
-    #         hide = True
-    #     for b in self.boxes:
-    #         ordered.setdefault('{}{}'.format(self.boxes[b].getData()[0][0],b),self.boxes[b])
-    #     toRemove = []
-    #     for j in range(self.grid.count()):
-    #         item = self.grid.itemAt(j).widget()
-    #         if isinstance(item,typeRemove):
-    #             toRemove.append(j)
-    #         else:
-    #             if hide:
-    #                 item.hide()
-    #             else:
-    #                 item.show()
-    #     while toRemove:
-    #         self.grid.takeAt(toRemove.pop())
-    #     for w in sorted(ordered):
-    #         self.addToGrid(ordered[w])
-    #     self.grid.update()
 
     def hide_all_boxes(self):
         for x in self.boxes:
@@ -117,7 +75,7 @@ class gridHelper(QObject):
         self.tableDataMapReversed = { v:k for k,v in self.tableDataMap.items() }
         # update title
         for x in data:
-            title = x.get('question type')
+            title = x.get('title')
             if not title:
                 raise ValueError()
             id_row = x.get('_UUID_')
@@ -130,7 +88,7 @@ class gridHelper(QObject):
     def showQuestion(self, row):
         data = self.last_tabledata
         datarow = data[row]
-        name_from_row = datarow['question type']
+        name_from_row = datarow['title']
         id_from_row = datarow['_UUID_']
         type_from_row = datarow['_TYPE_']
         self.hide_all_boxes()
@@ -153,6 +111,7 @@ class gridHelper(QObject):
             b.addTitleEditor(content)
             b.contentChanged.connect(self.boxChanged)
         self.printGridInformation()
+
 
     @Slot(str,str)
     def boxChanged(self,box_uuid,content):
@@ -182,7 +141,6 @@ class gridHelper(QObject):
         if b:
             b.hide()
             self.grid.update()
-        #self.reorderGrid()
         self.printGridInformation()
 
     def addToGrid(self, what ,on=None, x=None, y=None ):
@@ -235,13 +193,4 @@ class gridHelper(QObject):
                             offset_x+=1
         return
 
-    # def addTitleEditor(self, on=None, content=None ):
-    #     if not on:
-    #         raise ValueError()
-    #     label = QLabel("Title")
-    #     if content:
-    #         textedit = QTextEdit(content)
-    #     else:
-    #         textedit = QTextEdit()
-    #     self.addToGrid([[label,textedit]],on)
  

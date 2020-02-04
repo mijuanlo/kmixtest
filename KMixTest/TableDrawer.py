@@ -110,7 +110,7 @@ class tableDrawer(QStyledItemDelegate):
         ORDER_COLUMN = self.parent.headerItemNames.index('order')
         FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
         LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-        QUESTION_COLUMN = self.parent.headerItemNames.index('question type')
+        QUESTION_COLUMN = self.parent.headerItemNames.index('title')
         
         # First (0) column with movement buttons
         if CURRENT_COLUMN == ORDER_COLUMN:

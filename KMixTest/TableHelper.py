@@ -78,7 +78,7 @@ class tableHelper(QObject):
         self.questionChanged.emit(row)
 
     def dumpTableModel(self):
-        dumpColumns = ['fixed','linked','question type']
+        dumpColumns = ['fixed','linked','title']
         columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
         NUM_ROWS = self.model.rowCount()
         model = list()
@@ -93,7 +93,7 @@ class tableHelper(QObject):
         for y in range(self.model.rowCount()):
             uid = self.model.data(self.model.index(y,self.headerItemNames.index('_UUID_')),Qt.UserRole)
             if uid == row_uuid:
-                self.model.setData(self.model.index(y,self.headerItemNames.index('question type')),content,Qt.DisplayRole)
+                self.model.setData(self.model.index(y,self.headerItemNames.index('title')),content,Qt.DisplayRole)
                 break
     # Create header for tableview
     def configureHeader(self):

@@ -24,7 +24,7 @@ class AppMainWindow(QApplication):
             self.menu.itemActivation.connect(self.menuController)
             #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
             self.window.show()
-            self.bind_toolbar_actions()
+            self.bind_toolbar_actions(["Single question","Test question","Join activity"])
             self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
             self.tableQuestions.editingQuestion.connect(self.editingQuestion)
             self.tableQuestions.questionChanged.connect(self.questionChanged)
@@ -39,7 +39,7 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.menu.addMenuItem([{"Project":["New|new","-","Load Exam","-","Save|save","Save as|save","-","Exit|exit"]},{"Mixer":["Configure header","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
+            self.menu.addMenuItem([{"Project":["New|new","-","Load exam","Load template","-","Save|save","Save as|save","Save as template|save","-","Exit|exit"]},{"Mixer":["Configure header","Configure output","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
@@ -93,23 +93,26 @@ class AppMainWindow(QApplication):
         ui_file.close()
         return window
 
-    def bind_toolbar_actions(self):
-        for action in dir(self.window):
-            action_obj = getattr(self.window,action)
-            if isinstance(action_obj,QAction):
-                action_obj.setData(action_obj.text())
-                action_obj.triggered.connect(self.newQuestion)
-
-    @Slot()
-    def newQuestion(self):
-        if self.sender():
-            data = self.sender().data()
+    def bind_toolbar_actions(self,actions):
+        global ICONS
+        if isinstance(actions,str):
+            actions = [actions]
+        elif isinstance(actions,list):
+            pass
         else:
-            raise ValueError("No sender detected")
-        qDebug("senderData:{}".format(data))
-        self.editing_question = None
-        self.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
-        self.tableQuestions.addItem(data)
+            raise ValueError()
+        self.window.toolBar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        for a in actions:
+            name = a
+            iconname = a.lower().replace(' ','_')
+            if name in ICONS:
+                iconname = name
+            elif iconname in ICONS:
+                pass
+            else:
+                iconname = 'exit'
+            action = Helper.genAction(name=name,fn=self.menuController,data=name,icon=QIcon(ICONS[iconname]),tip=name,parent=self)
+            self.window.toolBar.addAction(action)
 
     def openfiledialog(self):
         f = QFileDialog().getOpenFileName(None,self.tr("Open Exam"),expanduser("~"),self.tr("Exam files (*.kmt)"))
@@ -141,10 +144,17 @@ class AppMainWindow(QApplication):
 
     @Slot(str)
     def menuController(self,*args,**kwargs):
+        qDebug('Called menuController')
         if not args:
-            return
-        data = args[0]
-        print('Menu "{}" click'.format(data))
+            if self.sender():
+                data = self.sender().data()
+            else:
+                raise ValueError()
+        else:
+            data = args[0]
+        if not data:
+            raise ValueError()
+        qDebug('Menu "{}" click'.format(data))
         if data == 'Exit':
             self.exitting()
         elif data == 'Load':
@@ -164,6 +174,9 @@ class AppMainWindow(QApplication):
                 result = self.persistence.saveExam(filename,examData)
         elif data == 'Print Exam':
             self.clickedPreview(True)
+        elif data in ['Single question','Test question', 'Join activity']:
+            self.editing_question = None
+            self.window.statusbar.showMessage("New question: {}".format(data),10*1000)
+            self.tableQuestions.addItem(data)
         else:
             qDebug("No action declared for '{}' menuaction".format(data))
-
