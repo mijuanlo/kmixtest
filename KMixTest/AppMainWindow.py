@@ -14,6 +14,8 @@ from .MenuItem import MenuItem
 
 from os.path import expanduser
 
+#AllowedQuestionTypes = ["Single question","Test question","Join activity"]
+from .QuestionType import Question
 # Main class of application
 class AppMainWindow(QApplication):    
     def __init__(self):
@@ -24,7 +26,7 @@ class AppMainWindow(QApplication):
             self.menu.itemActivation.connect(self.menuController)
             #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
             self.window.show()
-            self.bind_toolbar_actions(["Single question","Test question","Join activity"])
+            self.bind_toolbar_actions(Question().allNames())
             self.tableQuestions = tableHelper(self.window.tableWidgetQuestions, self)
             self.tableQuestions.editingQuestion.connect(self.editingQuestion)
             self.tableQuestions.questionChanged.connect(self.questionChanged)
