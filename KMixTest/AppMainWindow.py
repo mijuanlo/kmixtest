@@ -106,14 +106,17 @@ class AppMainWindow(QApplication):
         self.window.toolBar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         for a in actions:
             name = a
-            iconname = a.lower().replace(' ','_')
+            q = Question().search(name)
+            if not q:
+                continue
+            iconname = q.getNameId()
             if name in ICONS:
                 iconname = name
             elif iconname in ICONS:
                 pass
             else:
                 iconname = 'exit'
-            action = Helper.genAction(name=name,fn=self.menuController,data=name,icon=QIcon(ICONS[iconname]),tip=name,parent=self)
+            action = Helper.genAction(name=q.getName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=name,parent=self)
             self.window.toolBar.addAction(action)
 
     def openfiledialog(self):
@@ -176,9 +179,10 @@ class AppMainWindow(QApplication):
                 result = self.persistence.saveExam(filename,examData)
         elif data == 'Print Exam':
             self.clickedPreview(True)
-        elif data in ['Single question','Test question', 'Join activity']:
+        elif data in Question().allTypes():
             self.editing_question = None
             self.window.statusbar.showMessage("New question: {}".format(data),10*1000)
-            self.tableQuestions.addItem(data)
+            q = Question().search(data)
+            self.tableQuestions.addItem(q.getName())
         else:
             qDebug("No action declared for '{}' menuaction".format(data))

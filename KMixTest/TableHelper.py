@@ -9,6 +9,7 @@ from .TableDrawer import tableDrawer
 from .UpdatePool import UpdatePool
 from .Util import Direction, Color, mychr, unmychr
 from .Helper import Helper
+from .QuestionType import Question
 
 # Class for helping related qt functions for table questions
 class tableHelper(QObject):
@@ -528,22 +529,32 @@ class tableHelper(QObject):
     def makeRow(self, item="", table=None):
         if table is None and self.table is not None:
             table = self.table
+        q = Question().search(item)
+        if not q:
+            raise ValueError()
+
         last_row = table.rowCount()
         table.insertRow(last_row)
-        # Columns 1,2,3 alignment & size is set from delegated class
-        #table.setItem(last_row,0,QTableWidgetItem())
 
+        # Columns 1,2,3 alignment & size is set from delegated class
+        
+        # Column 0 is for custom widget up & down movement
+
+        # Columns 1,2 for fixed and linked settings
         for col in [1,2]:
             idx=self.model.index(last_row,col)
             self.model.setData(idx,False,Qt.DisplayRole)
 
+        # Column 3 for Title
+
         # i = QTableWidgetItem("{}".format(item))
         # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        # table.setItem(last_row,3,i)
-        self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,item))
-
-        # private columns
         
+        title = q.getName()
+        self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,title))
+
+        # private columns 4(uuid), 5(type)
+    
         col = self.headerItemNames.index('_UUID_')
         idx=self.model.index(last_row,col)
         # Store as UserRole into hidden column
@@ -552,7 +563,7 @@ class tableHelper(QObject):
         col = self.headerItemNames.index('_TYPE_')
         idx=self.model.index(last_row,col)
         # Store as UserRole into hidden column
-        self.model.setData(idx,"{}".format(item.lower()),Qt.UserRole)
+        self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
 
     def addItem(self, item):
         if item and isinstance(item,list):

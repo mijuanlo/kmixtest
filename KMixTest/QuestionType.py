@@ -31,10 +31,12 @@ class Question():
                     return v
                 if v.name == oid:
                     return v
+            return None
         elif isinstance(id,int):
             for k,v in self.types.items():
                 if v.id == id:
                     return v
+            return None
         else:
             raise ValueError()
     def allTypes(self):
