@@ -12,7 +12,7 @@ class MenuItem(QObject):
     def __init__(self,menu=None,name=None,parent=None):
         super().__init__(parent=parent)
         self.children = {}
-        self.action = None
+        self.action = []
 
         if name and isinstance(name,str):
             self.name = name
@@ -31,6 +31,21 @@ class MenuItem(QObject):
             self.parent = parent
         else:
             self.parent = None
+
+    def emptyMenu(self,on=None):
+        if not on:
+            on = self.children
+        for x in on:
+            self.emptyMenu(on=x)
+        if self.action:
+            for a in self.action:
+                a.deleteLater()
+        self.children = {}
+        self.action = []
+        if self.name != 'ROOT':
+            self.name = ""
+            if self.menu:
+                self.menu.deleteLater()
 
     def _get_names(self):
         if self.name:
@@ -104,7 +119,7 @@ class MenuItem(QObject):
                     else:
                         icon = QIcon(icon)
                     action = Helper.genAction(name=what,fn=self.emitSignal,icon=icon,tip=what,parent=on.menu,data=what)
-                    on.action = action
+                    on.action.append(action)
                     on.menu.addAction(action)
         else:
             raise ValueError()

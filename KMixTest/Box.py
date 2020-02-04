@@ -10,21 +10,28 @@ from .Config import ICONS
 # Custom object for display content questions
 class Box(QGroupBox):
     closedBox = Signal(str)
-    button_space = 4
-    button_size = 22
+    button_space = 6
+    button_size = 36
+    column_width = 60
 
     contentChanged = Signal(str,str)
 
-    def __init__(self,title=None,parent=None):
+    def __init__(self,parent=None):
         self.id = str(id(self))
-        # super().__init__(title="{}-{}".format(title,self.id[-6:]),parent=parent)
-        super().__init__(title=" ",parent=parent)
-        self.menu = MenuItem(menu=QToolBar(self),parent=self)
-        self.menu.addMenuItem(["Add option|add","Remove option|remove"])
-        #self.menu.menu.setStyleSheet("QToolButton#add_option { background-color: white; }")
-        
+        super().__init__(parent=parent)
         self.layout = QGridLayout(self)
+        self.layout.setVerticalSpacing(0)
+        self.layout.setHorizontalSpacing(0)
         self.setLayout(self.layout)
+        self.toolbar = QToolBar(self)
+        self.toolbar.setFixedHeight(self.button_size)
+        self.addToLayout(self.toolbar,True)
+        # self.separator = QFrame(self)
+        # self.separator.setFrameShape(QFrame.HLine)
+        # self.separator.setFrameShadow(QFrame.Sunken)
+        # self.addToLayout(self.separator,True)
+        self.menu = MenuItem(menu=self.toolbar,parent=self)
+        #self.toolbar.setStyleSheet('QToolBar { padding-bottom : 0px; }')
         self.button = QPushButton(QIcon(ICONS['close']),"",self)
         self.button.setFlat(True)
         #self.button.setStyleSheet('border: none')
@@ -36,11 +43,38 @@ class Box(QGroupBox):
         self.datadict = {}
         self.editableItems = {}
 
+    def addToLayout(self,items,span=False):
+        current_row = self.layout.rowCount()
+        current_col = 0
+        if not isinstance(items,list):
+            self.addToLayout([items],span)
+        else:
+            for i in items:
+                align = Qt.Alignment()
+                if isinstance(i,tuple):
+                    i,align = i
+                rowspan = 1
+                colspan = 1
+                if span:
+                    colspan = -1
+                if isinstance(i,QWidget):
+                    self.layout.addWidget(i,current_row,current_col,rowspan,colspan,align)
+                elif isinstance(i,QLayoutItem):
+                    self.layout.addItem(i,current_row,current_col,rowspan,colspan,align)
+                else:
+                    raise ValueError()
+                current_col += 1
+
     def setData(self,key=None,value=None):
         if key is not None and value is None:
+            if isinstance(self.data,dict):
+                raise ValueError()
             self.data = key
         if key is not None and value is not None:
-            self.data = {}
+            if not (self.data is None or isinstance(self.data,dict)):
+                raise ValueError()
+            if self.data is None:
+                self.data = {}
             self.data[key] = value
 
     def getData(self,key=None):
@@ -65,20 +99,46 @@ class Box(QGroupBox):
 
     def addTitleEditor(self, content=None ):
         label = QLabel("Title")
+        label.setFixedWidth(self.column_width)
+        label.setStyleSheet('QLabel {{ margin-top: {}px; }}'.format(self.button_size))
         if content:
             textedit = QTextEdit(content)
         else:
             textedit = QTextEdit()
         textedit.textChanged.connect(self.titleEditorChanged)
         self.editableItems.setdefault('TITLE_EDITOR',textedit)
-        self.layout.addWidget(label,0,0)
-        self.layout.addWidget(textedit,0,1)
+        self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),textedit])
+        #self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
+
+    def addTestEditor(self,content=None):
+        self.addTitleEditor(content)
+        pass
 
     @Slot()
     def titleEditorChanged(self):
         self.contentChanged.emit(self.id,self.editableItems.get('TITLE_EDITOR').toPlainText())
-    
+
     def updateTitle(self,content):
         textedit = self.editableItems.get('TITLE_EDITOR')
         if textedit and content and isinstance(content,str) :
             textedit.setText(content)
+
+    def makeQuestionTypeLayout(self):
+        typeQuestion = self.data.get('type')
+        if not typeQuestion:
+            qDebug('Empty type for question received')
+        if typeQuestion == 'single_question':
+            self.menu.emptyMenu()
+            self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
+            #self.menu.addMenuItem(["Add option|add","Remove option|remove"])
+            self.addTitleEditor(self.data.get('initial_content'))
+        elif typeQuestion == 'test_question':
+            self.menu.emptyMenu()
+            self.menu.addMenuItem(["Add option|add","Remove option|remove"])
+            self.addTestEditor(self.data.get('initial_content'))
+            pass
+        elif typeQuestion == 'join_activity':
+            self.menu.emptyMenu()
+            pass
+        else:
+            qDebug('type for question "{}" unknown, skipping'.format(typeQuestion))

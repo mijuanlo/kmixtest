@@ -98,20 +98,26 @@ class gridHelper(QObject):
             self.boxes.get(id_box).show()
         else:
             qDebug("Showing question {} (new)".format(row))
-            b = Box("{}".format(name_from_row))
+            b = Box()
+
+            b.setData('type',type_from_row)
+            content = '{} with type {}'.format(name_from_row,type_from_row)
+            b.setData('initial_content',content)
+
             b.menu.itemActivation.connect(self.parent.menuController)
-            b.setData(name_from_row,id_from_row)
+            b.closedBox.connect(self.closeBox)
+            b.contentChanged.connect(self.boxChanged)
+
             id_box = b.getId()
             self.tableDataMap[id_from_row] = id_box
             self.tableDataMapReversed[id_box] = id_from_row
-            self.addToGrid(b)
-            b.closedBox.connect(self.closeBox)
             self.boxes.setdefault(id_box,b)
-            content = '{} with type {}'.format(name_from_row,type_from_row)
-            b.addTitleEditor(content)
-            b.contentChanged.connect(self.boxChanged)
-        self.printGridInformation()
 
+            self.addToGrid(b)
+
+            b.makeQuestionTypeLayout()
+
+        self.printGridInformation()
 
     @Slot(str,str)
     def boxChanged(self,box_uuid,content):
