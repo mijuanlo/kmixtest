@@ -104,7 +104,7 @@ class gridHelper(QObject):
             content = '{} with type {}'.format(name_from_row,type_from_row)
             b.setData('initial_content',content)
 
-            b.menu.itemActivation.connect(self.parent.menuController)
+            # b.menu.itemActivation.connect(self.parent.menuController)
             b.closedBox.connect(self.closeBox)
             b.contentChanged.connect(self.boxChanged)
 

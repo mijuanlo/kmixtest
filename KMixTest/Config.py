@@ -38,7 +38,8 @@ ICONS = {
     'ok': 'ok.png',
     'print': 'print.png',
     'remove': 'remove.png',
-    'save': 'save.png'
+    'save': 'save.png',
+    'okbw': 'okbw.png'
     }
 
 ARTWORK = {
