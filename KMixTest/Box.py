@@ -134,7 +134,7 @@ class Box(QGroupBox):
             self.addTitleEditor(self.data.get('initial_content'))
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option|add","Remove option|remove"])
+            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove"])
             self.addTestEditor(self.data.get('initial_content'))
             pass
         elif typeQuestion == 'join_activity':

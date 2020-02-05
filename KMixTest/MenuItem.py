@@ -114,11 +114,24 @@ class MenuItem(QObject):
                             what = ' '
                     else:
                         icon = ' '
+                    characters_data = '()'
+                    found = True
+                    for x in characters_data:
+                        if x not in what:
+                            found = False
+                            break
+                    if found:
+                        tmp = what.split('(')
+                        what = tmp[0]
+                        tmp = tmp[1].split(')')
+                        data = tmp[0]
+                    else:
+                        data = what
                     if on.name == 'ROOT' and not override:
                         icon = None
                     else:
                         icon = QIcon(icon)
-                    action = Helper.genAction(name=what,fn=self.emitSignal,icon=icon,tip=what,parent=on.menu,data=what)
+                    action = Helper.genAction(name=what,fn=self.emitSignal,icon=icon,tip=what,parent=on.menu,data=data)
                     on.action.append(action)
                     on.menu.addAction(action)
         else:

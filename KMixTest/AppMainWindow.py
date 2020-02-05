@@ -41,7 +41,7 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.menu.addMenuItem([{"Project":["New|new","-","Load exam","Load template","-","Save|save","Save as|save","Save as template|save","-","Exit|exit"]},{"Mixer":["Configure header","Configure output","Generate Mix"]},{"Print":["Print preview|print","Print Exam|print"]}])
+            self.menu.addMenuItem([{"Project":["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
             self.tableQuestions.pool.start_threads()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
@@ -160,24 +160,24 @@ class AppMainWindow(QApplication):
         if not data:
             raise ValueError()
         qDebug('Menu "{}" click'.format(data))
-        if data == 'Exit':
+        if data == 'menu_exit_app':
             self.exitting()
-        elif data == 'Load':
+        elif data == 'menu_load_exam':
             filename = self.openfiledialog()
             if filename:
                 self.tableQuestions.clearTable()
                 self.persistence.newExam()
                 examData = self.persistence.loadExam(filename)
                 self.useExamData(examData)
-        elif data == 'New':
+        elif data == 'menu_new':
             self.tableQuestions.clearTable()
             self.persistence.newExam()
-        elif data == 'Save as':
+        elif data == 'menu_save_as':
             filename = self.savefiledialog()
             if filename:
                 examData = self.buildExamData()
                 result = self.persistence.saveExam(filename,examData)
-        elif data == 'Print Exam':
+        elif data == 'menu_print_preview':
             self.clickedPreview(True)
         elif data in Question().allTypes():
             self.editing_question = None
