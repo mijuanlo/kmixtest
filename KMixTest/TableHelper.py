@@ -73,6 +73,9 @@ class tableHelper(QObject):
         self.table.cellClicked.connect(self.ClickOnCell)
         self.table.cellChanged.connect(self.cellChanged)
 
+    def rowEditionPermitted(self,row):
+        return self.controller.rowEditionPermitted(self.getCellContent(row,'_UUID_'))
+
     @Slot(int,int)
     def cellChanged(self, row, col):
         qDebug('Cell changed y={} x={}'.format(row,col))
@@ -151,34 +154,37 @@ class tableHelper(QObject):
                 self.table.update(self.model.index(y,x))
     
     def getCellContent(self,row=None,col=None,named=False):
-        if col:
-            if not isinstance(col,list):
-                col = [col]
-            else:
-                for i in range(len(col)):
-                    if isinstance(col[i],str):
-                        if col[i] in self.headerItemNames:
-                            col[i] = self.headerItemNames.index(col[i])
-                        else:
-                            raise ValueError()
-                    elif not isinstance(col[i],int):
-                        raise ValueError()
-                    if col[i] < 0 or col[i] >= self.number_columns_to_set_into_model:
-                        raise ValueError()
-        else:
+        if col is None:
             col = list(range(self.table.columnCount()))
-        if row:
-            if not isinstance(row,list):
-                row = [row]
-            else:
-                for i in range(len(row)):
-                    if not isinstance(row[i],int):
-                        raise ValueError()
-                    if row[i] < 0 or row[i] >= self.table.rowCount():
-                        raise ValueError()
-        else:
+        if row is None:
             row = list(range(self.table.rowCount()))
 
+        retry = False
+        if not isinstance(col,list):
+            col = [ col ]
+            retry = True
+        if not isinstance(row,list):
+            row = [ row ]
+            retry = True
+        if retry:
+            return self.getCellContent(row,col,named)
+        
+        for i in range(len(col)):
+            if isinstance(col[i],str):
+                if col[i] in self.headerItemNames:
+                    col[i] = self.headerItemNames.index(col[i])
+                else:
+                    raise ValueError()
+            elif not isinstance(col[i],int):
+                raise ValueError()
+            if col[i] < 0 or col[i] >= self.number_columns_to_set_into_model:
+                raise ValueError()
+        for i in range(len(row)):
+            if not isinstance(row[i],int):
+                raise ValueError()
+            if row[i] < 0 or row[i] >= self.table.rowCount():
+                raise ValueError()
+        
         result = []
         if len(row) == 1 and len(col) == 1:
             role = Qt.DisplayRole

@@ -43,6 +43,7 @@ class Box(QGroupBox):
         self.data = None
         self.datadict = {}
         self.editableItems = {}
+        self.lock = False
 
     def addToLayout(self,items,span=False):
         current_row = self.layout.rowCount()
@@ -129,23 +130,30 @@ class Box(QGroupBox):
         else:
             number += 1
             self.data['number_of_options'] = number
-        label = QLabel("Option#{}".format(number))
-        #label = QLabel("Option")
+        #label = QLabel("Option#{}".format(number))
+        label = QLabel("Option")
         label.setFixedWidth(self.column_width)
         lineEdit = QLineEdit()
-        self.editableItems.setdefault('OptionLineEdit#{}'.format(number),lineEdit)
         button_ok = QPushButtonTest("",parent=self)
-        button_remove = QPushButton(QIcon(ICONS['remove']),"",self)
-        button_remove.clicked.connect(lambda: self.removeClicked(number))
         button_ok.setFixedHeight(self.button_size)
         button_ok.setFixedWidth(self.button_size)
+        button_remove = QPushButton(QIcon(ICONS['remove']),"",self)
+        button_remove.clicked.connect(lambda: self.removeClicked(number))
         button_remove.setFixedHeight(self.button_size)
         button_remove.setFixedWidth(self.button_size)
         button_remove.setStyleSheet('border:0px;')
+        self.editableItems.setdefault('OptionLineEdit#{}'.format(number),lineEdit)
+        self.editableItems.setdefault('OptionButtonOk#{}'.format(number),button_ok)
+        self.editableItems.setdefault('OptionButtonRemove#{}'.format(number),button_remove)
+        self.optionController.addButton(button_ok,number)
         self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
     
     def removeClicked(self,number):
         qDebug('removeClicked from {}'.format(number))
+        if self.optionController.checkedId() == number:
+            for b in self.optionController.buttons():
+                if b._id != number:
+                    b.reset()
         self.removeOptionFromTest(number)
 
     def findItemLayoutRow(self,widget):
@@ -214,12 +222,45 @@ class Box(QGroupBox):
             raise ValueError()
         qDebug('controllerQuestions "{}" click'.format(data))
         if data == 'test_question_add':
-            self.addOptionToTest()
+            if not self.lock:
+                self.addOptionToTest()
         elif data == 'test_question_remove':
-            self.removeOptionFromTest()
+            if not self.lock:
+                self.removeOptionFromTest()
+        elif data == 'box_lock':
+            self.lock = True
+            self.do_lock()
+        elif data == 'box_unlock':
+            self.lock = False
+            self.do_lock()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
 
+    def do_lock(self):
+        if self.lock:
+            for k,v in self.editableItems.items():
+                if isinstance(v,QAbstractButton):
+                    v.setDisabled(True)
+                else:
+                    v.setReadOnly(True)
+            buttons = self.menu.getButtons()
+            for name,b in buttons.items():
+                if name == 'unlock':
+                    b.setEnabled(True)
+                else:
+                    b.setDisabled(True)
+        else:
+            for k,v in self.editableItems.items():
+                if isinstance(v,QAbstractButton):
+                    v.setDisabled(False)
+                else:
+                    v.setReadOnly(False)
+            buttons = self.menu.getButtons() 
+            for name,b in buttons.items():
+                if name == 'unlock':
+                    b.setDisabled(True)
+                else:
+                    b.setEnabled(True)
 
     def makeQuestionTypeLayout(self):
         typeQuestion = self.data.get('type')
@@ -231,14 +272,16 @@ class Box(QGroupBox):
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
             #self.menu.addMenuItem(["Add option|add","Remove option|remove"])
             self.addTitleEditor(self.data.get('initial_content'))
+            self.do_lock()
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
             self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addTestEditor(self.data.get('initial_content'))
-            pass
+            self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
+            self.do_lock()
             pass
         else:
             qDebug('type for question "{}" unknown, skipping'.format(typeQuestion))

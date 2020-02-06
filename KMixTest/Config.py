@@ -41,7 +41,9 @@ ICONS = {
     'save': 'save.png',
     'okbw': 'okbw.png',
     'lock': 'lock.png',
-    'unlock': 'unlock.png'
+    'unlock': 'unlock.png',
+    'alertbw': 'alertbw.svg',
+    'negated': 'nok.svg'
     }
 
 ARTWORK = {

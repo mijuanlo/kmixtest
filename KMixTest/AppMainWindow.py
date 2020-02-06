@@ -58,6 +58,13 @@ class AppMainWindow(QApplication):
                     self.tableQuestions.pool.threadpool.clear()
         self.quit()
 
+    def rowEditionPermitted(self,row_uuid):
+        box = self.scroll.getBoxFromRowId(row_uuid)
+        if box.lock:
+            qDebug('Edition not permitted, box locked')
+            return False
+        return True
+
     @Slot()
     def tableQuestionsChanged(self):
         data = self.tableQuestions.getCellContent(named=True)

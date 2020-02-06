@@ -32,6 +32,9 @@ class MenuItem(QObject):
         else:
             self.parent = None
 
+    def getButtons(self):
+        return { x.objectName():x for x in self.menu.findChildren(QAbstractButton) if x.objectName() != 'qt_toolbar_ext_button' }
+
     def emptyMenu(self,on=None):
         if not on:
             on = self.children

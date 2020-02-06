@@ -93,7 +93,10 @@ class tableDrawer(QStyledItemDelegate):
 
         # Column 3 (text) does not handle event here
         if column == 3:
-            self.parent.editingQuestion.emit(index.row())
+            if self.parent.rowEditionPermitted(index.row()):
+                self.parent.editingQuestion.emit(index.row())
+            else:
+                return True
 
         return super().editorEvent(event, model, option, index) # same as return False
 

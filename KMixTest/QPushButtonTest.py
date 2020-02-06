@@ -18,17 +18,13 @@ class QPushButtonTest(QPushButton):
             raise ValueError()
         self._parent = parent
         self.controller = parent.optionController
-        
+
         self.okbwicon = QIcon(ICONS['okbw'])
         self.okicon = QIcon(ICONS['ok'])
-        
-        # buttons = self.controller.buttons()
-        # if buttons:
-        #     icon = self.okbwicon
-        # else:
-        #     icon = self.okicon
+        self.alertbwicon = QIcon(ICONS['alertbw'])
+        self.negatedicon = QIcon(ICONS['negated'])
 
-        icon = self.okbwicon
+        icon = self.alertbwicon
 
         if kwargs.get('icon'):
             kwargs['icon'] = icon
@@ -45,12 +41,12 @@ class QPushButtonTest(QPushButton):
         
         super().__init__(*args,**kwargs)
 
+        self._id = self.controller.id(self)
         self.setIconSize(QSize(self.icon_size,self.icon_size))
         self.setCheckable(True)
         self.toggled.connect(self.changeIcon)
-        self.state = self.isChecked()
+        self.state = None
         self.myStyle()
-        self.controller.addButton(self)
 
     def myStyle(self):
         stylesheet = 'background-color: transparent; border: 0px;'
@@ -58,16 +54,31 @@ class QPushButtonTest(QPushButton):
         self.setIconSize(QSize(self.icon_size,self.icon_size))
 
     @Slot(bool)
-    def changeIcon(self,checked):
+    def changeIcon(self,checked=None):
+        if self.state is None:
+            for x in self.controller.buttons():
+                if x is self:
+                    x.state = False
+                    x.changeIcon(True)
+                else:
+                    x.state = True
+                    x.changeIcon(False)
+            return
+
         if self.state != checked:
-            self.state = checked
-            if checked == True:
+            if checked:
                 icon = self.okicon
             else:
-                icon = self.okbwicon
+                icon = self.negatedicon
             self.setIcon(icon)
             self.myStyle()
-            
+            self.state = checked
+
+    def reset(self):
+        self.setIcon(self.alertbwicon)
+        self.myStyle()
+        self.state = None
+
     # def event(self,event):
     #     if event.type() == QEvent.Type.MouseButtonRelease:
     #         qDebug("Event in QPushButtonTest {}".format(event.type()))

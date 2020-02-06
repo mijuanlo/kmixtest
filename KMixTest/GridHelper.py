@@ -25,6 +25,12 @@ class gridHelper(QObject):
         self.idbox = 0
         self.last_tabledata = None
 
+    def getBoxFromRowId(self,row_uuid):
+        box_uuid = self.tableDataMap.get(row_uuid)
+        if not box_uuid:
+            return None
+        return self.boxes.get(box_uuid)
+
     def printGridInformation(self):
         gridData = self.getGridData()
         for y in range(len(gridData)):
