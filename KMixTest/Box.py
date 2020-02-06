@@ -129,23 +129,24 @@ class Box(QGroupBox):
         else:
             number += 1
             self.data['number_of_options'] = number
-        #label = QLabel("Option#{}".format(number))
-        label = QLabel("Option")
+        label = QLabel("Option#{}".format(number))
+        #label = QLabel("Option")
         label.setFixedWidth(self.column_width)
         lineEdit = QLineEdit()
         self.editableItems.setdefault('OptionLineEdit#{}'.format(number),lineEdit)
         button_ok = QPushButtonTest("",parent=self)
         button_remove = QPushButton(QIcon(ICONS['remove']),"",self)
-        button_remove.clicked.connect(self.removeClicked)
+        button_remove.clicked.connect(lambda: self.removeClicked(number))
         button_ok.setFixedHeight(self.button_size)
         button_ok.setFixedWidth(self.button_size)
         button_remove.setFixedHeight(self.button_size)
         button_remove.setFixedWidth(self.button_size)
+        button_remove.setStyleSheet('border:0px;')
         self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
     
-    @Slot(bool)
-    def removeClicked(self,checked):
-        qDebug('removeClicked from {}'.format(self.sender()))
+    def removeClicked(self,number):
+        qDebug('removeClicked from {}'.format(number))
+        self.removeOptionFromTest(number)
 
     def findItemLayoutRow(self,widget):
         for y in range(self.layout.rowCount()):
@@ -226,12 +227,13 @@ class Box(QGroupBox):
             qDebug('Empty type for question received')
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
+            self.menu.addMenuItem(["Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
             #self.menu.addMenuItem(["Add option|add","Remove option|remove"])
             self.addTitleEditor(self.data.get('initial_content'))
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove"])
+            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addTestEditor(self.data.get('initial_content'))
             pass

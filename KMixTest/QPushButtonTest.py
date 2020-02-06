@@ -7,6 +7,7 @@ from PySide2.QtUiTools import *
 from .Config import ICONS
 
 class QPushButtonTest(QPushButton):
+    icon_size = 32
     def __init__(self,*args,**kwargs):
         parent = kwargs.get('parent')
         if not parent:
@@ -21,11 +22,14 @@ class QPushButtonTest(QPushButton):
         self.okbwicon = QIcon(ICONS['okbw'])
         self.okicon = QIcon(ICONS['ok'])
         
-        buttons = self.controller.buttons()
-        if buttons:
-            icon = self.okbwicon
-        else:
-            icon = self.okicon
+        # buttons = self.controller.buttons()
+        # if buttons:
+        #     icon = self.okbwicon
+        # else:
+        #     icon = self.okicon
+
+        icon = self.okbwicon
+
         if kwargs.get('icon'):
             kwargs['icon'] = icon
         
@@ -41,11 +45,18 @@ class QPushButtonTest(QPushButton):
         
         super().__init__(*args,**kwargs)
 
-        self.controller.addButton(self)
+        self.setIconSize(QSize(self.icon_size,self.icon_size))
         self.setCheckable(True)
         self.toggled.connect(self.changeIcon)
         self.state = self.isChecked()
-        
+        self.myStyle()
+        self.controller.addButton(self)
+
+    def myStyle(self):
+        stylesheet = 'background-color: transparent; border: 0px;'
+        self.setStyleSheet(stylesheet)
+        self.setIconSize(QSize(self.icon_size,self.icon_size))
+
     @Slot(bool)
     def changeIcon(self,checked):
         if self.state != checked:
@@ -55,8 +66,9 @@ class QPushButtonTest(QPushButton):
             else:
                 icon = self.okbwicon
             self.setIcon(icon)
+            self.myStyle()
             
-    def event(self,event):
-        if event.type() == QEvent.Type.MouseButtonRelease:
-            qDebug("Event in QPushButtonTest {}".format(event.type()))
-        return super().event(event)
+    # def event(self,event):
+    #     if event.type() == QEvent.Type.MouseButtonRelease:
+    #         qDebug("Event in QPushButtonTest {}".format(event.type()))
+    #     return super().event(event)

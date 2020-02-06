@@ -39,7 +39,9 @@ ICONS = {
     'print': 'print.png',
     'remove': 'remove.png',
     'save': 'save.png',
-    'okbw': 'okbw.png'
+    'okbw': 'okbw.png',
+    'lock': 'lock.png',
+    'unlock': 'unlock.png'
     }
 
 ARTWORK = {
