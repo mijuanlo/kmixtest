@@ -119,8 +119,8 @@ class Box(QGroupBox):
 
     def addTestEditor(self,content=None):
         self.addTitleEditor(content)
-        self.optionController = QButtonGroup(self)
-        self.optionController.setExclusive(True)
+        #self.optionController = QButtonGroup(self)
+        #self.optionController.setExclusive(True)
     
     def addOptionToTest(self):
         number = self.data.get('number_of_options')
@@ -145,9 +145,12 @@ class Box(QGroupBox):
         self.editableItems.setdefault('OptionLineEdit#{}'.format(number),lineEdit)
         self.editableItems.setdefault('OptionButtonOk#{}'.format(number),button_ok)
         self.editableItems.setdefault('OptionButtonRemove#{}'.format(number),button_remove)
-        self.optionController.addButton(button_ok,number)
+        #self.optionController.addButton(button_ok,number)
         self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
     
+    def getOptionButtons(self):
+        return [ v for k,v in self.editableItems.items() if 'OptionButtonOk#' in k ]
+
     def removeClicked(self,number):
         qDebug('removeClicked from {}'.format(number))
         if self.optionController.checkedId() == number:
@@ -279,10 +282,7 @@ class Box(QGroupBox):
         slider.setFixedWidth(100)
         slider.setMinimum(1)
         slider.setMaximum(1)
-        slider.setFocusPolicy(Qt.NoFocus)
-        slider.setTickPosition(QSlider.TicksBothSides)
-        slider.setStyleSheet('::sub-page { background: yellow; border: 1px solid red; height: 5px; border-radius: 4px;}')
-        label = QLabel('0')
+        label = QLabel('0/0')
         label.setFont(QFont('Arial',10,QFont.Normal))
         label.setStyleSheet('margin-left: 5px')
         container.addWidget(title)

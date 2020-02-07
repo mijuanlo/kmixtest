@@ -17,7 +17,7 @@ class QPushButtonTest(QPushButton):
         if not parent:
             raise ValueError()
         self._parent = parent
-        self.controller = parent.optionController
+        #self.controller = parent.optionController
 
         self.okbwicon = QIcon(ICONS['okbw'])
         self.okicon = QIcon(ICONS['ok'])
@@ -41,7 +41,7 @@ class QPushButtonTest(QPushButton):
         
         super().__init__(*args,**kwargs)
 
-        self._id = self.controller.id(self)
+        #self._id = self.controller.id(self)
         self.setIconSize(QSize(self.icon_size,self.icon_size))
         self.setCheckable(True)
         self.toggled.connect(self.changeIcon)
@@ -56,7 +56,7 @@ class QPushButtonTest(QPushButton):
     @Slot(bool)
     def changeIcon(self,checked=None):
         if self.state is None:
-            for x in self.controller.buttons():
+            for x in self._parent.getOptionButtons():
                 if x is self:
                     x.state = False
                     x.changeIcon(True)
