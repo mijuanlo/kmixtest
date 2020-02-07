@@ -186,6 +186,9 @@ class Box(QGroupBox):
         for w in toRemove:
             del self.editableItems[w]
 
+    def getCurrentOptions(self):
+        return { k:v for k,v in self.editableItems.items() if 'OptionLineEdit#' in k }
+
     def removeOptionFromTest(self,number=None):
         if not number:
             options = [ x.split('#')[1] for x in self.editableItems.keys() if 'OptionLineEdit#' in x ]
@@ -224,9 +227,13 @@ class Box(QGroupBox):
         if data == 'test_question_add':
             if not self.lock:
                 self.addOptionToTest()
+                opt = self.getCurrentOptions()
+                self.configureSlider(min=1,max=len(opt))
         elif data == 'test_question_remove':
             if not self.lock:
                 self.removeOptionFromTest()
+                opt = self.getCurrentOptions()
+                self.configureSlider(min=1,max=len(opt))
         elif data == 'box_lock':
             self.lock = True
             self.do_lock()
@@ -239,10 +246,11 @@ class Box(QGroupBox):
     def do_lock(self):
         if self.lock:
             for k,v in self.editableItems.items():
-                if isinstance(v,QAbstractButton):
+                if isinstance(v,(QAbstractButton,QAbstractSlider)):
                     v.setDisabled(True)
                 else:
-                    v.setReadOnly(True)
+                    if not isinstance(v,(QFrame)):
+                        v.setReadOnly(True)
             buttons = self.menu.getButtons()
             for name,b in buttons.items():
                 if name == 'unlock':
@@ -251,16 +259,51 @@ class Box(QGroupBox):
                     b.setDisabled(True)
         else:
             for k,v in self.editableItems.items():
-                if isinstance(v,QAbstractButton):
+                if isinstance(v,(QAbstractButton,QAbstractSlider)):
                     v.setDisabled(False)
                 else:
-                    v.setReadOnly(False)
+                    if not isinstance(v,(QFrame)):
+                        v.setReadOnly(False)
             buttons = self.menu.getButtons() 
             for name,b in buttons.items():
                 if name == 'unlock':
                     b.setDisabled(True)
                 else:
                     b.setEnabled(True)
+    
+    def addSlider(self,container):
+        title = QLabel('Valid:')
+        title.setStyleSheet('margin-right: 5px')
+        slider = QSlider()
+        slider.setOrientation(Qt.Horizontal)
+        slider.setFixedWidth(100)
+        slider.setMinimum(1)
+        slider.setMaximum(1)
+        slider.setFocusPolicy(Qt.NoFocus)
+        slider.setTickPosition(QSlider.TicksBothSides)
+        slider.setStyleSheet('::sub-page { background: yellow; border: 1px solid red; height: 5px; border-radius: 4px;}')
+        label = QLabel('0')
+        label.setFont(QFont('Arial',10,QFont.Normal))
+        label.setStyleSheet('margin-left: 5px')
+        container.addWidget(title)
+        container.addWidget(slider)
+        container.addWidget(label)
+        slider.valueChanged.connect(lambda x: label.setText("{}/{}".format(x,slider.maximum())))
+        self.editableItems['SLIDER_CONTROL'] = slider
+        self.editableItems['SLIDER_LABEL'] = label
+        slider.valueChanged.emit(1)
+
+    def configureSlider(self,min=1,max=1):
+        if min and min < 1:
+            min = 1
+        if max and max < 1:
+            max = 1
+        slider = self.editableItems.get('SLIDER_CONTROL')
+        value = slider.value()
+        slider.setMinimum(min)
+        slider.setMaximum(max)
+        slider.setSliderPosition(value)
+        slider.valueChanged.emit(slider.value())
 
     def makeQuestionTypeLayout(self):
         typeQuestion = self.data.get('type')
@@ -277,6 +320,7 @@ class Box(QGroupBox):
             self.menu.emptyMenu()
             self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
+            self.addSlider(self.menu.menu)
             self.addTestEditor(self.data.get('initial_content'))
             self.do_lock()
         elif typeQuestion == 'join_activity':
