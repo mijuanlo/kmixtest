@@ -7,7 +7,6 @@ from PySide2.QtUiTools import *
 from .Config import ICONS
 
 class QPushButtonTest(QPushButton):
-    icon_size = 32
     def __init__(self,*args,**kwargs):
         parent = kwargs.get('parent')
         if not parent:
@@ -17,7 +16,12 @@ class QPushButtonTest(QPushButton):
         if not parent:
             raise ValueError()
         self._parent = parent
-        #self.controller = parent.optionController
+
+        name = kwargs.get('name')
+        if name:
+            del kwargs['name']
+        else:
+            name = id(self)
 
         self.okbwicon = QIcon(ICONS['okbw'])
         self.okicon = QIcon(ICONS['ok'])
@@ -41,38 +45,31 @@ class QPushButtonTest(QPushButton):
         
         super().__init__(*args,**kwargs)
 
-        #self._id = self.controller.id(self)
-        self.setIconSize(QSize(self.icon_size,self.icon_size))
+        self.setObjectName(name)
         self.setCheckable(True)
-        self.toggled.connect(self.changeIcon)
         self.state = None
         self.myStyle()
 
     def myStyle(self):
         stylesheet = 'background-color: transparent; border: 0px;'
         self.setStyleSheet(stylesheet)
-        self.setIconSize(QSize(self.icon_size,self.icon_size))
 
     @Slot(bool)
     def changeIcon(self,checked=None):
-        if self.state is None:
-            for x in self._parent.getOptionButtons():
-                if x is self:
-                    x.state = False
-                    x.changeIcon(True)
-                else:
-                    x.state = True
-                    x.changeIcon(False)
-            return
-
         if self.state != checked:
             if checked:
                 icon = self.okicon
+            elif checked is None:
+                icon = self.alertbwicon
             else:
                 icon = self.negatedicon
             self.setIcon(icon)
             self.myStyle()
             self.state = checked
+
+    # @Slot()
+    # def buttonClicked(self):
+    #     self.buttonIsRelesead.emit(self.name)
 
     def reset(self):
         self.setIcon(self.alertbwicon)

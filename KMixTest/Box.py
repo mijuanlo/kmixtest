@@ -12,7 +12,7 @@ from .Config import ICONS
 class Box(QGroupBox):
     closedBox = Signal(str)
     button_space = 6
-    button_size = 36
+    button_size = 28
     column_width = 60
 
     contentChanged = Signal(str,str)
@@ -44,6 +44,9 @@ class Box(QGroupBox):
         self.datadict = {}
         self.editableItems = {}
         self.lock = False
+        self.count_trues = 0
+        self.options_declared = {}
+        self.pushed_order = []
 
     def addToLayout(self,items,span=False):
         current_row = self.layout.rowCount()
@@ -130,34 +133,111 @@ class Box(QGroupBox):
         else:
             number += 1
             self.data['number_of_options'] = number
-        #label = QLabel("Option#{}".format(number))
         label = QLabel("Option")
         label.setFixedWidth(self.column_width)
         lineEdit = QLineEdit()
-        button_ok = QPushButtonTest("",parent=self)
+        name_button_ok = "ValueButtonOk#{}".format(number)
+        name_button_remove = 'ValueButtonRemove#{}'.format(number)
+        button_ok = QPushButtonTest("",name=name_button_ok,parent=self)
+        button_ok.clicked.connect(self.buttonsChanged)
         button_ok.setFixedHeight(self.button_size)
         button_ok.setFixedWidth(self.button_size)
         button_remove = QPushButton(QIcon(ICONS['remove']),"",self)
-        button_remove.clicked.connect(lambda: self.removeClicked(number))
+        button_remove.setObjectName(name_button_remove)
+        button_remove.clicked.connect(self.removeClicked)
         button_remove.setFixedHeight(self.button_size)
         button_remove.setFixedWidth(self.button_size)
         button_remove.setStyleSheet('border:0px;')
-        self.editableItems.setdefault('OptionLineEdit#{}'.format(number),lineEdit)
+        option_name = 'OptionLineEdit#{}'.format(number)
+        self.editableItems.setdefault(option_name,lineEdit)
+        self.options_declared.setdefault(str(number),{'text': '', 'trueness': None })
+        lineEdit.textChanged.connect(self.optionsChanged)
         self.editableItems.setdefault('OptionButtonOk#{}'.format(number),button_ok)
         self.editableItems.setdefault('OptionButtonRemove#{}'.format(number),button_remove)
-        #self.optionController.addButton(button_ok,number)
         self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
     
-    def getOptionButtons(self):
-        return [ v for k,v in self.editableItems.items() if 'OptionButtonOk#' in k ]
+    def getNumber(self,name):
+        return name.split('#')[1]
 
-    def removeClicked(self,number):
+    def newButtonPushed(self,num):
+        default = None
+        if self.options_declared[num]['trueness']:
+            self.options_declared[num]['trueness'] = default
+        else:
+            num_ok = len([ x for x in self.options_declared if self.options_declared[x]['trueness'] == True])
+            if num_ok == self.count_trues:
+                return
+            else:
+                state = self.options_declared[num]['trueness']
+                if state:
+                    state = False
+                else:
+                    if num_ok == self.count_trues -1:
+                        default = False
+                    state = True
+                self.options_declared[num]['trueness'] = state
+        i = 0
+        for num in self.options_declared:
+            if self.options_declared[num]['trueness']:
+                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(True)
+            else:
+                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(default)
+
+
+    @Slot(int)
+    def buttonsChanged(self,checked=None):
+        sender = self.sender()
+        if sender:
+            name = sender.objectName()
+        else:
+            name = None
+        if name:
+            if checked is not None:
+                num = self.getNumber(name)
+
+        default = None
+        
+        if checked is not None and self.options_declared[num]['trueness']:
+            self.options_declared[num]['trueness'] = default
+        else:
+            num_ok = len([ x for x in self.options_declared if self.options_declared[x]['trueness'] == True])
+            if num_ok == self.count_trues -1:
+                if num_ok != 0 and checked is not None:
+                    default = False
+            elif num_ok == self.count_trues:
+                return
+            if checked is not None:
+                state = self.options_declared[num]['trueness']
+                if state:
+                    state = False
+                else:
+                    state = True
+                self.options_declared[num]['trueness'] = state
+        i = 0
+        for num in self.options_declared:
+            if self.options_declared[num]['trueness']:
+                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(True)
+            else:
+                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(default)
+
+    @Slot(str)
+    def optionsChanged(self,text):
+        options = self.getCurrentOptions()
+        for name,value in options.items():
+            self.options_declared[self.getNumber(name)]['text'] = value.text()
+
+    def getOptionButtons(self):
+        return { k:v for k,v in self.editableItems.items() if 'OptionButtonOk#' in k }
+
+    @Slot(int)
+    def removeClicked(self,checked=None):
+        sender = self.sender()
+        if not sender:
+            raise ValueError()
+        number = self.getNumber(sender.objectName())
         qDebug('removeClicked from {}'.format(number))
-        if self.optionController.checkedId() == number:
-            for b in self.optionController.buttons():
-                if b._id != number:
-                    b.reset()
         self.removeOptionFromTest(number)
+        self.buttonsChanged()
 
     def findItemLayoutRow(self,widget):
         for y in range(self.layout.rowCount()):
@@ -194,7 +274,7 @@ class Box(QGroupBox):
 
     def removeOptionFromTest(self,number=None):
         if not number:
-            options = [ x.split('#')[1] for x in self.editableItems.keys() if 'OptionLineEdit#' in x ]
+            options = [ self.getNumber(x) for x in self.getCurrentOptions().keys() ]
             if options:
                 options = sorted(options)
                 if options:
@@ -204,6 +284,7 @@ class Box(QGroupBox):
             if lineedit:
                 row = self.findItemLayoutRow(lineedit)
                 self.removeRowItems(row)
+                del self.options_declared[str(number)]
 
     @Slot()
     def titleEditorChanged(self):
@@ -251,9 +332,13 @@ class Box(QGroupBox):
             for k,v in self.editableItems.items():
                 if isinstance(v,(QAbstractButton,QAbstractSlider)):
                     v.setDisabled(True)
+                elif isinstance(v,(QLineEdit,QTextEdit)):
+                    v.setReadOnly(True)
+                elif isinstance(v,(QLabel)):
+                    pass
                 else:
-                    if not isinstance(v,(QFrame)):
-                        v.setReadOnly(True)
+                    raise ValueError("Can't lock {}".format(v))
+
             buttons = self.menu.getButtons()
             for name,b in buttons.items():
                 if name == 'unlock':
@@ -264,16 +349,20 @@ class Box(QGroupBox):
             for k,v in self.editableItems.items():
                 if isinstance(v,(QAbstractButton,QAbstractSlider)):
                     v.setDisabled(False)
+                elif isinstance(v,(QLineEdit,QTextEdit)):
+                    v.setReadOnly(False)
+                elif isinstance(v,(QLabel)):
+                    pass
                 else:
-                    if not isinstance(v,(QFrame)):
-                        v.setReadOnly(False)
+                    raise ValueError("Can't unlock {}".format(v))
+
             buttons = self.menu.getButtons() 
             for name,b in buttons.items():
                 if name == 'unlock':
                     b.setDisabled(True)
                 else:
                     b.setEnabled(True)
-    
+
     def addSlider(self,container):
         title = QLabel('Valid:')
         title.setStyleSheet('margin-right: 5px')
@@ -288,10 +377,23 @@ class Box(QGroupBox):
         container.addWidget(title)
         container.addWidget(slider)
         container.addWidget(label)
-        slider.valueChanged.connect(lambda x: label.setText("{}/{}".format(x,slider.maximum())))
+        slider.valueChanged.connect(self.sliderChanged)
         self.editableItems['SLIDER_CONTROL'] = slider
         self.editableItems['SLIDER_LABEL'] = label
         slider.valueChanged.emit(1)
+
+    @Slot(int)
+    def sliderChanged(self, value=None):
+        if value is None:
+            return
+        label = self.editableItems['SLIDER_LABEL']
+        slider = self.editableItems['SLIDER_CONTROL']
+        label.setText("{}/{}".format(value,slider.maximum()))
+        if self.count_trues > value:
+            for x in self.options_declared:
+                self.options_declared[x]['trueness'] = None
+            self.buttonsChanged()
+        self.count_trues = value
 
     def configureSlider(self,min=1,max=1):
         if min and min < 1:
