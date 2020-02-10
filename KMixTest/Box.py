@@ -163,6 +163,7 @@ class Box(QGroupBox):
         remove_button.setFixedWidth(self.button_size)
         remove_button.setFixedHeight(self.button_size)
         remove_button.setStyleSheet('border:0px;')
+        self.editableItems.setdefault('JoinOptionRemoveButton#{}'.format(number),remove_button)
         self.editableItems.setdefault('JoinOptionLineEdit1#{}'.format(number),lineedit1)
         self.editableItems.setdefault('JoinOptionLineEdit2#{}'.format(number),lineedit2)
         self.addToLayout([lineedit1,(label,Qt.AlignCenter),lineedit2,remove_button],layout=l)
@@ -262,6 +263,7 @@ class Box(QGroupBox):
 
     @Slot(int)
     def removeJoinClicked(self,checked=None):
+        #if not self.lock:
         sender = self.sender()
         if not sender:
             raise ValueError()
