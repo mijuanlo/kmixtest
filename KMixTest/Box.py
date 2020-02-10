@@ -49,11 +49,25 @@ class Box(QGroupBox):
         self.pushed_order = []
         self.empty_lines_for_answer = 0
 
-    def addToLayout(self,items,span=False):
-        current_row = self.layout.rowCount()
+    def addToLayout(self,*args,**kwargs):
+        items = kwargs.get('items')
+        span = kwargs.get('span')
+        layout = kwargs.get('layout')
+
+        if not items:
+            items = args[0]
+            if not items:
+                raise ValueError()
+        if not layout:
+            layout = self.layout
+            if not layout:
+                raise ValueError()
+        if not span:
+            span = args[1] if len(args) > 1 else False
+        current_row = layout.rowCount()
         current_col = 0
         if not isinstance(items,list):
-            self.addToLayout([items],span)
+            self.addToLayout([items],span=span,layout=layout)
         else:
             for i in items:
                 align = Qt.Alignment()
@@ -69,9 +83,9 @@ class Box(QGroupBox):
                 if span:
                     colspan = -1
                 if isinstance(i,QWidget):
-                    self.layout.addWidget(i,current_row,current_col,rowspan,colspan,align)
+                    layout.addWidget(i,current_row,current_col,rowspan,colspan,align)
                 elif isinstance(i,QLayoutItem):
-                    self.layout.addItem(i,current_row,current_col,rowspan,colspan,align)
+                    layout.addItem(i,current_row,current_col,rowspan,colspan,align)
                 else:
                     raise ValueError()
                 current_col += 1
@@ -121,14 +135,41 @@ class Box(QGroupBox):
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
         #self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
 
-    def addOptionToTest(self):
-        number = self.data.get('number_of_options')
+    def getOptId(self):
+        number = self.data.get('optid')
         if not number:
             number = 1
-            self.data.setdefault('number_of_options',number)
+            self.data.setdefault('optid',number)
         else:
             number += 1
-            self.data['number_of_options'] = number
+            self.data['optid'] = number
+        return number
+
+    def addJoinOptionToTest(self):
+        number = self.getOptId()
+        w = QWidget()
+        w.setObjectName('JOption#{}'.format(number))
+        l = QGridLayout()
+        w.setLayout(l)
+        l.setContentsMargins(0,0,0,0)
+        label = QLabel("\u279C",parent=w)
+        label.setFont(QFont('Arial',20,QFont.Bold))
+        lineedit1 = QLineEdit(parent=w)
+        lineedit2 = QLineEdit(parent=w)
+        lineedit1.textChanged.connect(self.joinOptionsChanged)
+        remove_button = QPushButton(QIcon(ICONS['remove']),"",parent=w)
+        remove_button.setObjectName('JoinButtonRemove#{}'.format(number))
+        remove_button.clicked.connect(self.removeJoinClicked)
+        remove_button.setFixedWidth(self.button_size)
+        remove_button.setFixedHeight(self.button_size)
+        remove_button.setStyleSheet('border:0px;')
+        self.editableItems.setdefault('JoinOptionLineEdit1#{}'.format(number),lineedit1)
+        self.editableItems.setdefault('JoinOptionLineEdit2#{}'.format(number),lineedit2)
+        self.addToLayout([lineedit1,(label,Qt.AlignCenter),lineedit2,remove_button],layout=l)
+        self.addToLayout(w,True)
+
+    def addOptionToTest(self):
+        number = self.getOptId()
         label = QLabel("Option")
         label.setFixedWidth(self.column_width)
         lineEdit = QLineEdit()
@@ -202,6 +243,10 @@ class Box(QGroupBox):
         for name,value in options.items():
             self.options_declared[self.getNumber(name)]['text'] = value.text()
 
+    @Slot(str)
+    def joinOptionsChanged(self,text):
+        qDebug('Join Option changed!')
+
     def getOptionButtons(self):
         return { k:v for k,v in self.editableItems.items() if 'OptionButtonOk#' in k }
 
@@ -214,6 +259,26 @@ class Box(QGroupBox):
         qDebug('removeClicked from {}'.format(number))
         self.removeOptionFromTest(number)
         self.buttonsChanged()
+
+    @Slot(int)
+    def removeJoinClicked(self,checked=None):
+        sender = self.sender()
+        if not sender:
+            raise ValueError()
+        if isinstance(sender,MenuItem):
+            last_option = str(max([ int(x.split('#')[1]) for x in self.editableItems.keys() if 'JoinOptionLineEdit1#' in x ]))
+            number = last_option
+        else:
+            number = self.getNumber(sender.objectName())
+            qDebug('removeJoinClicked from {}'.format(number))
+        wlist = self.findChildren(QWidget,'JOption#{}'.format(number))
+        for w in wlist:
+            w.deleteLater()
+        toDelete=['JoinOptionLineEdit1#','JoinOptionLineEdit2#']
+        for x in toDelete:
+            key = '{}{}'.format(x,number)
+            if key in self.editableItems:
+                del self.editableItems[key]
 
     def findItemLayoutRow(self,widget):
         for y in range(self.layout.rowCount()):
@@ -294,6 +359,12 @@ class Box(QGroupBox):
                 self.removeOptionFromTest()
                 opt = self.getCurrentOptions()
                 self.configureSlider(min=1,max=len(opt))
+        elif data == 'join_question_add':
+            if not self.lock:
+                self.addJoinOptionToTest()
+        elif data == 'join_question_remove':
+            if not self.lock:
+                self.removeJoinClicked()
         elif data == 'box_lock':
             self.lock = True
             self.do_lock()
@@ -381,16 +452,17 @@ class Box(QGroupBox):
             self.buttonsChanged()
 
     def configureSlider(self,min=1,max=1):
-        if min and min < 1:
-            min = 1
-        if max and max < 1:
-            max = 1
         slider = self.editableItems.get('SLIDER_CONTROL')
-        value = slider.value()
-        slider.setMinimum(min)
-        slider.setMaximum(max)
-        slider.setSliderPosition(value)
-        slider.valueChanged.emit(slider.value())
+        if slider:
+            if min and min < 1:
+                min = 1
+            if max and max < 1:
+                max = 1
+            value = slider.value()
+            slider.setMinimum(min)
+            slider.setMaximum(max)
+            slider.setSliderPosition(value)
+            slider.valueChanged.emit(slider.value())
 
     def makeQuestionTypeLayout(self):
         typeQuestion = self.data.get('type')
@@ -416,6 +488,9 @@ class Box(QGroupBox):
             self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
+            self.menu.addMenuItem(["Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.itemActivation.connect(self.controllerQuestions)
+            self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
             pass
         else:
