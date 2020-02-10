@@ -47,6 +47,7 @@ class Box(QGroupBox):
         self.count_trues = 0
         self.options_declared = {}
         self.pushed_order = []
+        self.empty_lines_for_answer = 0
 
     def addToLayout(self,items,span=False):
         current_row = self.layout.rowCount()
@@ -103,7 +104,7 @@ class Box(QGroupBox):
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
         super().resizeEvent(event)
 
-    Slot()
+    @Slot()
     def closeBox(self):
         self.closedBox.emit(self.id)
 
@@ -120,11 +121,6 @@ class Box(QGroupBox):
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
         #self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
 
-    def addTestEditor(self,content=None):
-        self.addTitleEditor(content)
-        #self.optionController = QButtonGroup(self)
-        #self.optionController.setExclusive(True)
-    
     def addOptionToTest(self):
         number = self.data.get('number_of_options')
         if not number:
@@ -155,10 +151,9 @@ class Box(QGroupBox):
         self.editableItems.setdefault('OptionButtonOk#{}'.format(number),button_ok)
         self.editableItems.setdefault('OptionButtonRemove#{}'.format(number),button_remove)
         self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
-    
+
     def getNumber(self,name):
         return name.split('#')[1]
-
 
     @Slot(int)
     def buttonsChanged(self,checked=None):
@@ -344,8 +339,8 @@ class Box(QGroupBox):
                 else:
                     b.setEnabled(True)
 
-    def addSlider(self,container):
-        title = QLabel('Valid:')
+    def addSlider(self,container,label,callback):
+        title = QLabel(label)
         title.setStyleSheet('margin-right: 5px')
         slider = QSlider()
         slider.setOrientation(Qt.Horizontal)
@@ -358,25 +353,32 @@ class Box(QGroupBox):
         container.addWidget(title)
         container.addWidget(slider)
         container.addWidget(label)
-        slider.valueChanged.connect(self.sliderChanged)
+        slider.valueChanged.connect(callback)
         self.editableItems['SLIDER_CONTROL'] = slider
         self.editableItems['SLIDER_LABEL'] = label
         slider.valueChanged.emit(1)
+
+    def updateLinesForAnswer(self,value):
+        self.empty_lines_for_answer = value
+        self.editableItems['EMPTY_LINES_LABEL'].setText('Empty lines for answer: {}'.format(value))
 
     @Slot(int)
     def sliderChanged(self, value=None):
         if value is None:
             return
-        label = self.editableItems['SLIDER_LABEL']
         slider = self.editableItems['SLIDER_CONTROL']
+        label = self.editableItems['SLIDER_LABEL']
         label.setText("{}/{}".format(value,slider.maximum()))
-        
-        for x in self.options_declared:
-            old_value = self.options_declared[x]['trueness']
-            if self.count_trues > value or not old_value:
-                self.options_declared[x]['trueness'] = None
-        self.count_trues = value
-        self.buttonsChanged()
+        type_question = self.data.get('type')
+        if type_question == 'single_question':
+            self.updateLinesForAnswer(value)
+        elif type_question == 'test_question':
+            for x in self.options_declared:
+                old_value = self.options_declared[x]['trueness']
+                if self.count_trues > value or not old_value:
+                    self.options_declared[x]['trueness'] = None
+            self.count_trues = value
+            self.buttonsChanged()
 
     def configureSlider(self,min=1,max=1):
         if min and min < 1:
@@ -397,16 +399,20 @@ class Box(QGroupBox):
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
             self.menu.addMenuItem(["Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.itemActivation.connect(self.controllerQuestions)
+            self.addSlider(self.menu.menu,'Empty lines:',self.sliderChanged)
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
-            #self.menu.addMenuItem(["Add option|add","Remove option|remove"])
             self.addTitleEditor(self.data.get('initial_content'))
+            self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
+            self.addToLayout([(self.editableItems['EMPTY_LINES_LABEL'],Qt.AlignCenter,True)])
+            self.configureSlider(1,30)
             self.do_lock()
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
             self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
-            self.addSlider(self.menu.menu)
-            self.addTestEditor(self.data.get('initial_content'))
+            self.addSlider(self.menu.menu,'Valid:',self.sliderChanged)
+            self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
