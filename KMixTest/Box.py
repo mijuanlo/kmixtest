@@ -159,30 +159,6 @@ class Box(QGroupBox):
     def getNumber(self,name):
         return name.split('#')[1]
 
-    def newButtonPushed(self,num):
-        default = None
-        if self.options_declared[num]['trueness']:
-            self.options_declared[num]['trueness'] = default
-        else:
-            num_ok = len([ x for x in self.options_declared if self.options_declared[x]['trueness'] == True])
-            if num_ok == self.count_trues:
-                return
-            else:
-                state = self.options_declared[num]['trueness']
-                if state:
-                    state = False
-                else:
-                    if num_ok == self.count_trues -1:
-                        default = False
-                    state = True
-                self.options_declared[num]['trueness'] = state
-        i = 0
-        for num in self.options_declared:
-            if self.options_declared[num]['trueness']:
-                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(True)
-            else:
-                self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(default)
-
 
     @Slot(int)
     def buttonsChanged(self,checked=None):
@@ -196,24 +172,29 @@ class Box(QGroupBox):
                 num = self.getNumber(name)
 
         default = None
+        only_repaint = checked is None
         
-        if checked is not None and self.options_declared[num]['trueness']:
+        if not only_repaint and self.options_declared[num]['trueness']:
             self.options_declared[num]['trueness'] = default
         else:
             num_ok = len([ x for x in self.options_declared if self.options_declared[x]['trueness'] == True])
-            if num_ok == self.count_trues -1:
-                if num_ok != 0 and checked is not None:
+            if only_repaint:
+                if num_ok == self.count_trues:
                     default = False
-            elif num_ok == self.count_trues:
-                return
-            if checked is not None:
+            else:
+                if num_ok == self.count_trues -1:
+                    default = False
+                elif num_ok == self.count_trues:
+                    return
+
+            if not only_repaint:
                 state = self.options_declared[num]['trueness']
                 if state:
-                    state = False
+                    state = default
                 else:
                     state = True
                 self.options_declared[num]['trueness'] = state
-        i = 0
+
         for num in self.options_declared:
             if self.options_declared[num]['trueness']:
                 self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(True)
@@ -389,11 +370,13 @@ class Box(QGroupBox):
         label = self.editableItems['SLIDER_LABEL']
         slider = self.editableItems['SLIDER_CONTROL']
         label.setText("{}/{}".format(value,slider.maximum()))
-        if self.count_trues > value:
-            for x in self.options_declared:
+        
+        for x in self.options_declared:
+            old_value = self.options_declared[x]['trueness']
+            if self.count_trues > value or not old_value:
                 self.options_declared[x]['trueness'] = None
-            self.buttonsChanged()
         self.count_trues = value
+        self.buttonsChanged()
 
     def configureSlider(self,min=1,max=1):
         if min and min < 1:
