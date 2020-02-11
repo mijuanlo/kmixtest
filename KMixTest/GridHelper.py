@@ -61,9 +61,11 @@ class gridHelper(QObject):
         for x in self.boxes:
             self.boxes.get(x).hide()
 
-    def syncMapTableData(self,data):
-        if data:
+    def syncMapTableData(self,data=None):
+        if data is not None:
             self.last_tabledata = data
+        else:
+            raise ValueError()
         qDebug("Syncing table-grid data")
         ids = []
         for x in data:
@@ -76,7 +78,8 @@ class gridHelper(QObject):
                 toRemove.append(x)
         for x in toRemove:
             box_uuid = self.tableDataMap.get(x)
-            self.deleteBox(box_uuid)
+            if box_uuid:
+                self.deleteBox(box_uuid)
             del self.tableDataMap[x]
         self.tableDataMapReversed = { v:k for k,v in self.tableDataMap.items() }
         # update title

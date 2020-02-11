@@ -27,15 +27,9 @@ class Box(QGroupBox):
         self.toolbar = QToolBar(self)
         self.toolbar.setFixedHeight(self.button_size)
         self.addToLayout(self.toolbar,True)
-        # self.separator = QFrame(self)
-        # self.separator.setFrameShape(QFrame.HLine)
-        # self.separator.setFrameShadow(QFrame.Sunken)
-        # self.addToLayout(self.separator,True)
         self.menu = MenuItem(menu=self.toolbar,parent=self)
-        #self.toolbar.setStyleSheet('QToolBar { padding-bottom : 0px; }')
         self.button = QPushButton(QIcon(ICONS['close']),"",self)
         self.button.setFlat(True)
-        #self.button.setStyleSheet('border: none')
         self.button.setIconSize(QSize(self.button_size,self.button_size))
         self.button.resize(self.button_size,self.button_size)
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
@@ -133,7 +127,6 @@ class Box(QGroupBox):
         textedit.textChanged.connect(self.titleEditorChanged)
         self.editableItems.setdefault('TITLE_EDITOR',textedit)
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
-        #self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
 
     def getOptId(self):
         number = self.data.get('optid')
@@ -147,52 +140,67 @@ class Box(QGroupBox):
 
     def addJoinOptionToTest(self):
         number = self.getOptId()
-        w = QWidget()
-        w.setObjectName('JOption#{}'.format(number))
-        l = QGridLayout()
-        w.setLayout(l)
-        l.setContentsMargins(0,0,0,0)
+        w = self.newWidgetOption(number)
+        name_remove_button = 'JoinOptionRemoveButton#{}'.format(number)
+        name_lineedit1 = 'JoinOptionLineEdit1#{}'.format(number)
+        name_lineedit2 = 'JoinOptionLineEdit2#{}'.format(number)
         label = QLabel("\u279C",parent=w)
         label.setFont(QFont('Arial',20,QFont.Bold))
         lineedit1 = QLineEdit(parent=w)
+        lineedit1.setObjectName(name_lineedit1)
         lineedit2 = QLineEdit(parent=w)
+        lineedit2.setObjectName(name_lineedit2)
         lineedit1.textChanged.connect(self.joinOptionsChanged)
+        lineedit2.textChanged.connect(self.joinOptionsChanged)
         remove_button = QPushButton(QIcon(ICONS['remove']),"",parent=w)
-        remove_button.setObjectName('JoinButtonRemove#{}'.format(number))
-        remove_button.clicked.connect(self.removeJoinClicked)
+        remove_button.setObjectName(name_remove_button)
+        remove_button.clicked.connect(self.removeClicked)
         remove_button.setFixedWidth(self.button_size)
         remove_button.setFixedHeight(self.button_size)
         remove_button.setStyleSheet('border:0px;')
-        self.editableItems.setdefault('JoinOptionRemoveButton#{}'.format(number),remove_button)
-        self.editableItems.setdefault('JoinOptionLineEdit1#{}'.format(number),lineedit1)
-        self.editableItems.setdefault('JoinOptionLineEdit2#{}'.format(number),lineedit2)
-        self.addToLayout([lineedit1,(label,Qt.AlignCenter),lineedit2,remove_button],layout=l)
+        self.editableItems.setdefault(name_remove_button,remove_button)
+        self.editableItems.setdefault(name_lineedit1,lineedit1)
+        self.editableItems.setdefault(name_lineedit2,lineedit2)
+        self.addToLayout([lineedit1,(label,Qt.AlignCenter),lineedit2,remove_button],layout=w.layout())
         self.addToLayout(w,True)
+
+    def newWidgetOption(self,idw=None):
+        w = QWidget()
+        if not idw:
+            idw = id(w)
+        w.setObjectName('JOption#{}'.format(idw))
+        l = QGridLayout()
+        w.setLayout(l)
+        l.setContentsMargins(0,0,0,0)
+        return w
 
     def addOptionToTest(self):
         number = self.getOptId()
-        label = QLabel("Option")
+        w = self.newWidgetOption(number)
+        label = QLabel("Option",parent=w)
         label.setFixedWidth(self.column_width)
-        lineEdit = QLineEdit()
-        name_button_ok = "ValueButtonOk#{}".format(number)
-        name_button_remove = 'ValueButtonRemove#{}'.format(number)
-        button_ok = QPushButtonTest("",name=name_button_ok,parent=self)
+        lineEdit = QLineEdit(parent=w)
+        lineEdit.textChanged.connect(self.optionsChanged)
+        name_button_ok = "OptionButtonOk#{}".format(number)
+        name_button_remove = 'OptionButtonRemove#{}'.format(number)
+        option_name = 'OptionLineEdit#{}'.format(number)
+        lineEdit.setObjectName(option_name)
+        button_ok = QPushButtonTest("",name=name_button_ok,parent=w)
         button_ok.clicked.connect(self.buttonsChanged)
         button_ok.setFixedHeight(self.button_size)
         button_ok.setFixedWidth(self.button_size)
-        button_remove = QPushButton(QIcon(ICONS['remove']),"",self)
+        button_remove = QPushButton(QIcon(ICONS['remove']),"",parent=w)
         button_remove.setObjectName(name_button_remove)
         button_remove.clicked.connect(self.removeClicked)
         button_remove.setFixedHeight(self.button_size)
         button_remove.setFixedWidth(self.button_size)
         button_remove.setStyleSheet('border:0px;')
-        option_name = 'OptionLineEdit#{}'.format(number)
-        self.editableItems.setdefault(option_name,lineEdit)
         self.options_declared.setdefault(str(number),{'text': '', 'trueness': None })
-        lineEdit.textChanged.connect(self.optionsChanged)
-        self.editableItems.setdefault('OptionButtonOk#{}'.format(number),button_ok)
-        self.editableItems.setdefault('OptionButtonRemove#{}'.format(number),button_remove)
-        self.addToLayout([(label,Qt.AlignCenter),lineEdit,button_ok,button_remove])
+        self.editableItems.setdefault(option_name,lineEdit)
+        self.editableItems.setdefault(name_button_ok,button_ok)
+        self.editableItems.setdefault(name_button_remove,button_remove)
+        self.addToLayout([lineEdit,button_ok,button_remove],layout=w.layout())
+        self.addToLayout([label,w],True)
 
     def getNumber(self,name):
         return name.split('#')[1]
@@ -256,78 +264,75 @@ class Box(QGroupBox):
         sender = self.sender()
         if not sender:
             raise ValueError()
-        number = self.getNumber(sender.objectName())
-        qDebug('removeClicked from {}'.format(number))
-        self.removeOptionFromTest(number)
-        self.buttonsChanged()
-
-    @Slot(int)
-    def removeJoinClicked(self,checked=None):
-        #if not self.lock:
-        sender = self.sender()
-        if not sender:
+        search_for = None
+        delete_items = []
+        if self.data['type'] == 'test_question':
+            search_for = 'OptionLineEdit#'
+            delete_items = ['OptionLineEdit#','OptionButtonOk#','OptionButtonRemove#']
+        elif self.data['type'] == 'join_activity':
+            search_for = 'JoinOptionLineEdit1#' 
+            delete_items = ['JoinOptionLineEdit1#','JoinOptionLineEdit2#','JoinOptionRemoveButton#']
+        else:
             raise ValueError()
+        number = None
         if isinstance(sender,MenuItem):
-            last_option = str(max([ int(x.split('#')[1]) for x in self.editableItems.keys() if 'JoinOptionLineEdit1#' in x ]))
-            number = last_option
+            numbers = [ int(x.split('#')[1]) for x in self.editableItems.keys() if search_for in x ]
+            if numbers:
+                last_option = str(max(numbers))
+                number = last_option
         else:
             number = self.getNumber(sender.objectName())
-            qDebug('removeJoinClicked from {}'.format(number))
-        wlist = self.findChildren(QWidget,'JOption#{}'.format(number))
-        for w in wlist:
-            w.deleteLater()
-        toDelete=['JoinOptionLineEdit1#','JoinOptionLineEdit2#']
-        for x in toDelete:
-            key = '{}{}'.format(x,number)
-            if key in self.editableItems:
-                del self.editableItems[key]
+            qDebug('removeClicked from {}'.format(number))
+        if number:
+            wlist = self.findChildren(QWidget,'JOption#{}'.format(number))
+            if not wlist:
+                raise ValueError()
+            self.removeRowItems(wlist[0])
+            if self.data['type'] == 'test_question' and number in self.options_declared:
+                del self.options_declared[number]
 
-    def findItemLayoutRow(self,widget):
-        for y in range(self.layout.rowCount()):
-            for x in range(self.layout.columnCount()):
-                widgetitem = self.layout.itemAtPosition(y,x)
-                if widgetitem and widgetitem.widget() is widget:
-                    return y
-        return None
+    def removeRowItems(self,row_or_widget):
+        is_row=isinstance(row_or_widget,int)
+        is_widget=isinstance(row_or_widget,(QWidget))
+        if not (is_row or is_widget):
+            raise ValueError()
+        position_and_objects = [ (self.layout.getItemPosition(x),self.layout.itemAt(x)) for x in range(self.layout.count()) ]
+        row = None
+        if is_row:
+            row = row_or_widget
+        elif is_widget:
+            for x in position_and_objects:
+                if row_or_widget is x[1].widget():
+                    row = x[0][0]
 
-    def removeRowItems(self,row):
-        for x in range(self.layout.columnCount()):
-            widgetitem = self.layout.itemAtPosition(row,x)
-            if widgetitem:
-                widget = widgetitem.widget()
-                if widget:
-                    self.removeWidget(widget)
-                del widgetitem
+        for x in position_and_objects:
+            if row == x[0][0]:
+                widget = x[1].widget()
+                childrens = self.getChildrenRecursively(widget)
+                to_delete=[]
+                if childrens:
+                    for k,v in self.editableItems.items():
+                        if v in childrens:
+                            to_delete.append(k)
+                for x in to_delete:
+                    del self.editableItems[x]
+                for w in childrens:
+                    w.deleteLater()
 
-    def removeWidget(self,widget):
-        if not isinstance(widget,list):
-            widget = [ widget ]
-        toRemove = list()
-        for i in widget:
-            for k,v in self.editableItems.items():
-                if v is i:
-                    toRemove.append(k)
-                    break
-            i.deleteLater()
-        for w in toRemove:
-            del self.editableItems[w]
+    def getChildrenRecursively(self,qobject):
+        if isinstance(qobject,QObject):
+            ret = [qobject]
+            for x in qobject.children():
+                ret.extend(self.getChildrenRecursively(x))
+            return ret
+        else:
+            return []
 
     def getCurrentOptions(self):
-        return { k:v for k,v in self.editableItems.items() if 'OptionLineEdit#' in k }
-
-    def removeOptionFromTest(self,number=None):
-        if not number:
-            options = [ self.getNumber(x) for x in self.getCurrentOptions().keys() ]
-            if options:
-                options = sorted(options)
-                if options:
-                    number = options.pop()
-        if number:
-            lineedit = self.editableItems.get('OptionLineEdit#{}'.format(number))
-            if lineedit:
-                row = self.findItemLayoutRow(lineedit)
-                self.removeRowItems(row)
-                del self.options_declared[str(number)]
+        if self.data.get('type') == 'test_question':
+            return { k:v for k,v in self.editableItems.items() if 'OptionLineEdit' in k }
+        elif self.data.get('type') == 'join_activity':
+            return { k:v for k,v in self.editableItems.items() if 'JoinOptionLineEdit' in k }
 
     @Slot()
     def titleEditorChanged(self):
@@ -358,7 +363,7 @@ class Box(QGroupBox):
                 self.configureSlider(min=1,max=len(opt))
         elif data == 'test_question_remove':
             if not self.lock:
-                self.removeOptionFromTest()
+                self.removeClicked()
                 opt = self.getCurrentOptions()
                 self.configureSlider(min=1,max=len(opt))
         elif data == 'join_question_add':
@@ -366,15 +371,14 @@ class Box(QGroupBox):
                 self.addJoinOptionToTest()
         elif data == 'join_question_remove':
             if not self.lock:
-                self.removeJoinClicked()
+                self.removeClicked()
         elif data == 'box_lock':
             self.lock = True
-            self.do_lock()
         elif data == 'box_unlock':
             self.lock = False
-            self.do_lock()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
+        self.do_lock()
 
     def do_lock(self):
         if self.lock:
@@ -411,6 +415,14 @@ class Box(QGroupBox):
                     b.setDisabled(True)
                 else:
                     b.setEnabled(True)
+            # JOption is deleted asynchronously, here we need to know if row is deleted
+            # options = [ x for x in self.children() if isinstance(x,QWidget) and 'JOption' in x.objectName() ]
+            options = self.getCurrentOptions()
+            if not options:
+                button_remove = self.findChild(QToolButton,'remove_option')
+                if button_remove:
+                    button_remove.setDisabled(True)
+
 
     def addSlider(self,container,label,callback):
         title = QLabel(label)
@@ -472,12 +484,12 @@ class Box(QGroupBox):
             qDebug('Empty type for question received')
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
+            self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
             self.menu.addMenuItem(["Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Empty lines:',self.sliderChanged)
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
             self.addTitleEditor(self.data.get('initial_content'))
-            self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
             self.addToLayout([(self.editableItems['EMPTY_LINES_LABEL'],Qt.AlignCenter,True)])
             self.configureSlider(1,30)
             self.do_lock()
