@@ -43,7 +43,8 @@ ICONS = {
     'lock': 'lock.png',
     'unlock': 'unlock.png',
     'alertbw': 'alertbw.svg',
-    'negated': 'nok.svg'
+    'negated': 'nok.svg',
+    'image': 'image.png'
     }
 
 ARTWORK = {
