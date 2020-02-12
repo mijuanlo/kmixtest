@@ -22,6 +22,12 @@ class AppMainWindow(QApplication):
         super().__init__([])
         try:
             self.window = self.loadUi()
+            left_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
+            left_policy.setHorizontalStretch(2)
+            right_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
+            right_policy.setHorizontalStretch(3)
+            self.window.scrollAreaQuestions.setSizePolicy(left_policy)
+            self.window.scrollAreaAnswers.setSizePolicy(right_policy)
             self.menu = MenuItem(menu=self.window.menubar,parent=self)
             self.menu.itemActivation.connect(self.menuController)
             #self.window.gridEdition.addItem(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Expanding))
