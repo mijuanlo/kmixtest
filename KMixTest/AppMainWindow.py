@@ -49,6 +49,8 @@ class AppMainWindow(QApplication):
             self.persistence = Persistence(debug=True)
             self.menu.addMenuItem([{"Project":["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
             self.tableQuestions.pool.start_threads()
+            self.n_models = 1
+            self.alter_models = False
         except Exception as e:
             print("Exception when initializing, {}".format(e))
             self.exitting()
@@ -160,6 +162,60 @@ class AppMainWindow(QApplication):
             self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked))
         return None
 
+    def generateMixMenu(self):
+        def updateValues(dialog):
+                le = dialog.findChild(QLineEdit,'n_models')
+                c = dialog.findChild(QCheckBox,'alter_models')
+                self.n_models = int(le.text())
+                self.alter_models = c.checkState() == Qt.CheckState.Checked
+                dialog.close()
+
+        dialog = QDialog(self.window,Qt.Window)
+        vlayout = QVBoxLayout()
+        dialog.setLayout(vlayout)
+        l1 = QLabel("Number disctinct models:")
+        le = QLineEdit()
+        le.setObjectName('n_models')
+        le.setMaxLength(1)
+        le.setFixedWidth(le.sizeHint().height())
+        le.setInputMask("D")
+        le.setText(str(self.n_models))
+        hlayout1 = QHBoxLayout()
+        hlayout1.addWidget(l1)
+        hlayout1.addWidget(le)
+        l2 = QLabel("Alter answer order:")
+        c = QCheckBox()
+        c.setObjectName('alter_models')
+        state = Qt.Unchecked
+        if self.alter_models:
+            state = Qt.Checked
+        c.setCheckState(state)
+        hlayout2 = QHBoxLayout()
+        hlayout2.addWidget(l2)
+        hlayout2.addWidget(c,0,Qt.AlignRight)
+        hlayout3 = QHBoxLayout()
+        b1 = QPushButton('Ok')
+        b2 = QPushButton('Close')
+        b1.setCheckable(False)
+        b1.clicked.connect(lambda: updateValues(dialog))
+        b2.setCheckable(False)
+        b2.clicked.connect(lambda: dialog.close())
+        hlayout3.addWidget(b1,0,Qt.AlignRight)
+        hlayout3.addWidget(b2,0,Qt.AlignRight)
+        w1 = QWidget()
+        w2 = QWidget()
+        w3 = QWidget()
+        w1.setLayout(hlayout1)
+        w2.setLayout(hlayout2)
+        w3.setLayout(hlayout3)
+        vlayout.addWidget(w1)
+        vlayout.addWidget(w2)
+        vlayout.addWidget(w3,0,Qt.AlignRight)
+        dialog.setModal(True)
+        dialog.setWindowTitle('Generate mix')
+        dialog.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
+        dialog.exec()
+
     @Slot(str)
     def menuController(self,*args,**kwargs):
         qDebug('Called menuController')
@@ -197,5 +253,7 @@ class AppMainWindow(QApplication):
             self.window.statusbar.showMessage("New question: {}".format(data),10*1000)
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
+        elif data == 'menu_generate_mix':
+            self.generateMixMenu()
         else:
             qDebug("No action declared for '{}' menuaction".format(data))
