@@ -162,6 +162,29 @@ class AppMainWindow(QApplication):
             self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked))
         return None
 
+    def generateHeaderMenu(self):
+        dialog = QDialog(self.window,Qt.Window)
+        dialog.setModal(True)
+        dialog.setWindowTitle('Configure header')
+        dialog.setStyleSheet('background-color: black;')
+        layout = QGridLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0,0,0,0)
+        a = QLabel('a')
+        b = QLabel('b')
+        c = QLabel('c')
+        d = QLabel('d')
+        a.setStyleSheet('min-width: 100px; min-height: 100px; background-color: blue; qproperty-alignment: AlignCenter;')
+        b.setStyleSheet('min-width: 100px; min-height: 100px; background-color: pink; qproperty-alignment: AlignCenter;')
+        c.setStyleSheet('min-width: 100px; min-height: 100px; background-color: green;qproperty-alignment: AlignCenter;')
+        d.setStyleSheet('min-width: 300px; min-height: 100px; background-color: red;  qproperty-alignment: AlignCenter;')
+        layout.addWidget(a,0,0,Qt.AlignLeft)
+        layout.addWidget(b,0,1,Qt.AlignCenter)
+        layout.addWidget(c,0,2,Qt.AlignRight)
+        layout.addWidget(d,1,0,1,3,Qt.AlignCenter)
+        dialog.setLayout(layout)
+        dialog.show()
+
     def generateMixMenu(self):
         def updateValues(dialog):
                 le = dialog.findChild(QLineEdit,'n_models')
@@ -171,6 +194,9 @@ class AppMainWindow(QApplication):
                 dialog.close()
 
         dialog = QDialog(self.window,Qt.Window)
+        dialog.setModal(True)
+        dialog.setWindowTitle('Generate mix')
+        dialog.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         vlayout = QVBoxLayout()
         dialog.setLayout(vlayout)
         l1 = QLabel("Number disctinct models:")
@@ -211,9 +237,6 @@ class AppMainWindow(QApplication):
         vlayout.addWidget(w1)
         vlayout.addWidget(w2)
         vlayout.addWidget(w3,0,Qt.AlignRight)
-        dialog.setModal(True)
-        dialog.setWindowTitle('Generate mix')
-        dialog.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         dialog.exec()
 
     @Slot(str)
@@ -255,5 +278,7 @@ class AppMainWindow(QApplication):
             self.tableQuestions.addItem(q.getName())
         elif data == 'menu_generate_mix':
             self.generateMixMenu()
+        elif data == 'menu_configure_header':
+            self.generateHeaderMenu()
         else:
             qDebug("No action declared for '{}' menuaction".format(data))
