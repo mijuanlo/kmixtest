@@ -51,6 +51,7 @@ class AppMainWindow(QApplication):
             self.tableQuestions.pool.start_threads()
             self.n_models = 1
             self.alter_models = False
+            self.header_info = {}
         except Exception as e:
             print("Exception when initializing, {}".format(e))
             self.exitting()
@@ -162,28 +163,225 @@ class AppMainWindow(QApplication):
             self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked))
         return None
 
+    @Slot(int)
+    def clickFromHeaderMenu(self,checked):
+        button = self.sender()
+        self.header_menu_actions.append(button)
+        container_button = button.parent()
+        scroll_viewport = container_button.parent()
+        table = scroll_viewport.parent()
+        name_container = container_button.objectName()
+        ncontainer = name_container.split('#')[1]
+        if button.text() == 'Image':
+            filename = QFileDialog.getOpenFileUrl(container_button,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+            filename = filename[0]
+            url = filename.toString()
+            filename = filename.toLocalFile()
+            image = QPixmap()
+            res = image.load(filename)
+            if res == False:
+                qDebug('filename {} invalid'.format(filename))
+                return
+            else:
+                qDebug('filename {} valid'.format(filename))
+                found = False
+                for x in container_button.children():
+                    if isinstance(x,QLabel):
+                        found = x
+                        break;
+                if not found:
+                    la = QLabel()
+                    la.setObjectName('image#{}'.format(ncontainer))
+                    # image = image.scaled(container_button.rect().size(),Qt.KeepAspectRatio)
+                    image = image.scaled(QSize(60,60),Qt.KeepAspectRatio)
+                    la.setProperty('_filename_',url)
+                    la.setPixmap(image)
+                    container_button.layout().addWidget(la)
+                else:
+                    la = found
+                    image = image.scaled(container_button.rect().size(),Qt.KeepAspectRatio)
+                    la.setProperty('_filename_',filename)
+                    la.setPixmap(image)
+                    la.show()
+        else:
+            found = False
+            for x in container_button.children():
+                if isinstance(x,QTextEdit):
+                    found = x
+                    break
+            if not found:
+                le = QTextEdit()
+                le.setObjectName('text_edit#'.format(ncontainer))
+                container_button.layout().addWidget(le)
+                le.setFocus()
+            else:
+                le = found
+                le.setText("")
+                le.show()
+                le.setFocus()
+        for x in container_button.children():
+            if isinstance(x,QPushButton):
+                x.hide()
+
+    @Slot(int)
+    def acceptHeaderMenu(self,checked):
+        for x in ['a','b','c','d']:
+            self.header_info.setdefault(x,None)
+            child = self.dialog_header.findChild(QWidget,'button_container#{}'.format(x))
+            if not child:
+                raise ValueError()
+            for c in child.children():
+                if not isinstance(c,QWidget) or c.isHidden():
+                    continue
+                else:
+                    if isinstance(c,QTextEdit):
+                        self.header_info[x] = {'type': 'text' , 'content': c.toPlainText() }
+                    elif isinstance(c,QLabel):
+                        self.header_info[x] = {'type': 'image', 'content': c.property('_filename_') }
+                    elif isinstance(c,QPushButton):
+                        self.header_info[x] = None
+                    else:
+                        pass
+        self.window.setEnabled(True)
+        self.dialog_header.deleteLater()
+        self.dialog_header_actions.deleteLater()
+    
+    @Slot(int)
+    def cancelHeaderMenu(self,checked):
+        self.window.setEnabled(True)
+        self.dialog_header.deleteLater()
+        self.dialog_header_actions.deleteLater()
+
+    @Slot(int)
+    def undoHeaderMenu(self,checked):
+        if len(self.header_menu_actions):
+            last_thing = self.header_menu_actions[-1]
+            del self.header_menu_actions[-1]
+            if isinstance(last_thing,QPushButton):
+                container = last_thing.parent()
+                for x in container.children():
+                    if isinstance(x,QPushButton):
+                        x.show()
+                    elif isinstance(x,(QTextEdit,QLabel)):
+                        x.hide()
+                    else:
+                        pass
+            else:
+                pass
+    @Slot(int)
+    def clearHeaderMenu(self,checked):
+        for x in ['a','b','c','d']:
+            child = self.dialog_header.findChild(QWidget,'button_container#{}'.format(x))
+            if not child:
+                raise ValueError()
+            for c in child.children():
+                if not isinstance(c,QWidget):
+                    continue
+                else:
+                    if isinstance(c,(QTextEdit,QLabel)):
+                        c.hide()
+                    elif isinstance(c,QPushButton):
+                        c.show()
+                    else:
+                        pass
+
     def generateHeaderMenu(self):
-        dialog = QDialog(self.window,Qt.Window)
-        dialog.setModal(True)
-        dialog.setWindowTitle('Configure header')
-        dialog.setStyleSheet('background-color: black;')
+        self.header_menu_actions = []
+        self.window.setEnabled(False)
+        self.dialog_header = QDialog(self.window,Qt.Tool)
+        flags = Qt.Tool|Qt.CustomizeWindowHint|Qt.WindowTitleHint
+        self.dialog_header.setWindowFlags(flags)
+        self.dialog_header_actions = QDialog(self.window,Qt.Tool)
+        self.dialog_header_actions.setWindowFlags(flags)
+        #self.dialog_header.resize(500,200)
+        self.dialog_header_actions.setLayout(QVBoxLayout())
+        self.dialog_header.setWindowTitle('Configure header')
+        self.dialog_header.setGeometry(self.window.geometry().x()+50,self.window.geometry().y()+(self.window.height()/2)-100,500,200)
+        self.dialog_header_actions.setGeometry(self.window.geometry().x()+self.window.width()-100-50,self.dialog_header.geometry().y(),75,100)
+        table = QTableWidget(2,3)
+        table.setObjectName('configure_header_table')
         layout = QGridLayout()
-        layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
-        a = QLabel('a')
-        b = QLabel('b')
-        c = QLabel('c')
-        d = QLabel('d')
-        a.setStyleSheet('min-width: 100px; min-height: 100px; background-color: blue; qproperty-alignment: AlignCenter;')
-        b.setStyleSheet('min-width: 100px; min-height: 100px; background-color: pink; qproperty-alignment: AlignCenter;')
-        c.setStyleSheet('min-width: 100px; min-height: 100px; background-color: green;qproperty-alignment: AlignCenter;')
-        d.setStyleSheet('min-width: 300px; min-height: 100px; background-color: red;  qproperty-alignment: AlignCenter;')
-        layout.addWidget(a,0,0,Qt.AlignLeft)
-        layout.addWidget(b,0,1,Qt.AlignCenter)
-        layout.addWidget(c,0,2,Qt.AlignRight)
-        layout.addWidget(d,1,0,1,3,Qt.AlignCenter)
-        dialog.setLayout(layout)
-        dialog.show()
+        self.dialog_header.setLayout(layout)
+        # layout.setSpacing(0)
+        # layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(table)
+        contents = {}
+        for x in ['a','b','c','d']:
+            contents.setdefault(x,QWidget(parent=self.dialog_header))
+            contents[x].setObjectName('button_container#{}'.format(x))
+            layout_w = QVBoxLayout()
+            layout_w.setAlignment(Qt.AlignCenter)
+            contents[x].setLayout(layout_w)
+            btn1 = QPushButton('Image',parent=contents[x])
+            btn2 = QPushButton('Text',parent=contents[x])
+            btn1.setFocusPolicy(Qt.NoFocus)
+            btn2.setFocusPolicy(Qt.NoFocus)
+            layout_w.addWidget(btn1)
+            layout_w.addWidget(btn2)
+            btn1.clicked.connect(self.clickFromHeaderMenu)
+            btn2.clicked.connect(self.clickFromHeaderMenu)
+            if x in self.header_info and self.header_info.get(x):
+                content = self.header_info.get(x)
+                if 'type' in content:
+                    btn1.hide()
+                    btn2.hide()
+                    if content['type'] == 'text':
+                        le = QTextEdit()
+                        le.setObjectName('text_edit#'.format(x))
+                        le.setText(content['content'])
+                        layout_w.addWidget(le)
+                    elif content['type'] == 'image':
+                        la = QLabel()
+                        url = QUrl(content['content'])
+                        if url.isValid() and url.scheme() == 'file' and url.isLocalFile():
+                            filename = url.toLocalFile()
+                            image = QPixmap()
+                            image.load(filename)
+                        else:
+                            raise ValueError()
+                        la.setObjectName('image#{}'.format(x))
+                        #image = image.scaled(contents[x].rect().size(),Qt.KeepAspectRatio)
+                        image = image.scaled(QSize(60,60),Qt.KeepAspectRatio)
+                        la.setProperty('_filename_',url)
+                        la.setPixmap(image)
+                        layout_w.addWidget(la)
+                    else:
+                        pass
+        contents['e'] = QWidget(parent=self.dialog_header_actions)
+        contents['e'].setObjectName('button_container#e')
+        layout_actions = QVBoxLayout()
+        contents['e'].setLayout(layout_actions)
+        btn1 = QPushButton('Ok',parent=contents['e'])
+        btn2 = QPushButton('Cancel',parent=contents['e'])
+        btn3 = QPushButton('Undo',parent=contents['e'])
+        btn4 = QPushButton('Clear',parent=contents['e'])
+        btn1.clicked.connect(self.acceptHeaderMenu)
+        btn2.clicked.connect(self.cancelHeaderMenu)
+        btn3.clicked.connect(self.undoHeaderMenu)
+        btn4.clicked.connect(self.clearHeaderMenu)
+        btn1.setFocusPolicy(Qt.NoFocus)
+        btn2.setFocusPolicy(Qt.NoFocus)
+        btn3.setFocusPolicy(Qt.NoFocus)
+        btn4.setFocusPolicy(Qt.NoFocus)
+        layout_actions.addWidget(btn1)
+        layout_actions.addWidget(btn2)
+        layout_actions.addWidget(btn3)
+        layout_actions.addWidget(btn4)
+        table.setFocusPolicy(Qt.NoFocus)
+        table.setCellWidget(0,0,contents['a'])
+        table.setCellWidget(0,1,contents['b'])
+        table.setCellWidget(0,2,contents['c'])
+        table.setCellWidget(1,0,contents['d'])
+        table.setSpan(1,0,1,3)
+        self.dialog_header_actions.layout().addWidget(contents['e'])
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setVisible(False)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers | QAbstractItemView.NoState)
+        table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.dialog_header.show()
+        self.dialog_header_actions.show()
 
     def generateMixMenu(self):
         def updateValues(dialog):
