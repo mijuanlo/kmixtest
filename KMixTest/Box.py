@@ -8,6 +8,8 @@ from .MenuItem import MenuItem
 from .QPushButtonTest import QPushButtonTest
 from .Config import ICONS
 
+from os.path import expanduser
+
 # Custom object for display content questions
 class Box(QGroupBox):
     closedBox = Signal(str)
@@ -180,14 +182,24 @@ class Box(QGroupBox):
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
 
     def addImageToTitle(self):
+        filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+        filename = filename[0]
+        url = filename.toString()
+        filename = filename.toLocalFile()
+        image = QPixmap()
+        res = image.load(filename)
+        if not res:
+            return
         if not 'IMAGE_TITLE' in self.editableItems or not self.editableItems.get('IMAGE_TITLE'):
-            image = QPixmap()
-            image.load(ICONS['option'])
             label = QLabel(parent=self)
-            label.setPixmap(image)
-            label.show()
-            self.editableItems['IMAGE_TITLE']=label
             self.layoutInsertAfter(self,self.editableItems['TITLE_EDITOR'],(label,Qt.AlignHCenter,True))
+        else: # is hidden
+            label = self.editableItems['IMAGE_TITLE']
+        image = image.scaled(QSize(100,100),Qt.KeepAspectRatio)
+        label.setPixmap(image)
+        label.show()
+        self.editableItems['IMAGE_TITLE']=label
+
 
     def getOptId(self):
         number = self.data.get('optid')
@@ -461,6 +473,10 @@ class Box(QGroupBox):
             self.lock = False
         elif data == 'add_image':
             self.addImageToTitle()
+        elif data == 'del_image':
+            label = self.editableItems.get('IMAGE_TITLE')
+            if label:
+                label.hide()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
         self.do_lock()
@@ -507,7 +523,13 @@ class Box(QGroupBox):
                 button_remove = self.findChild(QToolButton,'remove_option')
                 if button_remove:
                     button_remove.setDisabled(True)
-
+            # Enable/Disable remove image button from toolbar
+            button_delete = self.findChild(QToolButton,'delete_image')
+            if button_delete:
+                if 'IMAGE_TITLE' in self.editableItems and self.editableItems.get('IMAGE_TITLE') != None and not self.editableItems.get('IMAGE_TITLE').isHidden():
+                    button_delete.setDisabled(False)
+                else:
+                    button_delete.setDisabled(True)
 
     def addSlider(self,container,label,callback):
         title = QLabel(label)
@@ -570,7 +592,7 @@ class Box(QGroupBox):
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
             self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
-            self.menu.addMenuItem(["Add image(add_image)|image","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Empty lines:',self.sliderChanged)
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
@@ -580,14 +602,14 @@ class Box(QGroupBox):
             self.do_lock()
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Valid:',self.sliderChanged)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
