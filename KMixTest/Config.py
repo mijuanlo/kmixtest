@@ -44,7 +44,9 @@ ICONS = {
     'unlock': 'unlock.png',
     'alertbw': 'alertbw.svg',
     'negated': 'nok.svg',
-    'image': 'image.png'
+    'image': 'image.png',
+    'image_missing': 'image-missing.png',
+    'remove_image': 'remove-image.png'
     }
 
 ARTWORK = {
