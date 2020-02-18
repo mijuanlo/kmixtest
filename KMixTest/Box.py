@@ -20,10 +20,10 @@ class Box(QGroupBox):
     def __init__(self,parent=None):
         self.id = str(id(self))
         super().__init__(parent=parent)
-        self.layout = QGridLayout(self)
-        self.layout.setVerticalSpacing(0)
-        self.layout.setHorizontalSpacing(0)
-        self.setLayout(self.layout)
+        self._layout = QGridLayout(self)
+        self._layout.setVerticalSpacing(0)
+        self._layout.setHorizontalSpacing(0)
+        self.setLayout(self._layout)
         self.toolbar = QToolBar(self)
         self.toolbar.setFixedHeight(self.button_size)
         self.addToLayout(self.toolbar,True)
@@ -43,6 +43,57 @@ class Box(QGroupBox):
         self.pushed_order = []
         self.empty_lines_for_answer = 0
 
+    def layoutInsertAfter(self,widgetWithLayout,widgetBefore,widgetTupleAfter):
+        # Gridlayout hasn't insertWidget method that can be used with indexOf(widget)
+        layout = widgetWithLayout.layout()
+        if not isinstance(layout,QGridLayout):
+            raise ValueError()
+        new_layout = QGridLayout()
+        new_layout.setVerticalSpacing(0)
+        new_layout.setHorizontalSpacing(0)
+        positions = {}
+        after_position = None
+        for k in range(layout.count()):
+            y,x,yspan,xspan = layout.getItemPosition(0)
+            item = layout.takeAt(0)
+            widget = item.widget()
+            positions.setdefault(y,{})
+            if not widget:
+                content = {'item': item,'yspan':yspan,'xspan':xspan,'align':item.alignment()}
+            else:
+                content = {'widget':widget,'yspan':yspan,'xspan':xspan,'align':item.alignment()}
+            positions[y].setdefault(x,content)
+            if widget is widgetBefore:
+                after_position = y
+        if not after_position:
+            raise ValueError()
+        insertOffset = 0
+        do_insertion = False
+        for y in sorted(positions.keys()):
+            if do_insertion:
+                insertOffset += 1
+                do_insertion = False
+                if isinstance(widgetTupleAfter,list):
+                    self.addToLayout(items=widgetTupleAfter,layout=new_layout)
+                else:
+                    self.addToLayout(items=[widgetTupleAfter],layout=new_layout)
+            for x in sorted(positions[y].keys()):
+                content = positions[y][x]
+                if 'widget' in content:
+                    new_layout.addWidget(content['widget'],y+insertOffset,x,content['yspan'],content['xspan'],content['align'])
+                    if content['widget'] is widgetBefore:
+                        do_insertion = True
+                else:
+                    new_layout.addItem(content['item'],y+insertOffset,x,content['yspan'],content['xspan'],content['align'])
+        
+        if widgetWithLayout is self:
+            self._layout = new_layout
+        reparent_widget=QWidget()
+        reparent_widget.setLayout(layout)
+        widgetWithLayout.setLayout(new_layout)
+        layout.deleteLater()
+        reparent_widget.deleteLater()
+
     def addToLayout(self,*args,**kwargs):
         items = kwargs.get('items')
         span = kwargs.get('span')
@@ -53,7 +104,7 @@ class Box(QGroupBox):
             if not items:
                 raise ValueError()
         if not layout:
-            layout = self.layout
+            layout = self._layout
             if not layout:
                 raise ValueError()
         if not span:
@@ -106,7 +157,7 @@ class Box(QGroupBox):
         return self.id
 
     def getGrid(self):
-        return self.layout
+        return self._layout
 
     def resizeEvent(self, event):
         self.button.move(self.width()-self.button.width()-self.button_space,self.button_space)
@@ -127,6 +178,16 @@ class Box(QGroupBox):
         textedit.textChanged.connect(self.titleEditorChanged)
         self.editableItems.setdefault('TITLE_EDITOR',textedit)
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
+
+    def addImageToTitle(self):
+        if not 'IMAGE_TITLE' in self.editableItems or not self.editableItems.get('IMAGE_TITLE'):
+            image = QPixmap()
+            image.load(ICONS['option'])
+            label = QLabel(parent=self)
+            label.setPixmap(image)
+            label.show()
+            self.editableItems['IMAGE_TITLE']=label
+            self.layoutInsertAfter(self,self.editableItems['TITLE_EDITOR'],(label,Qt.AlignHCenter,True))
 
     def getOptId(self):
         number = self.data.get('optid')
@@ -318,7 +379,7 @@ class Box(QGroupBox):
         is_widget=isinstance(row_or_widget,(QWidget))
         if not (is_row or is_widget):
             raise ValueError()
-        position_and_objects = [ (self.layout.getItemPosition(x),self.layout.itemAt(x)) for x in range(self.layout.count()) ]
+        position_and_objects = [ (self._layout.getItemPosition(x),self._layout.itemAt(x)) for x in range(self._layout.count()) ]
         row = None
         if is_row:
             row = row_or_widget
@@ -398,6 +459,8 @@ class Box(QGroupBox):
             self.lock = True
         elif data == 'box_unlock':
             self.lock = False
+        elif data == 'add_image':
+            self.addImageToTitle()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
         self.do_lock()
