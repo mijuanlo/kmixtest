@@ -444,6 +444,7 @@ class Box(QGroupBox):
                 name = 'OptionWithImage{}#{}'.format(pre,number)
                 if name in self.data:
                     del self.data[name]
+        self.buttonsChanged()
 
     def removeRowItems(self,row_or_widget):
         is_row=isinstance(row_or_widget,int)
@@ -575,21 +576,24 @@ class Box(QGroupBox):
                     b.setDisabled(True)
                 else:
                     b.setEnabled(True)
-            # JOption is deleted asynchronously, here we need to know if row is deleted
-            # options = [ x for x in self.children() if isinstance(x,QWidget) and 'JOption' in x.objectName() ]
-            options = self.getCurrentOptions()
-            if not options:
-                button_remove = self.findChild(QToolButton,'remove_option')
-                if button_remove:
-                    button_remove.setDisabled(True)
-            # Enable/Disable remove image button from toolbar
-            button_delete = self.findChild(QToolButton,'delete_image')
-            if button_delete:
-                if 'IMAGE_TITLE' in self.editableItems and self.editableItems.get('IMAGE_TITLE') != None and not self.editableItems.get('IMAGE_TITLE').isHidden():
-                    button_delete.setDisabled(False)
-                else:
-                    button_delete.setDisabled(True)
+        
+        # CHECKS AFTER TOOLBAR CLICK
 
+        # JOption is deleted asynchronously, here we need to know if row is deleted
+        # options = [ x for x in self.children() if isinstance(x,QWidget) and 'JOption' in x.objectName() ]
+        options = self.getCurrentOptions()
+        if not options:
+            button_remove = self.findChild(QToolButton,'remove_option')
+            if button_remove:
+                button_remove.setDisabled(True)
+        # Enable/Disable remove image button from toolbar
+        button_delete = self.findChild(QToolButton,'delete_image')
+        if button_delete:
+            if 'IMAGE_TITLE' in self.editableItems and self.editableItems.get('IMAGE_TITLE') != None and not self.editableItems.get('IMAGE_TITLE').isHidden():
+                button_delete.setDisabled(False)
+            else:
+                button_delete.setDisabled(True)
+        self.buttonsChanged()
     def addSlider(self,container,label,callback):
         title = QLabel(label)
         title.setStyleSheet('margin-right: 5px')
