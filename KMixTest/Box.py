@@ -72,13 +72,6 @@ class Box(QGroupBox):
         insertOffset = 0
         do_insertion = False
         for y in sorted(positions.keys()):
-            if do_insertion:
-                insertOffset += 1
-                do_insertion = False
-                if isinstance(widgetTupleAfter,list):
-                    self.addToLayout(items=widgetTupleAfter,layout=new_layout)
-                else:
-                    self.addToLayout(items=[widgetTupleAfter],layout=new_layout)
             for x in sorted(positions[y].keys()):
                 content = positions[y][x]
                 if 'widget' in content:
@@ -87,7 +80,13 @@ class Box(QGroupBox):
                         do_insertion = True
                 else:
                     new_layout.addItem(content['item'],y+insertOffset,x,content['yspan'],content['xspan'],content['align'])
-        
+            if do_insertion:
+                insertOffset += 1
+                do_insertion = False
+                if isinstance(widgetTupleAfter,list):
+                    self.addToLayout(items=widgetTupleAfter,layout=new_layout)
+                else:
+                    self.addToLayout(items=[widgetTupleAfter],layout=new_layout)
         if widgetWithLayout is self:
             self._layout = new_layout
         reparent_widget=QWidget()
