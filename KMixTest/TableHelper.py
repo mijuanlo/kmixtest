@@ -82,14 +82,14 @@ class tableHelper(QObject):
         self.questionChanged.emit(row)
 
     def dumpTableModel(self):
-        dumpColumns = ['fixed','linked','title']
+        dumpColumns = ['fixed','linked','title','_TYPE_']
         columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
         NUM_ROWS = self.model.rowCount()
         model = list()
         for y in range(NUM_ROWS):
             row = list()
-            for x in columns:
-                row.append(self.model.data(self.model.index(y,x),Qt.DisplayRole))
+            for x in columns: 
+                row.append(self.getCellContent(y,x))
             model.append(row)
         return model
 
@@ -579,8 +579,8 @@ class tableHelper(QObject):
             self.makeRow(item)
             self.updateStateString()
 
-    def addItemWithState(self,item,fixed,linked):
-        self.makeRow(item)
+    def addItemWithState(self,item,fixed,linked,typequestion):
+        self.makeRow(typequestion)
         lastrow = self.model.rowCount()-1
         if fixed:
             FIXED_COL = self.headerItemNames.index('fixed')

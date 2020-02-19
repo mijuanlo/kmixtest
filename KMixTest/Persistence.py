@@ -72,7 +72,7 @@ class Persistence():
                 self.examId = result.pop()[0]
         if not self.examId:
             raise RuntimeError()
-        self.database.insert(self.conn,'Question',[['idExam','title','type','seq','fixed','linked'],[self.examId,data[3],data[3],data[0],int(data[1]),int(data[2])]])        
+        self.database.insert(self.conn,'Question',[['idExam','title','type','seq','fixed','linked'],[self.examId,data[3],data[4],data[0],int(data[1]),int(data[2])]])        
 
     def addAnswer(self):
         if not self.conn:

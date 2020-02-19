@@ -49,6 +49,7 @@ class AppMainWindow(QApplication):
             self.persistence = Persistence(debug=True)
             self.menu.addMenuItem([{"Project":["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
             self.tableQuestions.pool.start_threads()
+            self.editing_question = None
             self.n_models = 1
             self.alter_models = False
             self.header_info = {}
@@ -156,11 +157,11 @@ class AppMainWindow(QApplication):
         if not examData:
             raise ValueError()
         for row in examData:
-            model.setdefault(row[0],(row[3],(row[1],row[2])))
+            model.setdefault(row[0],(row[3],(row[1],row[2]),row[4]))
         for x in sorted(model.keys()):
-            name, states = model.get(x)
+            name, states, typeq = model.get(x)
             fixed,linked = states
-            self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked))
+            self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked),typeq)
         return None
 
     @Slot(int)
