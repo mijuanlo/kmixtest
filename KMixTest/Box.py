@@ -199,7 +199,6 @@ class Box(QGroupBox):
         label.show()
         self.editableItems['IMAGE_TITLE']=label
 
-
     def getOptId(self):
         number = self.data.get('optid')
         if not number:
@@ -238,6 +237,10 @@ class Box(QGroupBox):
         button_image2.setFixedHeight(self.button_size)
         button_image2.setFixedWidth(self.button_size)
         button_image2.setStyleSheet('border:0px;')
+        button_image1.clicked.connect(self.insertImageOption)
+        button_image2.clicked.connect(self.insertImageOption)
+        self.data.setdefault('OptionWithImage1#{}'.format(number),'')
+        self.data.setdefault('OptionWithImage2#{}'.format(number),'')
         remove_button = QPushButton(QIcon(ICONS['remove']),"",parent=w)
         remove_button.setObjectName(name_remove_button)
         remove_button.clicked.connect(self.removeClicked)
@@ -263,6 +266,57 @@ class Box(QGroupBox):
         l.setHorizontalSpacing(0)
         return w
 
+    @Slot(int)
+    def insertImageOption(self,checked):
+        typequestion = self.data.get('type')
+        button = self.sender()
+        name_button = button.objectName()
+        number = self.getNumber(name_button)
+        qDebug('click {}'.format(name_button))
+
+        dataname = None
+        if typequestion == 'test_question':
+            dataname = '{}{}'.format('OptionWithImage#',number)
+        elif typequestion == 'join_activity':
+            if 'JoinOptionImageButton1#' in name_button:
+                dataname = '{}{}'.format('OptionWithImage1#',number)
+            elif 'JoinOptionImageButton2#' in name_button:
+                dataname = '{}{}'.format('OptionWithImage2#',number)
+            else:
+                pass
+        else:
+            pass
+
+        if self.data.get(dataname):
+            # We are removing
+            dialog = QMessageBox()
+            dialog.setText("Do you wan't to remove image?")
+            dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Close)
+            ret = dialog.exec_()
+            if ret == QMessageBox.Ok:
+                button.setIcon(QIcon(ICONS['image']))
+                self.data[dataname] = ''
+            else:
+                pass
+            return
+
+        # No image selected 
+        # widget = self.editableItems.get(widgetname)
+        # height = widget.height()
+        # container = widget.parent()
+
+        filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+        filename = filename[0]
+        url = filename.toString()
+        filename = filename.toLocalFile()
+        image = QPixmap()
+        res = image.load(filename)
+        if not res:
+            return
+
+        button.setIcon(QIcon(image))
+        self.data[dataname] =  filename
+
     def addOptionToTest(self):
         number = self.getOptId()
         w = self.newWidgetOption(number)
@@ -280,6 +334,8 @@ class Box(QGroupBox):
         button_image.setFixedHeight(self.button_size)
         button_image.setFixedWidth(self.button_size)
         button_image.setStyleSheet('border:0px;')
+        button_image.clicked.connect(self.insertImageOption)
+        self.data.setdefault('OptionWithImage#{}'.format(number),'')
         button_ok = QPushButtonTest("",name=name_button_ok,parent=w)
         button_ok.clicked.connect(self.buttonsChanged)
         button_remove = QPushButton(QIcon(ICONS['remove']),"",parent=w)
@@ -384,6 +440,10 @@ class Box(QGroupBox):
             self.removeRowItems(wlist[0])
             if self.data['type'] == 'test_question' and number in self.options_declared:
                 del self.options_declared[number]
+            for pre in ["","1","2"]:
+                name = 'OptionWithImage{}#{}'.format(pre,number)
+                if name in self.data:
+                    del self.data[name]
 
     def removeRowItems(self,row_or_widget):
         is_row=isinstance(row_or_widget,int)
