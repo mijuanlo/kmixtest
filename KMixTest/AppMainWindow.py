@@ -56,6 +56,7 @@ class AppMainWindow(QApplication):
         except Exception as e:
             print("Exception when initializing, {}".format(e))
             self.exitting()
+
     @Slot()
     def exitting(self):
         global NATIVE_THREADS
@@ -84,6 +85,7 @@ class AppMainWindow(QApplication):
     def editingQuestion(self, row):
         qDebug("Editing {}".format(row))
         self.editing_question = row
+
     @Slot(int)
     def questionChanged(self,row=None):
         qDebug("Question changed?")
@@ -96,7 +98,7 @@ class AppMainWindow(QApplication):
         qDebug("Updating title col")
         self.tableQuestions.updateTitleRow(row_uuid,content)
 
-    @Slot(bool)
+    @Slot(int)
     def clickedPreview(self,checked):
         qDebug("Preview clicked!")
         if not self.sheet:

@@ -153,7 +153,15 @@ class tableHelper(QObject):
             for x in cols:
                 self.table.update(self.model.index(y,x))
     
+    def setCellContent(self,row=None,col=None,values=None,named=False):
+        return self.manipulateCellContent(mode='SET',row=row,col=col,values=values,named=named)
+
     def getCellContent(self,row=None,col=None,named=False):
+        return self.manipulateCellContent(mode='GET',row=row,col=col,values=None,named=named)
+
+    def manipulateCellContent(self,mode='GET',row=None,col=None,values=None,named=False):
+        if mode == 'SET' and values is None:
+            raise ValueError()
         if col is None:
             col = list(range(self.table.columnCount()))
         if row is None:
@@ -167,7 +175,7 @@ class tableHelper(QObject):
             row = [ row ]
             retry = True
         if retry:
-            return self.getCellContent(row,col,named)
+            return self.manipulateCellContent(mode=mode,row=row,col=col,values=values,named=named)
         
         for i in range(len(col)):
             if isinstance(col[i],str):
@@ -187,11 +195,35 @@ class tableHelper(QObject):
         
         result = []
         if len(row) == 1 and len(col) == 1:
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1:
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != 1:
+                            raise ValueError()
+                        else:
+                            putvalue = values[0][0]
+                    else:
+                        putvalue = values[0]
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = values
+                if putvalue == '_None':
+                    raise ValueError()
             role = Qt.DisplayRole
             name = self.headerItemNames[col[0]]
             if name[0] == "_":
                 role = Qt.UserRole
-            value = self.model.data(self.model.index(row[0],col[0]),role)
+            if mode == 'GET':
+                value = self.model.data(self.model.index(row[0],col[0]),role)
+            elif mode == 'SET':
+                self.model.setData(self.model.index(row[0],col[0]),putvalue,role)
+                return
+            else:
+                raise ValueError()
             if named:
                 return {name:value}
             else:
@@ -199,36 +231,142 @@ class tableHelper(QObject):
         elif len(row) == 1 and len(col) != 1:
             result = []
             result_dict = {}
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1 or len(values) != len(col):
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != len(col):
+                            if len(values[0])==1:
+                                putvalue = values[0] * len(col)
+                            else:
+                                raise ValueError()
+                        else: # matrix 1xN
+                            putvalue = values[0]
+                    else: # list(N)
+                        if len(values) == 1:
+                            putvalue = values * len(col)
+                        else:
+                            raise ValueError()     
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = [ values ] * len(col)
+                if len(putvalue) != len(col):
+                    raise ValueError()
+                if putvalue == '_None':
+                    raise ValueError()
+            i=0
             for x in col:
                 role = Qt.DisplayRole
                 name = self.headerItemNames[x]
                 if name[0] == "_":
                     role = Qt.UserRole
-                value = self.model.data(self.model.index(row[0],x),role)
-                if named:
-                    result_dict.setdefault(name,value)
+                if mode == 'GET':
+                    value = self.model.data(self.model.index(row[0],x),role)
+                    if named:
+                        result_dict.setdefault(name,value)
+                    else:
+                        result.append(value)
+                elif mode == 'SET':
+                    self.model.setData(self.model.index(row[0],x),putvalue[i],role)
+                    i+=1
                 else:
-                    result.append(value)
+                    raise ValueError()
+            if mode == 'SET':
+                return
             if named:
                 return [result_dict]
             else:
                 return result
         elif len(row) != 1 and len(col) == 1:
             result = []
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1 or len(values) != len(row):
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != len(row):
+                            if len(values[0])==1:
+                                putvalue = []
+                                for i in range(0,len(row)):
+                                    putvalue.insert(i,values[0])
+                            else:
+                                raise ValueError()
+                        else: # matrix 1xN
+                            putvalue = values[0]
+                    else: # list(N)
+                        putvalue = []
+                        for i in range(0,len(row)):
+                            putvalue.insert(0,values[0])
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = []
+                    for x in range(len(row)):
+                        putvalue.append([values])
+                if len(putvalue) != len(row):
+                    raise ValueError()
+                if putvalue == '_None':
+                    raise ValueError()
+            i=0
             for y in row:
                 role = Qt.DisplayRole
                 name = self.headerItemNames[col[0]]
                 if name[0] == "_":
                     role = Qt.UserRole
-                value = self.model.data(self.model.index(y,col[0]),role)
-                if named:
-                    result.append({name:value})
+                if mode == 'GET':
+                    value = self.model.data(self.model.index(y,col[0]),role)
+                    if named:
+                        result.append({name:value})
+                    else:
+                        result.append(value)
+                elif mode == 'SET':
+                    self.model.setData(self.model.index(y,col[0]),putvalue[i][0],role)
+                    i+=1
                 else:
-                    result.append(value)
+                    raise ValueError()
             return result
         elif len(row) != 1 and len(col) != 1:
             result = []
+            putvalues = []
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != len(row):
+                        if len(values) == 1:
+                            if not isinstance(values[0],list):
+                                values[0]=[values[0]]
+                            for i in range(1,len(row)):
+                                values.append(values[0])
+                        else:
+                            raise ValueError()
+                    for v in range(len(values)):
+                        if not isinstance(values[v],(list)):
+                            raise ValueError()
+                        if len(values[v]) != len(col):
+                            if len(values[v]) == 1:
+                                values[v]=values[v] * len(col)
+                            else:
+                                raise ValueError()
+                        putvalues.append(values[v])
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalues = []
+                    for y in range(len(row)):
+                        putvalues.append([values]*len(col))
+                if not putvalues:
+                    raise ValueError()
+                if len(putvalues) != len(row):
+                    raise ValueError()
+                for i in range(len(putvalues)):
+                    if len(putvalues[i]) != len(col):
+                        raise ValueError()
+            i=0
             for y in row:
+                j=0
                 sub_result = []
                 sub_result_dict = {}
                 for x in col:
@@ -236,15 +374,21 @@ class tableHelper(QObject):
                     name = self.headerItemNames[x]
                     if name[0] == "_":
                         role = Qt.UserRole
-                    value = self.model.data(self.model.index(y,x),role)
-                    if named:
-                        sub_result_dict.setdefault(name,value)
+                    if mode == 'GET':
+                        value = self.model.data(self.model.index(y,x),role)
+                        if named:
+                            sub_result_dict.setdefault(name,value)
+                        else:
+                            sub_result.append(value)
                     else:
-                        sub_result.append(value)
-                if named:
-                    result.append(sub_result_dict)
-                else:
-                    result.append(sub_result)
+                        self.model.setData(self.model.index(y,x),putvalues[i][j],role)
+                        j+=1
+                i+=1
+                if mode == 'GET':
+                    if named:
+                        result.append(sub_result_dict)
+                    else:
+                        result.append(sub_result)
             return result
         else:
             raise ValueError()
@@ -547,29 +691,34 @@ class tableHelper(QObject):
         # Column 0 is for custom widget up & down movement
 
         # Columns 1,2 for fixed and linked settings
-        for col in [1,2]:
-            idx=self.model.index(last_row,col)
-            self.model.setData(idx,False,Qt.DisplayRole)
+        #for col in [1,2]:
+        self.setCellContent(last_row,['fixed','linked'],False)
+            # idx=self.model.index(last_row,col)
+            # self.model.setData(idx,False,Qt.DisplayRole)
 
         # Column 3 for Title
 
         # i = QTableWidgetItem("{}".format(item))
         # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         
-        title = q.getName()
-        self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,title))
+        self.setCellContent(last_row,'title',"{}:{}".format(last_row,q.getName()))
+        #self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,title))
 
         # private columns 4(uuid), 5(type)
     
-        col = self.headerItemNames.index('_UUID_')
-        idx=self.model.index(last_row,col)
-        # Store as UserRole into hidden column
-        self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
+        # col = self.headerItemNames.index('_UUID_')
+        # idx=self.model.index(last_row,col)
+        # # Store as UserRole into hidden column
+        # self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
+        self.setCellContent(last_row,'_UUID_',"{}".format(QUuid.createUuid().toString()))
 
-        col = self.headerItemNames.index('_TYPE_')
-        idx=self.model.index(last_row,col)
-        # Store as UserRole into hidden column
-        self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
+        # col = self.headerItemNames.index('_TYPE_')
+        # idx=self.model.index(last_row,col)
+        # # Store as UserRole into hidden column
+        # self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
+        self.setCellContent(last_row,'_TYPE_',"{}".format(q.getNameId()))
+        if last_row == 5:
+            self.setCellContent(row=[1,2],col=None,values='True')
 
     def addItem(self, item):
         if item and isinstance(item,list):

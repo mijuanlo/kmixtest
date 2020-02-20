@@ -594,6 +594,7 @@ class Box(QGroupBox):
             else:
                 button_delete.setDisabled(True)
         self.buttonsChanged()
+
     def addSlider(self,container,label,callback):
         title = QLabel(label)
         title.setStyleSheet('margin-right: 5px')
