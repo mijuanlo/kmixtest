@@ -46,7 +46,9 @@ ICONS = {
     'negated': 'nok.svg',
     'image': 'image.png',
     'image_missing': 'image-missing.png',
-    'remove_image': 'remove-image.png'
+    'remove_image': 'remove-image.png',
+    'high': 'high.png',
+    'low': 'low.png'
     }
 
 ARTWORK = {
