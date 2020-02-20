@@ -586,6 +586,18 @@ class Box(QGroupBox):
             button_remove = self.findChild(QToolButton,'remove_option')
             if button_remove:
                 button_remove.setDisabled(True)
+
+        if self.data.get('type') != 'single_question':
+            slider = self.findChild(QAction,'action_slider')
+            slider_label = self.findChild(QAction,'action_label_slider')
+            title_slider = self.findChild(QAction,'action_title_slider')
+            for x in [slider,slider_label,title_slider]:
+                if not x:
+                    continue
+                if options:
+                    x.setVisible(True)
+                else:
+                    x.setVisible(False)
         # Enable/Disable remove image button from toolbar
         button_delete = self.findChild(QToolButton,'delete_image')
         if button_delete:
@@ -600,15 +612,20 @@ class Box(QGroupBox):
         title.setStyleSheet('margin-right: 5px')
         slider = QSlider()
         slider.setOrientation(Qt.Horizontal)
+        slider.setObjectName('slider')
         slider.setFixedWidth(80)
         slider.setMinimum(1)
         slider.setMaximum(1)
         label = QLabel('0/0')
+        label.setObjectName('slider_label')
         label.setFont(QFont('Arial',10,QFont.Normal))
         label.setStyleSheet('margin-left: 5px')
-        container.addWidget(title)
-        container.addWidget(slider)
-        container.addWidget(label)
+        a = container.addWidget(title)
+        a.setObjectName('action_title_slider')
+        b = container.addWidget(slider)
+        b.setObjectName('action_slider')
+        c = container.addWidget(label)
+        c.setObjectName('action_label_slider')
         slider.valueChanged.connect(callback)
         self.editableItems['SLIDER_CONTROL'] = slider
         self.editableItems['SLIDER_LABEL'] = label

@@ -717,8 +717,6 @@ class tableHelper(QObject):
         # # Store as UserRole into hidden column
         # self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
         self.setCellContent(last_row,'_TYPE_',"{}".format(q.getNameId()))
-        if last_row == 5:
-            self.setCellContent(row=[1,2],col=None,values='True')
 
     def addItem(self, item):
         if item and isinstance(item,list):
