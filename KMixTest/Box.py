@@ -9,6 +9,8 @@ from .QPushButtonTest import QPushButtonTest
 from .Config import ICONS
 
 from os.path import expanduser
+from copy import deepcopy
+from pprint import pformat as pp
 
 # Custom object for display content questions
 class Box(QGroupBox):
@@ -191,11 +193,13 @@ class Box(QGroupBox):
             return
         if not 'IMAGE_TITLE' in self.editableItems or not self.editableItems.get('IMAGE_TITLE'):
             label = QLabel(parent=self)
+            label.setObjectName('image_title_label')
             self.layoutInsertAfter(self,self.editableItems['TITLE_EDITOR'],(label,Qt.AlignHCenter,True))
         else: # is hidden
             label = self.editableItems['IMAGE_TITLE']
         image = image.scaled(QSize(100,100),Qt.KeepAspectRatio)
         label.setPixmap(image)
+        label.setProperty('_filename_',url)
         label.show()
         self.editableItems['IMAGE_TITLE']=label
 
@@ -315,6 +319,7 @@ class Box(QGroupBox):
             return
 
         button.setIcon(QIcon(image))
+        button.setProperty('_filename_',url)
         self.data[dataname] =  filename
 
     def addOptionToTest(self):
@@ -537,6 +542,8 @@ class Box(QGroupBox):
             label = self.editableItems.get('IMAGE_TITLE')
             if label:
                 label.hide()
+        elif data == 'dump':
+            self.dumpBox()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
         self.do_lock()
@@ -673,7 +680,7 @@ class Box(QGroupBox):
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
             self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
-            self.menu.addMenuItem(["Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["DUMP(dump)|high","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Empty lines:',self.sliderChanged)
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
@@ -683,17 +690,101 @@ class Box(QGroupBox):
             self.do_lock()
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["DUMP(dump)|high","Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Valid:',self.sliderChanged)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            self.menu.addMenuItem(["DUMP(dump)|high","Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
             pass
         else:
             qDebug('type for question "{}" unknown, skipping'.format(typeQuestion))
+
+    def dumpPixMapData(self,pixmap):
+        byts = QByteArray()
+        buff = QBuffer(byts)
+        buff.open(QIODevice.ReadWrite)
+        pixmap.save(buffer,"PNG")
+        buff.close()
+        return qCompress(byts).toBase64().data().decode()
+
+    def dumpFileData(self,url):
+        f = QFile(QUrl(filename).toLocalFile())
+        if f.exists() and f.open(QIODevice.ReadOnly):
+            return qCompress(f.readAll()).toBase64().data().decode()
+        return None
+
+    def dumpBox(self):
+        d = QDialog(self,Qt.Window)
+        d.setFixedSize(QSize(800,600))
+        d.setLayout(QVBoxLayout())
+        te = QTextEdit()
+        d.layout().addWidget(te)
+        dumpInfo = { 
+            'type': None,
+            'title': None,
+            'title_pic': None,
+            'title_picname': None,
+            'empty_lines': None,
+            'locked': None,
+            'nvalid': None,
+            'options': None
+        }
+        optionInfo = {
+            'type': None,
+            'order': None,
+            'pic1': None,
+            'pic1_name': None,
+            'pic2': None,
+            'pic2_name': None,
+            'text1': None,
+            'text2': None,
+            'valid': None
+        }
+        boxInfo = deepcopy(dumpInfo)
+        boxInfo['type'] = self.data.get('type')
+        boxInfo['title'] = self.editableItems['TITLE_EDITOR'].toPlainText()
+        lbl = self.findChild(QLabel,'image_title_label')
+        if lbl and lbl.isVisible():
+            filename = lbl.property('_filename_')
+            boxInfo['title_picname'] = filename
+            boxInfo['title_pic'] = self.dumpFileData(filename)
+            if not boxInfo['title_pic']:
+                boxInfo['title_pic'] = self.dumpPixMapData(lbl.pixmap())
+        boxInfo['empty_lines'] = self.empty_lines_for_answer
+        boxInfo['locked'] = self.lock
+        boxInfo['nvalid'] = self.count_trues
+        options = self.getCurrentOptions()
+        #noptions = sorted(list(set([ self.getNumber(x) for x in options.keys() ])))
+        if boxInfo['type'] != 'single_question':
+            boxInfo['options'] = []
+            #for o in noptions:
+            for o in sorted(self.options_declared.keys()):
+                optInfo = deepcopy(optionInfo)
+                optInfo['type'] = boxInfo['type']
+                # optInfo['order'] = noptions.index(o)
+                optInfo['order'] = o
+                option = self.options_declared.get(o)
+                optInfo['valid'] = option.get('trueness')
+                if boxInfo['type'] == 'test_question':
+                    # option = options.get('OptionLineEdit#{}'.format(o))
+                    # boxInfo['text1'] = option.text()
+                    optInfo['text1'] = option.get('text')
+                elif boxInfo['type'] == 'join_activity':
+                    # option1 = options.get('OptionLineEdit1#{}'.format(o))
+                    # option2 = options.get('OptionLineEdit2#{}'.format(o))
+                    optInfo['text1'] = option.get('text1')
+                    optInfo['text2'] = option.get('text2')
+                else:
+                    pass
+                boxInfo['options'].append(optInfo)
+
+        text = pp(boxInfo)
+        te.setText('{}'.format(text))
+        d.exec()
+
