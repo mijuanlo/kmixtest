@@ -251,6 +251,7 @@ class Box(QGroupBox):
         remove_button.setFixedWidth(self.button_size)
         remove_button.setFixedHeight(self.button_size)
         remove_button.setStyleSheet('border:0px;')
+        self.options_declared.setdefault(str(number),{'text1':'','text2':'','img1':'','img2':''})
         self.editableItems.setdefault(image_button1_name,button_image1)
         self.editableItems.setdefault(image_button2_name,button_image2)
         self.editableItems.setdefault(name_remove_button,remove_button)
@@ -260,7 +261,7 @@ class Box(QGroupBox):
         self.addToLayout([tlabel,w],True)
 
     def newWidgetOption(self,idw=None):
-        w = QWidget()
+        w = QWidget(self)
         if not idw:
             idw = id(w)
         w.setObjectName('JOption#{}'.format(idw))
@@ -279,7 +280,10 @@ class Box(QGroupBox):
         qDebug('click {}'.format(name_button))
 
         dataname = None
+        is_join_activity = True
+        answer_num = name_button.split('#')[0][-1]
         if typequestion == 'test_question':
+            is_join_activity = False
             dataname = '{}{}'.format('OptionWithImage#',number)
         elif typequestion == 'join_activity':
             if 'JoinOptionImageButton1#' in name_button:
@@ -300,6 +304,10 @@ class Box(QGroupBox):
             if ret == QMessageBox.Ok:
                 button.setIcon(QIcon(ICONS['image']))
                 self.data[dataname] = ''
+                if is_join_activity:
+                    self.options_declared[number]['img'+answer_num] = ''
+                else:
+                    self.options_declared[number]['img'] = ''
             else:
                 pass
             return
@@ -321,6 +329,10 @@ class Box(QGroupBox):
         button.setIcon(QIcon(image))
         button.setProperty('_filename_',url)
         self.data[dataname] =  filename
+        if is_join_activity:
+            self.options_declared[number]['img'+answer_num] = filename
+        else:
+            self.options_declared[number]['img'] = filename
 
     def addOptionToTest(self):
         number = self.getOptId()
@@ -362,6 +374,9 @@ class Box(QGroupBox):
 
     @Slot(int)
     def buttonsChanged(self,checked=None):
+        if self.data.get('type') != 'test_question':
+            return
+
         sender = self.sender()
         if sender:
             name = sender.objectName()
@@ -401,15 +416,35 @@ class Box(QGroupBox):
             else:
                 self.editableItems['OptionButtonOk#{}'.format(num)].changeIcon(default)
 
-    @Slot(str)
+    # Only Slot(int) allows sucessful call method sender()
+    @Slot(int)
     def optionsChanged(self,text):
-        options = self.getCurrentOptions()
-        for name,value in options.items():
-            self.options_declared[self.getNumber(name)]['text'] = value.text()
+        lineedit = self.sender()
+        name = lineedit.objectName() if lineedit else None
+        if lineedit and name:
+            number = self.getNumber(name)
+            self.options_declared.setdefault(number,{})
+            self.options_declared[number]['text'] = lineedit.text()
+        else:
+            options = self.getCurrentOptions()
+            for name,value in options.items():
+                self.options_declared[self.getNumber(name)]['text'] = value.text()
 
-    @Slot(str)
+    # Only Slot(int) allows sucessful call method sender()
+    @Slot(int)
     def joinOptionsChanged(self,text):
-        qDebug('Join Option changed!')
+        lineedit = self.sender()
+        name = lineedit.objectName() if lineedit else None
+        if lineedit and name:
+            splname = name.split('#')
+            self.options_declared.setdefault(splname[1],{})
+            self.options_declared[splname[1]]['text'+splname[0][-1]] = lineedit.text()
+        else:
+            options = self.getCurrentOptions()
+            for name,value in options.items():
+                splname = name.split('#')
+                self.options_declared.setdefault(splname[1],{})
+                self.options_declared[splname[1]]['text'+splname[0][-1]] = value.text()
 
     def getOptionButtons(self):
         return { k:v for k,v in self.editableItems.items() if 'OptionButtonOk#' in k }
@@ -709,14 +744,18 @@ class Box(QGroupBox):
         byts = QByteArray()
         buff = QBuffer(byts)
         buff.open(QIODevice.ReadWrite)
-        pixmap.save(buffer,"PNG")
+        pixmap.save(buff,"PNG")
         buff.close()
         return qCompress(byts).toBase64().data().decode()
 
     def dumpFileData(self,url):
-        f = QFile(QUrl(filename).toLocalFile())
+        f = QFile(QUrl(url).toLocalFile())
         if f.exists() and f.open(QIODevice.ReadOnly):
             return qCompress(f.readAll()).toBase64().data().decode()
+        else:
+            f = QFile(url)
+            if f.exists() and f.open(QIODevice.ReadOnly):
+                return qCompress(f.readAll()).toBase64().data().decode()
         return None
 
     def dumpBox(self):
@@ -759,27 +798,57 @@ class Box(QGroupBox):
         boxInfo['empty_lines'] = self.empty_lines_for_answer
         boxInfo['locked'] = self.lock
         boxInfo['nvalid'] = self.count_trues
-        options = self.getCurrentOptions()
-        #noptions = sorted(list(set([ self.getNumber(x) for x in options.keys() ])))
+        # options = self.getCurrentOptions()
+        # noptions = sorted(list(set([ self.getNumber(x) for x in options.keys() ])))
         if boxInfo['type'] != 'single_question':
             boxInfo['options'] = []
-            #for o in noptions:
+            # for o in noptions:
             for o in sorted(self.options_declared.keys()):
                 optInfo = deepcopy(optionInfo)
                 optInfo['type'] = boxInfo['type']
                 # optInfo['order'] = noptions.index(o)
                 optInfo['order'] = o
                 option = self.options_declared.get(o)
-                optInfo['valid'] = option.get('trueness')
+                optInfo['valid'] = option.get('trueness') 
                 if boxInfo['type'] == 'test_question':
-                    # option = options.get('OptionLineEdit#{}'.format(o))
-                    # boxInfo['text1'] = option.text()
                     optInfo['text1'] = option.get('text')
+                    # dataname1 = 'OptionWithImage#{}'.format(o)
+                    # dataname1_btn = 'OptionImageButton#{}'.format(o)
+                    # data = self.data.get(dataname1)
+                    if option.get('img'):
+                        optInfo['pic1_name'] = QUrl().fromLocalFile(option.get('img')).toString()
+                        pixdata = self.dumpFileData(optInfo['pic1_name'])
+                        if pixdata:
+                            optInfo['pic1'] = pixdata
+                        else:
+                            btn = self.findChild(QPushButton,'OptionImageButton#{}'.format(o))
+                            if btn:
+                                pixdata = self.dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                optInfo['pic1'] = pixdata
+                            else:
+                                raise ValueError()
                 elif boxInfo['type'] == 'join_activity':
                     # option1 = options.get('OptionLineEdit1#{}'.format(o))
                     # option2 = options.get('OptionLineEdit2#{}'.format(o))
-                    optInfo['text1'] = option.get('text1')
-                    optInfo['text2'] = option.get('text2')
+                    dataname = {}
+                    for n in ["1","2"]:
+                        optInfo['text'+n] = option.get('text'+n)
+                        optInfo['text'+n] = option.get('text'+n)
+                        # data[n] = { 'datakey': 'OptionWithImage{}#{}'.format(n,o), 'btn': 'OptionImageButton{}#{}'.format(n,o) }
+                        # data[n].setdefault('data_filename',dataname[n][datakey])
+                        # if data[n]['data_filename']:
+                        if option.get('img'+n):
+                            optInfo['pic{}_name'.format(n)] = QUrl().fromLocalFile(option.get('img'+n)).toString()
+                            pixdata = self.dumpFileData(optInfo['pic{}_name'.format(n)])
+                            if pixdata:
+                                optInfo['pic'+n] = pixdata
+                            else:
+                                btn = self.findChild(QPushButton,'OptionImageButton{}#{}'.format(n,o))
+                                if btn:
+                                    pixdata = self.dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                    optInfo['pic'+n] = pixdata
+                                else:
+                                    raise ValueError()
                 else:
                     pass
                 boxInfo['options'].append(optInfo)
