@@ -12,6 +12,8 @@ from os.path import expanduser
 from copy import deepcopy
 from pprint import pformat as pp
 
+VIEW_DUMP_OPTION = True
+
 # Custom object for display content questions
 class Box(QGroupBox):
     closedBox = Signal(str)
@@ -715,7 +717,10 @@ class Box(QGroupBox):
         if typeQuestion == 'single_question':
             self.menu.emptyMenu()
             self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
-            self.menu.addMenuItem(["DUMP(dump)|high","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            elements = ["Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"]
+            if VIEW_DUMP_OPTION:
+                elements.insert(0,"DUMP(dump)|high")
+            self.menu.addMenuItem(elements)
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Empty lines:',self.sliderChanged)
             self.addToLayout(QSpacerItem(0,0,QSizePolicy.Fixed,QSizePolicy.Fixed))
@@ -725,14 +730,20 @@ class Box(QGroupBox):
             self.do_lock()
         elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["DUMP(dump)|high","Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            elements = ["Add option(test_question_add)|add","Remove option(test_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"]
+            if VIEW_DUMP_OPTION:
+                elements.insert(0,"DUMP(dump)|high")
+            self.menu.addMenuItem(elements)
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addSlider(self.menu.menu,'Valid:',self.sliderChanged)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
         elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
-            self.menu.addMenuItem(["DUMP(dump)|high","Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"])
+            elements = ["Add option(join_question_add)|add","Remove option(join_question_remove)|remove","Add image(add_image)|image","Delete image(del_image)|image_missing","Lock(box_lock)|lock","Unlock(box_unlock)|unlock"]
+            if VIEW_DUMP_OPTION:
+                elements.insert(0,"DUMP(dump)|high")
+            self.menu.addMenuItem(elements)
             self.menu.itemActivation.connect(self.controllerQuestions)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
@@ -812,9 +823,6 @@ class Box(QGroupBox):
                 optInfo['valid'] = option.get('trueness') 
                 if boxInfo['type'] == 'test_question':
                     optInfo['text1'] = option.get('text')
-                    # dataname1 = 'OptionWithImage#{}'.format(o)
-                    # dataname1_btn = 'OptionImageButton#{}'.format(o)
-                    # data = self.data.get(dataname1)
                     if option.get('img'):
                         optInfo['pic1_name'] = QUrl().fromLocalFile(option.get('img')).toString()
                         pixdata = self.dumpFileData(optInfo['pic1_name'])
@@ -828,15 +836,9 @@ class Box(QGroupBox):
                             else:
                                 raise ValueError()
                 elif boxInfo['type'] == 'join_activity':
-                    # option1 = options.get('OptionLineEdit1#{}'.format(o))
-                    # option2 = options.get('OptionLineEdit2#{}'.format(o))
-                    dataname = {}
                     for n in ["1","2"]:
                         optInfo['text'+n] = option.get('text'+n)
                         optInfo['text'+n] = option.get('text'+n)
-                        # data[n] = { 'datakey': 'OptionWithImage{}#{}'.format(n,o), 'btn': 'OptionImageButton{}#{}'.format(n,o) }
-                        # data[n].setdefault('data_filename',dataname[n][datakey])
-                        # if data[n]['data_filename']:
                         if option.get('img'+n):
                             optInfo['pic{}_name'.format(n)] = QUrl().fromLocalFile(option.get('img'+n)).toString()
                             pixdata = self.dumpFileData(optInfo['pic{}_name'.format(n)])
