@@ -269,6 +269,36 @@ class Box(QGroupBox):
         self.editableItems.setdefault(name_lineedit2,lineedit2)
         self.addToLayout([button_image1,lineedit1,(label,Qt.AlignCenter),lineedit2,button_image2,remove_button],layout=w.layout())
         self.addToLayout([tlabel,w],True)
+        return number
+
+    def loadJoinOption(self,optionData):
+        noption = self.addJoinOptionToTest()
+        if not noption:
+            raise ValueError()
+        text1 = optionData.get('text1')
+        text2 = optionData.get('text2')
+        pic1 = optionData.get('pic1')
+        picname1 = optionData.get('pic1_name')
+        pic2 = optionData.get('pic2')
+        picname2 = optionData.get('pic2_name')
+        if text1:
+            lineedit = self.editableItems.get('JoinOptionLineEdit1#{}'.format(noption))
+            if lineedit and isinstance(lineedit,QLineEdit):
+                lineedit.setText(text1)
+            self.options_declared[str(noption)]['text1'] = text1
+        if text2:
+            lineedit = self.editableItems.get('JoinOptionLineEdit2#{}'.format(noption))
+            if lineedit and isinstance(lineedit,QLineEdit):
+                lineedit.setText(text2)
+            self.options_declared[str(noption)]['text2'] = text2
+        if pic1 and picname1:
+            imagebutton = self.editableItems.get('JoinOptionImageButton1#{}'.format(noption))
+            if imagebutton and isinstance(imagebutton,QPushButton):
+                self.manipulateImageIntoButton(imagebutton,picname1,pic1)
+        if pic2 and picname2:
+            imagebutton = self.editableItems.get('JoinOptionImageButton2#{}'.format(noption))
+            if imagebutton and isinstance(imagebutton,QPushButton):
+                self.manipulateImageIntoButton(imagebutton,picname2,pic2)
 
     def newWidgetOption(self,idw=None):
         w = QWidget(self)
@@ -283,12 +313,23 @@ class Box(QGroupBox):
 
     @Slot(int)
     def insertImageOption(self,checked):
-        typequestion = self.data.get('type')
         button = self.sender()
-        name_button = button.objectName()
-        number = self.getNumber(name_button)
-        qDebug('click {}'.format(name_button))
+        self.manipulateImageIntoButton(button)
+        qDebug('click {}'.format(button.objectName()))
 
+    def manipulateImageIntoButton(self,button,filename=None,filedata=None):
+        if not isinstance(button,QPushButton):
+            raise ValueError()
+        name_button = button.objectName()
+        if not name_button:
+            raise ValueError()
+        number = self.getNumber(name_button)
+        if not number or not number.isnumeric():
+            raise ValueError()
+        changing_image = False
+        if filename and filedata:
+            changing_image = True
+        typequestion = self.data.get('type')
         dataname = None
         is_join_activity = True
         answer_num = name_button.split('#')[0][-1]
@@ -304,8 +345,8 @@ class Box(QGroupBox):
                 pass
         else:
             pass
-
-        if self.data.get(dataname):
+        
+        if not changing_image and self.data.get(dataname):
             # We are removing
             dialog = QMessageBox()
             dialog.setText("Do you wan't to remove image?")
@@ -327,15 +368,21 @@ class Box(QGroupBox):
         # height = widget.height()
         # container = widget.parent()
 
-        filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
-        filename = filename[0]
+        if not filename:
+            filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+            filename = filename[0]
+        else:
+            filename = QUrl(filename)
         url = filename.toString()
         filename = filename.toLocalFile()
-        image = QPixmap()
-        res = image.load(filename)
-        if not res:
-            return
-
+        image = None
+        if not filedata:
+            image = QPixmap()
+            res = image.load(filename)
+            if not res:
+                return
+        else:
+            image = self.loadPixMapData(filedata)
         button.setIcon(QIcon(image))
         button.setProperty('_filename_',url)
         self.data[dataname] =  filename
@@ -378,6 +425,28 @@ class Box(QGroupBox):
         self.editableItems.setdefault(name_button_remove,button_remove)
         self.addToLayout([button_image,lineEdit,button_ok,button_remove],layout=w.layout())
         self.addToLayout([label,w],True)
+        return number
+
+    def loadOptionTest(self,optionData):
+        noption = self.addOptionToTest()
+        if not noption:
+            raise ValueError()
+        text = optionData.get('text1')
+        valid = optionData.get('valid')
+        pic = optionData.get('pic1')
+        picname = optionData.get('pic1_name')
+        if text:
+            lineedit = self.editableItems.get('OptionLineEdit#{}'.format(noption))
+            if lineedit and isinstance(lineedit,QLineEdit):
+                lineedit.setText(text)
+            self.options_declared[str(noption)]['text'] = text
+        if pic and picname:
+            imagebutton = self.editableItems.get('OptionImageButton#{}'.format(noption))
+            if imagebutton and isinstance(imagebutton,QPushButton):
+                self.manipulateImageIntoButton(imagebutton,picname,pic)
+        if valid is None:
+            valid = False
+        self.options_declared[str(noption)]['trueness'] = valid
 
     def getNumber(self,name):
         return name.split('#')[1]
@@ -564,13 +633,9 @@ class Box(QGroupBox):
         if data == 'test_question_add':
             if not self.lock:
                 self.addOptionToTest()
-                opt = self.getCurrentOptions()
-                self.configureSlider(min=1,max=len(opt))
         elif data == 'test_question_remove':
             if not self.lock:
                 self.removeClicked()
-                opt = self.getCurrentOptions()
-                self.configureSlider(min=1,max=len(opt))
         elif data == 'join_question_add':
             if not self.lock:
                 self.addJoinOptionToTest()
@@ -640,6 +705,8 @@ class Box(QGroupBox):
                 button_remove.setDisabled(True)
 
         if self.data.get('type') != 'single_question':
+            if options:
+                self.configureSlider(1,len(options))
             slider = self.findChild(QAction,'action_slider')
             slider_label = self.findChild(QAction,'action_label_slider')
             title_slider = self.findChild(QAction,'action_title_slider')
@@ -689,7 +756,8 @@ class Box(QGroupBox):
 
     def setSliderValue(self,value):
         slider = self.editableItems['SLIDER_CONTROL']
-        slider.setValue(value)
+        slider.setSliderPosition(value)
+        slider.valueChanged.emit(value)
 
     @Slot(int)
     def sliderChanged(self, value=None):
@@ -709,14 +777,20 @@ class Box(QGroupBox):
             self.count_trues = value
             self.buttonsChanged()
 
-    def configureSlider(self,min=1,max=1):
+    def configureSlider(self,min=1,max=1,value=None):
         slider = self.editableItems.get('SLIDER_CONTROL')
         if slider:
             if min and min < 1:
                 min = 1
             if max and max < 1:
                 max = 1
-            value = slider.value()
+            if not value:
+                value = slider.value()
+            else:
+                if value < min:
+                    value = min
+                elif value > max:
+                    value = max
             slider.setMinimum(min)
             slider.setMaximum(max)
             slider.setSliderPosition(value)
@@ -775,7 +849,7 @@ class Box(QGroupBox):
         if not pixmap:
             pixmap = QPixmap()
         byts = QByteArray().fromBase64(data.encode())
-        res = pixmap.loadFromData(qUncompress(byts),"PNG")
+        res = pixmap.loadFromData(qUncompress(byts))
         if not res:
             raise ValueError()
         return pixmap

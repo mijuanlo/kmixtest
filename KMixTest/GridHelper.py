@@ -119,6 +119,7 @@ class gridHelper(QObject):
         self.addToGrid(b)
 
         return b
+
     def loadBox(self,boxData):
         def check(d,needed):
             keys = d.keys()
@@ -141,22 +142,37 @@ class gridHelper(QObject):
         locked = boxData.get('locked')
         if title_pic:
             b.addImageToTitle(title_filename,title_pic)
+        if locked:
+            b.lock = True
         # TYPED FIELDS
         if typeq == 'single_question':
             needed = ['empty_lines']
             check(boxData,needed)
             b.setSliderValue(boxData.get('empty_lines'))
-            pass
-        elif typeq == 'test_question':
-            needed = ['nvalid']
-            check(boxData,needed)
-            pass
-        elif typeq == 'join_activity':
-            needed = []
-            check(boxData,needed)
-            pass
+        elif typeq in ['test_question','join_activity']:
+            options = boxData.get('options')
+            opt_map = {}
+            i = 0
+            for option in options:
+                nop = option.get('order')
+                if not nop:
+                    raise ValueError()
+                opt_map.setdefault(str(nop),i)
+                i += 1
+            for nop in sorted(opt_map.keys()):
+                option = options[opt_map.get(nop)]
+                if typeq == 'test_question':
+                    b.loadOptionTest(option)
+                else:
+                    b.loadJoinOption(option)
+            if typeq == 'test_question':
+                needed = ['nvalid']
+                check(boxData,needed)
+                b.configureSlider(1,len(options),boxData.get('nvalid'))
         else:
             qDebug('Can\'t load type {}'.format(typeq))
+        b.do_lock()
+
     @Slot(int)
     def showQuestion(self, row):
         data = self.last_tabledata

@@ -213,6 +213,7 @@ class AppMainWindow(QApplication):
             nrow = model.get(x)
             row = examData[nrow]
             self.scroll.loadBox(row)
+        self.scroll.hide_all_boxes()
         return None
 
     @Slot(int)
