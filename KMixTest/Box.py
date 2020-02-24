@@ -580,7 +580,7 @@ class Box(QGroupBox):
             if label:
                 label.hide()
         elif data == 'dump':
-            self.dumpBox()
+            self.showDumpBox()
         else:
              qDebug("No action declared for '{}' controllerQuestions".format(data))
         self.do_lock()
@@ -769,12 +769,20 @@ class Box(QGroupBox):
                 return qCompress(f.readAll()).toBase64().data().decode()
         return None
 
-    def dumpBox(self):
+    def showDumpBox(self):
+        boxInfo = self.dumpBox()
+        if not boxInfo:
+            return
         d = QDialog(self,Qt.Window)
         d.setFixedSize(QSize(800,600))
         d.setLayout(QVBoxLayout())
         te = QTextEdit()
         d.layout().addWidget(te)
+        text = pp(boxInfo)
+        te.setText('{}'.format(text))
+        d.exec()
+
+    def dumpBox(self):
         dumpInfo = { 
             'type': None,
             'title': None,
@@ -854,8 +862,4 @@ class Box(QGroupBox):
                 else:
                     pass
                 boxInfo['options'].append(optInfo)
-
-        text = pp(boxInfo)
-        te.setText('{}'.format(text))
-        d.exec()
-
+        return boxInfo

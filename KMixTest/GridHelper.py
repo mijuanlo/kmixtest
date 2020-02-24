@@ -158,6 +158,16 @@ class gridHelper(QObject):
             self.grid.update()
         self.printGridInformation()
 
+    def dumpBoxes(self):
+        boxdata = {}
+        for rowid,boxid in self.tableDataMap.items():
+            box = self.boxes.get(boxid)
+            boxInfo = None
+            if box:
+                boxInfo = box.dumpBox()
+            boxdata.setdefault(rowid,boxInfo)
+        return boxdata
+
     def addToGrid(self, what ,on=None, x=None, y=None ):
         if not what:
             raise ValueError

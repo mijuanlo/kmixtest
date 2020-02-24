@@ -13,6 +13,7 @@ from .Persistence import Persistence
 from .MenuItem import MenuItem
 
 from os.path import expanduser
+from copy import deepcopy
 
 #AllowedQuestionTypes = ["Single question","Test question","Join activity"]
 from .QuestionType import Question
@@ -147,22 +148,63 @@ class AppMainWindow(QApplication):
         return f[0] if f else None
 
     def buildExamData(self):
+        examData = []
+        examDataRow = {
+            'type': None,
+            'order': None,
+            'fixed': None,
+            'linked': None,
+            'title': None
+        }
+        self.tableQuestionsChanged()
         model = self.tableQuestions.dumpTableModel()
-        i = 0
+        boxes = self.scroll.dumpBoxes()
+        if len(model) != len(boxes):
+            raise ValueError()
         for row in model:
-            row.insert(0,i)
-            i+=1
-        return model
+            if len(row) != 6:
+                raise ValueError()
+            order,fixed,linked,title,typeq,uid = row
+            box = boxes.get(uid) 
+            empty = False
+            if not box:
+                if uid in boxes.keys():
+                    # box has't been edited
+                    empty = True
+                else:
+                    raise ValueError()
+            if not empty and typeq != box.get('type'):
+                raise ValueError()
+            datarow = deepcopy(examDataRow)
+            datarow['type'] = typeq
+            datarow['order'] = order
+            datarow['fixed'] = fixed
+            datarow['linked'] = linked
+            datarow['title'] = title
+            if not empty:
+                for k,v in box.items():
+                    datarow.setdefault(k,v)
+            examData.append(datarow)
+        return examData
 
     def useExamData(self,examData):
         model = {}
         if not examData:
             raise ValueError()
+        i=0
         for row in examData:
-            model.setdefault(row[0],(row[3],(row[1],row[2]),row[4]))
+            order = row.get('order')
+            if order is None:
+                raise ValueError()
+            model.setdefault(order,i)
+            i+=1
         for x in sorted(model.keys()):
-            name, states, typeq = model.get(x)
-            fixed,linked = states
+            nrow = model.get(x)
+            row = examData[nrow]
+            name = row.get('title')
+            fixed = row.get('fixed')
+            linked = row.get('linked')
+            typeq = row.get('type')
             self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked),typeq)
         return None
 
@@ -459,12 +501,12 @@ class AppMainWindow(QApplication):
             filename = self.openfiledialog()
             if filename:
                 self.tableQuestions.clearTable()
-                self.persistence.newExam()
+                # self.persistence.newExam()
                 examData = self.persistence.loadExam(filename)
                 self.useExamData(examData)
         elif data == 'menu_new':
             self.tableQuestions.clearTable()
-            self.persistence.newExam()
+            # self.persistence.newExam()
         elif data == 'menu_save_as':
             filename = self.savefiledialog()
             if filename:

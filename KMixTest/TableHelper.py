@@ -82,15 +82,19 @@ class tableHelper(QObject):
         self.questionChanged.emit(row)
 
     def dumpTableModel(self):
-        dumpColumns = ['fixed','linked','title','_TYPE_']
+        dumpColumns = ['fixed','linked','title','_TYPE_','_UUID_']
         columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
         NUM_ROWS = self.model.rowCount()
         model = list()
+        i = 0
         for y in range(NUM_ROWS):
             row = list()
             for x in columns: 
                 row.append(self.getCellContent(y,x))
+            if row:
+                row.insert(0,i)
             model.append(row)
+            i += 1
         return model
 
     def updateTitleRow(self,row_uuid,content):
