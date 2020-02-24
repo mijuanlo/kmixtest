@@ -7,6 +7,7 @@ from PySide2.QtUiTools import *
 from .MenuItem import MenuItem
 from .QPushButtonTest import QPushButtonTest
 from .Config import ICONS
+from .QuestionType import Question
 
 from os.path import expanduser
 from copy import deepcopy
@@ -184,15 +185,22 @@ class Box(QGroupBox):
         self.editableItems.setdefault('TITLE_EDITOR',textedit)
         self.addToLayout([(label,Qt.AlignTop|Qt.AlignHCenter),(textedit,'',True)])
 
-    def addImageToTitle(self):
-        filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
-        filename = filename[0]
+    def addImageToTitle(self,filename=None,filedata=None):
+        if not filename:
+            filename = QFileDialog.getOpenFileUrl(self,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+            filename = filename[0]
+        else:
+            filename = QUrl(filename)
         url = filename.toString()
         filename = filename.toLocalFile()
-        image = QPixmap()
-        res = image.load(filename)
-        if not res:
-            return
+        image = None
+        if filedata:
+            image = self.loadPixMapData(filedata)
+        else:
+            image = QPixmap()
+            res = image.load(filename)
+            if not res:
+                return
         if not 'IMAGE_TITLE' in self.editableItems or not self.editableItems.get('IMAGE_TITLE'):
             label = QLabel(parent=self)
             label.setObjectName('image_title_label')
@@ -679,6 +687,10 @@ class Box(QGroupBox):
         self.empty_lines_for_answer = value
         self.editableItems['EMPTY_LINES_LABEL'].setText('Empty lines for answer: {}'.format(value))
 
+    def setSliderValue(self,value):
+        slider = self.editableItems['SLIDER_CONTROL']
+        slider.setValue(value)
+
     @Slot(int)
     def sliderChanged(self, value=None):
         if value is None:
@@ -758,6 +770,15 @@ class Box(QGroupBox):
         pixmap.save(buff,"PNG")
         buff.close()
         return qCompress(byts).toBase64().data().decode()
+
+    def loadPixMapData(self,data,pixmap=None):
+        if not pixmap:
+            pixmap = QPixmap()
+        byts = QByteArray().fromBase64(data.encode())
+        res = pixmap.loadFromData(qUncompress(byts),"PNG")
+        if not res:
+            raise ValueError()
+        return pixmap
 
     def dumpFileData(self,url):
         f = QFile(QUrl(url).toLocalFile())

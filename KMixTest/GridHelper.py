@@ -5,6 +5,7 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
 from .Box import Box
+from .QuestionType import Question
 
 # Class with helper to manage grid content used for question contents
 class gridHelper(QObject):
@@ -93,7 +94,70 @@ class gridHelper(QObject):
                 box = self.boxes.get(box_id)
                 box.updateTitle(title)
 
-    Slot(int)
+    def createBox(self, typeq, rowuid, title=None):
+        q = Question()
+        if typeq not in q.allTypes():
+            raise ValueError()
+
+        b = Box()
+        b.setData('type',typeq)
+        
+        content = ''
+        if title:
+            content = '{} with type {}'.format(title,typeq)
+        b.setData('initial_content',content)
+
+        b.closedBox.connect(self.closeBox)
+        b.contentChanged.connect(self.boxChanged)
+
+        id_box = b.getId()
+        self.tableDataMap[rowuid] = id_box
+        self.tableDataMapReversed[id_box] = rowuid
+        self.boxes.setdefault(id_box,b)
+        
+        b.makeQuestionTypeLayout()
+        self.addToGrid(b)
+
+        return b
+    def loadBox(self,boxData):
+        def check(d,needed):
+            keys = d.keys()
+            for x in needed:
+                if x not in keys:
+                    raise ValueError()
+                if not boxData.get(x):
+                    raise ValueError()
+        if not isinstance(boxData,dict):
+            raise ValueError()
+
+        needed = ['uuid','type']
+        check(boxData,needed)
+        
+        typeq = boxData.get('type')
+        b = self.createBox(boxData.get('type'),boxData.get('uuid'),boxData.get('title'))
+        # COMMON FIELDS
+        title_pic = boxData.get('title_pic')
+        title_filename = boxData.get('title_picname')
+        locked = boxData.get('locked')
+        if title_pic:
+            b.addImageToTitle(title_filename,title_pic)
+        # TYPED FIELDS
+        if typeq == 'single_question':
+            needed = ['empty_lines']
+            check(boxData,needed)
+            b.setSliderValue(boxData.get('empty_lines'))
+            pass
+        elif typeq == 'test_question':
+            needed = ['nvalid']
+            check(boxData,needed)
+            pass
+        elif typeq == 'join_activity':
+            needed = []
+            check(boxData,needed)
+            pass
+        else:
+            qDebug('Can\'t load type {}'.format(typeq))
+    @Slot(int)
     def showQuestion(self, row):
         data = self.last_tabledata
         datarow = data[row]
@@ -107,25 +171,9 @@ class gridHelper(QObject):
             self.boxes.get(id_box).show()
         else:
             qDebug("Showing question {} (new)".format(row))
-            b = Box()
-
-            b.setData('type',type_from_row)
-            content = '{} with type {}'.format(name_from_row,type_from_row)
-            b.setData('initial_content',content)
-
-            # b.menu.itemActivation.connect(self.parent.menuController)
-            b.closedBox.connect(self.closeBox)
-            b.contentChanged.connect(self.boxChanged)
-
-            id_box = b.getId()
-            self.tableDataMap[id_from_row] = id_box
-            self.tableDataMapReversed[id_box] = id_from_row
-            self.boxes.setdefault(id_box,b)
-
-            self.addToGrid(b)
-
-            b.makeQuestionTypeLayout()
-
+            b = self.createBox(type_from_row,id_from_row,name_from_row)
+            #self.addToGrid(b)
+            #b.makeQuestionTypeLayout()
         self.printGridInformation()
 
     @Slot(str,str)

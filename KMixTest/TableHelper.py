@@ -714,24 +714,29 @@ class tableHelper(QObject):
         # idx=self.model.index(last_row,col)
         # # Store as UserRole into hidden column
         # self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
-        self.setCellContent(last_row,'_UUID_',"{}".format(QUuid.createUuid().toString()))
+        uuid = QUuid.createUuid().toString()
+        self.setCellContent(last_row,'_UUID_',"{}".format(uuid))
 
         # col = self.headerItemNames.index('_TYPE_')
         # idx=self.model.index(last_row,col)
         # # Store as UserRole into hidden column
         # self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
         self.setCellContent(last_row,'_TYPE_',"{}".format(q.getNameId()))
+        return uuid
 
     def addItem(self, item):
         if item and isinstance(item,list):
+            ret = list()
             for i in item:
-                self.addItem(i)
+                ret.append(self.addItem(i))
+            return ret
         else:
-            self.makeRow(item)
+            uuid = self.makeRow(item)
             self.updateStateString()
+            return uuid
 
     def addItemWithState(self,item,fixed,linked,typequestion):
-        self.makeRow(typequestion)
+        uuid = self.makeRow(typequestion)
         lastrow = self.model.rowCount()-1
         if fixed:
             FIXED_COL = self.headerItemNames.index('fixed')
@@ -741,3 +746,4 @@ class tableHelper(QObject):
             self.model.setData(self.model.index(lastrow,LINKED_COL),linked,Qt.DisplayRole)
         self.updateStateString()
         self.updateCellGraphics()
+        return uuid

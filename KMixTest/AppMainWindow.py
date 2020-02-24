@@ -198,14 +198,21 @@ class AppMainWindow(QApplication):
                 raise ValueError()
             model.setdefault(order,i)
             i+=1
-        for x in sorted(model.keys()):
+        sk = sorted(model.keys())
+        for x in sk:
             nrow = model.get(x)
             row = examData[nrow]
             name = row.get('title')
             fixed = row.get('fixed')
             linked = row.get('linked')
             typeq = row.get('type')
-            self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked),typeq)
+            uuid = self.tableQuestions.addItemWithState(name,bool(fixed),bool(linked),typeq)
+            row.setdefault('uuid',uuid)
+        self.tableQuestionsChanged()
+        for x in sk:
+            nrow = model.get(x)
+            row = examData[nrow]
+            self.scroll.loadBox(row)
         return None
 
     @Slot(int)
