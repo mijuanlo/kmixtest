@@ -225,6 +225,18 @@ class AppMainWindow(QApplication):
         }
         return config
 
+    def loadConfig(self,configdata):
+        if not isinstance(configdata,dict):
+            raise ValueError()
+        ks = configdata.keys()
+        for k in ['nmodels','alter']:
+            if k not in ks:
+                raise ValueError()
+        nmodels = configdata.get('nmodels')
+        alter = configdata.get('alter')
+        self.n_models = nmodels
+        self.alter_models = alter
+
     def useExamData(self,examData):
         model = {}
         if not examData:
@@ -377,6 +389,24 @@ class AppMainWindow(QApplication):
                     else:
                         pass
 
+    def loadHeader(self,headerdata):
+        if not isinstance(headerdata,dict):
+            raise ValueError()
+        ks = headerdata.keys()
+        for k in ['north','west','south','east']:
+            if k not in ks:
+                raise ValueError
+        north = headerdata.get('north')
+        west = headerdata.get('west')
+        south = headerdata.get('south')
+        east = headerdata.get('east')
+        for x in ['a','b','c','d']:
+            self.header_info.setdefault(x,{})
+        self.header_info['a'] = deepcopy(west)
+        self.header_info['b'] = deepcopy(north)
+        self.header_info['c'] = deepcopy(east)
+        self.header_info['d'] = deepcopy(south)
+
     def generateHeaderMenu(self):
         self.header_menu_actions = []
         self.window.setEnabled(False)
@@ -425,12 +455,17 @@ class AppMainWindow(QApplication):
                     elif content['type'] == 'image':
                         la = QLabel()
                         url = QUrl(content['content'])
+                        image = None
                         if url.isValid() and url.scheme() == 'file' and url.isLocalFile():
                             filename = url.toLocalFile()
                             image = QPixmap()
                             image.load(filename)
                         else:
-                            raise ValueError()
+                            data = content['data']
+                            if data:
+                                image = loadPixMapData(data)
+                            else:
+                                raise ValueError()
                         la.setObjectName('image#{}'.format(x))
                         #image = image.scaled(contents[x].rect().size(),Qt.KeepAspectRatio)
                         image = image.scaled(QSize(60,60),Qt.KeepAspectRatio)
@@ -550,7 +585,19 @@ class AppMainWindow(QApplication):
                 self.tableQuestions.clearTable()
                 # self.persistence.newExam()
                 examData = self.persistence.loadExam(filename)
-                self.useExamData(examData)
+                if not examData:
+                    raise ValueError()
+                if not isinstance(examData,dict):
+                    raise ValueError()
+                header = examData.get('header')
+                if header:
+                    self.loadHeader(header)
+                config  = examData.get('config')
+                if config:
+                    self.loadConfig(config)
+                questions = examData.get('examdata')
+                if questions:
+                    self.useExamData(questions)
         elif data == 'menu_new':
             self.tableQuestions.clearTable()
             # self.persistence.newExam()
