@@ -55,6 +55,7 @@ class AppMainWindow(QApplication):
             self.n_models = 1
             self.alter_models = False
             self.header_info = {}
+            self.current_filename = None
         except Exception as e:
             print("Exception when initializing, {}".format(e))
             self.exitting()
@@ -149,52 +150,53 @@ class AppMainWindow(QApplication):
         f = QFileDialog().getSaveFileName(None,self.tr("Save Exam"),expanduser("~"),self.tr("Exam files (*.kmt)"))
         return f[0] if f else None
 
-    def buildExamData(self):
+    def buildExamData(self, template=False):
         e = {
             'header': None,
             'config': None,
             'examdata': None
         }
-        examData = []
-        examDataRow = {
-            'type': None,
-            'order': None,
-            'fixed': None,
-            'linked': None,
-            'title': None
-        }
-        self.tableQuestionsChanged()
-        model = self.tableQuestions.dumpTableModel()
-        boxes = self.scroll.dumpBoxes()
-        if len(model) != len(boxes):
-            raise ValueError()
-        for row in model:
-            if len(row) != 6:
-                raise ValueError()
-            order,fixed,linked,title,typeq,uid = row
-            box = boxes.get(uid) 
-            empty = False
-            if not box:
-                if uid in boxes.keys():
-                    # box has't been edited
-                    empty = True
-                else:
-                    raise ValueError()
-            if not empty and typeq != box.get('type'):
-                raise ValueError()
-            datarow = deepcopy(examDataRow)
-            datarow['type'] = typeq
-            datarow['order'] = order
-            datarow['fixed'] = fixed
-            datarow['linked'] = linked
-            datarow['title'] = title
-            if not empty:
-                for k,v in box.items():
-                    datarow.setdefault(k,v)
-            examData.append(datarow)
         exam = deepcopy(e)
-        if examData:
-            exam['examdata'] = examData
+        if not template:
+            examData = []
+            examDataRow = {
+                'type': None,
+                'order': None,
+                'fixed': None,
+                'linked': None,
+                'title': None
+            }
+            self.tableQuestionsChanged()
+            model = self.tableQuestions.dumpTableModel()
+            boxes = self.scroll.dumpBoxes()
+            if len(model) != len(boxes):
+                raise ValueError()
+            for row in model:
+                if len(row) != 6:
+                    raise ValueError()
+                order,fixed,linked,title,typeq,uid = row
+                box = boxes.get(uid) 
+                empty = False
+                if not box:
+                    if uid in boxes.keys():
+                        # box has't been edited
+                        empty = True
+                    else:
+                        raise ValueError()
+                if not empty and typeq != box.get('type'):
+                    raise ValueError()
+                datarow = deepcopy(examDataRow)
+                datarow['type'] = typeq
+                datarow['order'] = order
+                datarow['fixed'] = fixed
+                datarow['linked'] = linked
+                datarow['title'] = title
+                if not empty:
+                    for k,v in box.items():
+                        datarow.setdefault(k,v)
+                examData.append(datarow)
+            if examData:
+                exam['examdata'] = examData
         header = self.buildHeaderData()
         if header:
             exam['header'] = header
@@ -583,7 +585,6 @@ class AppMainWindow(QApplication):
             filename = self.openfiledialog()
             if filename:
                 self.tableQuestions.clearTable()
-                # self.persistence.newExam()
                 examData = self.persistence.loadExam(filename)
                 if not examData:
                     raise ValueError()
@@ -600,12 +601,28 @@ class AppMainWindow(QApplication):
                     self.useExamData(questions)
         elif data == 'menu_new':
             self.tableQuestions.clearTable()
-            # self.persistence.newExam()
+            self.header_info = {}
+            self.n_models = 1
+            self.alter_models = False
+            self.current_filename = None
+        elif data == 'menu_save':
+            if self.current_filename:
+                examData = self.buildExamData()
+                result = self.persistence.saveExam(filename,examData)
+            else:
+                self.menuController('menu_save_as')
         elif data == 'menu_save_as':
             filename = self.savefiledialog()
             if filename:
                 examData = self.buildExamData()
                 result = self.persistence.saveExam(filename,examData)
+                self.current_filename = filename
+        elif data == 'menu_save_as_template':
+            filename = self.savefiledialog()
+            if filename:
+                examData = self.buildExamData(template=True)
+                result = self.persistence.saveExam(filename,examData)
+                self.current_filename = filename
         elif data == 'menu_print_preview':
             self.clickedPreview(True)
         elif data in Question().allTypes():
@@ -617,5 +634,20 @@ class AppMainWindow(QApplication):
             self.generateMixMenu()
         elif data == 'menu_configure_header':
             self.generateHeaderMenu()
+        elif data == 'menu_load_template':
+            filename = self.openfiledialog()
+            if filename:
+                self.tableQuestions.clearTable()
+                examData = self.persistence.loadExam(filename)
+                if not examData:
+                    raise ValueError()
+                if not isinstance(examData,dict):
+                    raise ValueError()
+                header = examData.get('header')
+                if header:
+                    self.loadHeader(header)
+                config  = examData.get('config')
+                if config:
+                    self.loadConfig(config)
         else:
             qDebug("No action declared for '{}' menuaction".format(data))
