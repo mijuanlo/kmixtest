@@ -107,6 +107,7 @@ class AppMainWindow(QApplication):
         qDebug("Preview clicked!")
         if not self.sheet:
             self.sheet = helperPDF(parent=self)
+        self.sheet.setHeaderInfo(self.header_info)
         self.sheet.openWidget()
 
     def loadUi(self):
@@ -214,10 +215,10 @@ class AppMainWindow(QApplication):
             'east': None
         }
         h = deepcopy(headerData)
-        h['north'] = deepcopy(self.header_info.get('b'))
-        h['west'] = deepcopy(self.header_info.get('a'))
-        h['south'] = deepcopy(self.header_info.get('d'))
-        h['east'] = deepcopy(self.header_info.get('c'))
+        h['north'] = deepcopy(self.header_info.get('north'))
+        h['west'] = deepcopy(self.header_info.get('west'))
+        h['south'] = deepcopy(self.header_info.get('south'))
+        h['east'] = deepcopy(self.header_info.get('east'))
         return h
 
     def buildConfig(self):
@@ -330,7 +331,7 @@ class AppMainWindow(QApplication):
 
     @Slot(int)
     def acceptHeaderMenu(self,checked):
-        for x in ['a','b','c','d']:
+        for x in ['north','west','east','south']:
             self.header_info.setdefault(x,None)
             child = self.dialog_header.findChild(QWidget,'button_container#{}'.format(x))
             if not child:
@@ -376,7 +377,7 @@ class AppMainWindow(QApplication):
 
     @Slot(int)
     def clearHeaderMenu(self,checked):
-        for x in ['a','b','c','d']:
+        for x in ['north','west','south','east']:
             child = self.dialog_header.findChild(QWidget,'button_container#{}'.format(x))
             if not child:
                 raise ValueError()
@@ -402,12 +403,12 @@ class AppMainWindow(QApplication):
         west = headerdata.get('west')
         south = headerdata.get('south')
         east = headerdata.get('east')
-        for x in ['a','b','c','d']:
+        for x in ['north','west','east','south']:
             self.header_info.setdefault(x,{})
-        self.header_info['a'] = deepcopy(west)
-        self.header_info['b'] = deepcopy(north)
-        self.header_info['c'] = deepcopy(east)
-        self.header_info['d'] = deepcopy(south)
+        self.header_info['west'] = deepcopy(west)
+        self.header_info['north'] = deepcopy(north)
+        self.header_info['east'] = deepcopy(east)
+        self.header_info['south'] = deepcopy(south)
 
     def generateHeaderMenu(self):
         self.header_menu_actions = []
@@ -430,7 +431,7 @@ class AppMainWindow(QApplication):
         # layout.setContentsMargins(0,0,0,0)
         layout.addWidget(table)
         contents = {}
-        for x in ['a','b','c','d']:
+        for x in ['north','west','east','south']:
             contents.setdefault(x,QWidget(parent=self.dialog_header))
             contents[x].setObjectName('button_container#{}'.format(x))
             layout_w = QVBoxLayout()
@@ -476,14 +477,14 @@ class AppMainWindow(QApplication):
                         layout_w.addWidget(la)
                     else:
                         pass
-        contents['e'] = QWidget(parent=self.dialog_header_actions)
-        contents['e'].setObjectName('button_container#e')
+        contents['actions'] = QWidget(parent=self.dialog_header_actions)
+        contents['actions'].setObjectName('button_container#e')
         layout_actions = QVBoxLayout()
-        contents['e'].setLayout(layout_actions)
-        btn1 = QPushButton('Ok',parent=contents['e'])
-        btn2 = QPushButton('Cancel',parent=contents['e'])
-        btn3 = QPushButton('Undo',parent=contents['e'])
-        btn4 = QPushButton('Clear',parent=contents['e'])
+        contents['actions'].setLayout(layout_actions)
+        btn1 = QPushButton('Ok',parent=contents['actions'])
+        btn2 = QPushButton('Cancel',parent=contents['actions'])
+        btn3 = QPushButton('Undo',parent=contents['actions'])
+        btn4 = QPushButton('Clear',parent=contents['actions'])
         btn1.clicked.connect(self.acceptHeaderMenu)
         btn2.clicked.connect(self.cancelHeaderMenu)
         btn3.clicked.connect(self.undoHeaderMenu)
@@ -497,12 +498,12 @@ class AppMainWindow(QApplication):
         layout_actions.addWidget(btn3)
         layout_actions.addWidget(btn4)
         table.setFocusPolicy(Qt.NoFocus)
-        table.setCellWidget(0,0,contents['a'])
-        table.setCellWidget(0,1,contents['b'])
-        table.setCellWidget(0,2,contents['c'])
-        table.setCellWidget(1,0,contents['d'])
+        table.setCellWidget(0,0,contents['west'])
+        table.setCellWidget(0,1,contents['north'])
+        table.setCellWidget(0,2,contents['east'])
+        table.setCellWidget(1,0,contents['south'])
         table.setSpan(1,0,1,3)
-        self.dialog_header_actions.layout().addWidget(contents['e'])
+        self.dialog_header_actions.layout().addWidget(contents['actions'])
         table.verticalHeader().setVisible(False)
         table.horizontalHeader().setVisible(False)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)

@@ -4,9 +4,11 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data
+from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData
 from .PreviewPrinter import previewPrinter
 from .Config import ARTWORK
+
+from copy import deepcopy
 
 # Helper class with pdf stuff related things
 class helperPDF():
@@ -28,7 +30,7 @@ class helperPDF():
         self.widget = None
         self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
         self.widget = self.initWidget(parent=self, printer=self.printer)
-        pass
+        self.header_info = None
 
     def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None, orientation=None):
         
@@ -137,7 +139,6 @@ class helperPDF():
         styles['text'].setFont(QFont("Times",10 * self.constPaperScreen * self.relTextToA4))
         return styles
 
-
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
         qDebug("***** Repaint Event ! *****")
@@ -150,9 +151,19 @@ class helperPDF():
 
         document = self.makeHeaderTable(self.document,self.styles['header.table'] )
         document.print_(printer)
-        
 
     def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
+        def fileToPixMap(filename):
+            pixmap = QPixmap()
+            res = pixmap.load(filename)
+            if res:
+                return pixmap
+            return None
+        def dataPixMapToImage(data):
+            pixmap = loadPixMapData(data)
+            if pixmap:
+                return pixmap.toImage()
+            return None
         def setupCell(row=0,col=0):
             cell = table.cellAt(row,col)
             cursor = cell.firstCursorPosition()
@@ -162,6 +173,7 @@ class helperPDF():
         
         max_image_width = (document.pageSize() / cols).width()
         max_image_height = (document.pageSize() / 6).height() # no big headers!
+
         def imageResized(name):
             image = QImage(name)
             new_image_height = image.height() * max_image_width / image.width()
@@ -180,22 +192,70 @@ class helperPDF():
         num_cols = cols
 
         table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
-    
-        cursor = setupCell(0,0)
-        cursor.insertImage(imageResized(images['left']))
 
-        cursor = setupCell(0,1)
-        cursor.insertImage(imageResized(images['center']))
-    
-        from random import randint
-        a = randint(3,20)
-        b = randint(3,20)
-
-        cursor = setupCell(0,2)
-        cursor.insertText("Lorem ipsum " * a, self.styles['text'])
-
-        cursor = setupCell(1,0)
-        cursor.insertText("Lorem ipsum " * b, self.styles['text'])
+        if not self.header_info or not isinstance(self.header_info,dict):
+            from random import randint
+            a = randint(3,20)
+            b = randint(3,20)
+            self.header_info = { 
+                'west' : {
+                    'type': 'image',
+                    'data': dumpPixMapData(fileToPixMap(images['left'])),
+                    'content': QUrl(images['left']).toString()
+                },
+                'north' : {
+                    'type': 'image',
+                    'data': dumpPixMapData(fileToPixMap(images['center'])),
+                    'content': QUrl(images['center']).toString()
+                },
+                'south' : {
+                    'type': 'text',
+                    'content': "Lorem ipsum " * a
+                },
+                'east' : {
+                    'type': 'text',
+                    'content': "Lorem ipsum " * b
+                }
+            }
+        coords = { 
+            'west' : { 'y':0,'x':0 },
+            'north': { 'y':0,'x':1 },
+            'south': { 'y':1,'x':0 },
+            'east': {'y':0,'x':2 }
+        }
+        positions = self.header_info.keys()
+        for pos in positions:
+            position = self.header_info.get(pos)
+            coord = coords.get(pos)
+            cursor = setupCell(coord['y'],coord['x'])
+            typeh = position.get('type')
+            if typeh == 'text':
+                cursor.insertText(position.get('content'), self.styles['text'])
+            elif typeh == 'image':
+                cursor.insertImage(imageResized(dataPixMapToImage(position.get('data'))))
 
         return document
+
+    def setHeaderInfo(self,header_info):
+        if header_info and isinstance(header_info,dict):
+            ks = ['west','north','east','south']
+            for k in ks:
+                if k not in header_info.keys():
+                    raise ValueError()
+                v = header_info.get(k)
+                if not isinstance(v,dict):
+                    raise ValueError()
+                vkeys = v.keys()
+                if 'type' not in vkeys:
+                    raise ValueError()
+                vtype = v.get('type')
+                if vtype not in ['image','text']:
+                    raise ValueError()
+                if vtype == 'image':
+                    if not v.get('data'):
+                        raise ValueError()
+                else:
+                    if 'content' not in vkeys:
+                        raise ValueError()
+            self.header_info = deepcopy(header_info)
 
