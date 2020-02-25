@@ -8,6 +8,7 @@ from .MenuItem import MenuItem
 from .QPushButtonTest import QPushButtonTest
 from .Config import ICONS
 from .QuestionType import Question
+from .Util import dumpPixMapData,loadPixMapData
 
 from os.path import expanduser
 from copy import deepcopy
@@ -195,7 +196,7 @@ class Box(QGroupBox):
         filename = filename.toLocalFile()
         image = None
         if filedata:
-            image = self.loadPixMapData(filedata)
+            image = loadPixMapData(filedata)
         else:
             image = QPixmap()
             res = image.load(filename)
@@ -382,7 +383,7 @@ class Box(QGroupBox):
             if not res:
                 return
         else:
-            image = self.loadPixMapData(filedata)
+            image = loadPixMapData(filedata)
         button.setIcon(QIcon(image))
         button.setProperty('_filename_',url)
         self.data[dataname] =  filename
@@ -837,23 +838,6 @@ class Box(QGroupBox):
         else:
             qDebug('type for question "{}" unknown, skipping'.format(typeQuestion))
 
-    def dumpPixMapData(self,pixmap):
-        byts = QByteArray()
-        buff = QBuffer(byts)
-        buff.open(QIODevice.ReadWrite)
-        pixmap.save(buff,"PNG")
-        buff.close()
-        return qCompress(byts).toBase64().data().decode()
-
-    def loadPixMapData(self,data,pixmap=None):
-        if not pixmap:
-            pixmap = QPixmap()
-        byts = QByteArray().fromBase64(data.encode())
-        res = pixmap.loadFromData(qUncompress(byts))
-        if not res:
-            raise ValueError()
-        return pixmap
-
     def dumpFileData(self,url):
         f = QFile(QUrl(url).toLocalFile())
         if f.exists() and f.open(QIODevice.ReadOnly):
@@ -908,7 +892,7 @@ class Box(QGroupBox):
             boxInfo['title_picname'] = filename
             boxInfo['title_pic'] = self.dumpFileData(filename)
             if not boxInfo['title_pic']:
-                boxInfo['title_pic'] = self.dumpPixMapData(lbl.pixmap())
+                boxInfo['title_pic'] = dumpPixMapData(lbl.pixmap())
         boxInfo['empty_lines'] = self.empty_lines_for_answer
         boxInfo['locked'] = self.lock
         boxInfo['nvalid'] = self.count_trues
@@ -934,7 +918,7 @@ class Box(QGroupBox):
                         else:
                             btn = self.findChild(QPushButton,'OptionImageButton#{}'.format(o))
                             if btn:
-                                pixdata = self.dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                pixdata = dumpPixMapData(btn.icon().pixmap(1920,1080))
                                 optInfo['pic1'] = pixdata
                             else:
                                 raise ValueError()
@@ -950,7 +934,7 @@ class Box(QGroupBox):
                             else:
                                 btn = self.findChild(QPushButton,'OptionImageButton{}#{}'.format(n,o))
                                 if btn:
-                                    pixdata = self.dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                    pixdata = dumpPixMapData(btn.icon().pixmap(1920,1080))
                                     optInfo['pic'+n] = pixdata
                                 else:
                                     raise ValueError()

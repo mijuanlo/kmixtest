@@ -11,6 +11,7 @@ from .GridHelper import gridHelper
 from .HelperPDF import helperPDF
 from .Persistence import Persistence
 from .MenuItem import MenuItem
+from .Util import dumpPixMapData,loadPixMapData
 
 from os.path import expanduser
 from copy import deepcopy
@@ -94,6 +95,7 @@ class AppMainWindow(QApplication):
             self.editing_question = None
             qDebug("Question Changed {}".format(row))
             self.tableQuestionsChanged()
+
     @Slot(str,str)
     def updateTitleRow(self,row_uuid,content):
         qDebug("Updating title col")
@@ -148,6 +150,11 @@ class AppMainWindow(QApplication):
         return f[0] if f else None
 
     def buildExamData(self):
+        e = {
+            'header': None,
+            'config': None,
+            'examdata': None
+        }
         examData = []
         examDataRow = {
             'type': None,
@@ -185,7 +192,38 @@ class AppMainWindow(QApplication):
                 for k,v in box.items():
                     datarow.setdefault(k,v)
             examData.append(datarow)
-        return examData
+        exam = deepcopy(e)
+        if examData:
+            exam['examdata'] = examData
+        header = self.buildHeaderData()
+        if header:
+            exam['header'] = header
+        config = self.buildConfig()
+        if config:
+            exam['config'] = config
+
+        return exam
+
+    def buildHeaderData(self):
+        headerData = {
+            'north': None,
+            'west': None,
+            'south': None,
+            'east': None
+        }
+        h = deepcopy(headerData)
+        h['north'] = deepcopy(self.header_info.get('b'))
+        h['west'] = deepcopy(self.header_info.get('a'))
+        h['south'] = deepcopy(self.header_info.get('d'))
+        h['east'] = deepcopy(self.header_info.get('c'))
+        return h
+
+    def buildConfig(self):
+        config =  { 
+            'nmodels': self.n_models,
+            'alter': self.alter_models,
+        }
+        return config
 
     def useExamData(self,examData):
         model = {}
@@ -290,7 +328,7 @@ class AppMainWindow(QApplication):
                     if isinstance(c,QTextEdit):
                         self.header_info[x] = {'type': 'text' , 'content': c.toPlainText() }
                     elif isinstance(c,QLabel):
-                        self.header_info[x] = {'type': 'image', 'content': c.property('_filename_') }
+                        self.header_info[x] = {'type': 'image', 'content': c.property('_filename_'), 'data': dumpPixMapData(c.pixmap()) }
                     elif isinstance(c,QPushButton):
                         self.header_info[x] = None
                     else:
@@ -321,6 +359,7 @@ class AppMainWindow(QApplication):
                         pass
             else:
                 pass
+
     @Slot(int)
     def clearHeaderMenu(self,checked):
         for x in ['a','b','c','d']:

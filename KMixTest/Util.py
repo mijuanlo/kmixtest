@@ -73,3 +73,20 @@ def print_printer_data(printer):
 def print_document_data(document):
     size = document.pageSize()
     qDebug('(document) Rect: {}x{}'.format(int(size.width()),int(size.height())))
+
+def dumpPixMapData(pixmap):
+    byts = QByteArray()
+    buff = QBuffer(byts)
+    buff.open(QIODevice.ReadWrite)
+    pixmap.save(buff,"PNG")
+    buff.close()
+    return qCompress(byts).toBase64().data().decode()
+
+def loadPixMapData(data,pixmap=None):
+    if not pixmap:
+        pixmap = QPixmap()
+    byts = QByteArray().fromBase64(data.encode())
+    res = pixmap.loadFromData(qUncompress(byts))
+    if not res:
+        raise ValueError()
+    return pixmap
