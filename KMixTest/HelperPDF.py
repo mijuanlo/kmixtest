@@ -264,8 +264,15 @@ class helperPDF():
     def writeExamData(self,examData):
         for row in examData:
             title = row.get('title')
+            typeq = row.get('type')
             if title:
                 self.writeTitle(self.document,title)
+
+            nlines = 1
+            if typeq == 'single_question':
+                nlines = row.get('empty_lines')
+            
+            for i in range(nlines):
                 self.writeSeparator(self.document)
 
     def writeTitle(self,document,text):
