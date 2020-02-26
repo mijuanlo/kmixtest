@@ -238,7 +238,7 @@ class tableHelper(QObject):
             putvalue = '_None'
             if mode == 'SET':
                 if isinstance(values,(list)):
-                    if len(values) != 1 or len(values) != len(col):
+                    if len(values) != 1 and len(values) != len(col):
                         raise ValueError()
                     if isinstance(values[0],(list)):
                         if len(values[0]) != len(col):
@@ -251,6 +251,8 @@ class tableHelper(QObject):
                     else: # list(N)
                         if len(values) == 1:
                             putvalue = values * len(col)
+                        elif len(values) == len(col):
+                            putvalue = values
                         else:
                             raise ValueError()     
                 elif isinstance(values,dict):
@@ -680,10 +682,14 @@ class tableHelper(QObject):
         return
 
     # Method for create and insert new row triggered for action bar or menu
-    def makeRow(self, item="", table=None):
+    def makeRow(self, typerow=None, fixed=False, linked=False, title=None, table=None):
         if table is None and self.table is not None:
             table = self.table
-        q = Question().search(item)
+
+        if not typerow:
+            raise ValueError()
+
+        q = Question().search(typerow)
         if not q:
             raise ValueError()
 
@@ -695,48 +701,36 @@ class tableHelper(QObject):
         # Column 0 is for custom widget up & down movement
 
         # Columns 1,2 for fixed and linked settings
-        #for col in [1,2]:
-        self.setCellContent(last_row,['fixed','linked'],False)
-            # idx=self.model.index(last_row,col)
-            # self.model.setData(idx,False,Qt.DisplayRole)
+        self.setCellContent(last_row,['fixed','linked'],[fixed,linked])
 
         # Column 3 for Title
-
-        # i = QTableWidgetItem("{}".format(item))
-        # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        
-        self.setCellContent(last_row,'title',"{}:{}".format(last_row,q.getName()))
-        #self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,title))
+        if title is None:
+            title = q.getName()
+        self.setCellContent(last_row,'title',"{}".format(title))
 
         # private columns 4(uuid), 5(type)
     
-        # col = self.headerItemNames.index('_UUID_')
-        # idx=self.model.index(last_row,col)
         # # Store as UserRole into hidden column
-        # self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
         uuid = QUuid.createUuid().toString()
         self.setCellContent(last_row,'_UUID_',"{}".format(uuid))
 
-        # col = self.headerItemNames.index('_TYPE_')
-        # idx=self.model.index(last_row,col)
         # # Store as UserRole into hidden column
-        # self.model.setData(idx,"{}".format(q.getNameId()),Qt.UserRole)
         self.setCellContent(last_row,'_TYPE_',"{}".format(q.getNameId()))
         return uuid
 
-    def addItem(self, item):
-        if item and isinstance(item,list):
+    def addItem(self, typeq):
+        if typeq and isinstance(typeq,list):
             ret = list()
-            for i in item:
+            for i in typeq:
                 ret.append(self.addItem(i))
             return ret
         else:
-            uuid = self.makeRow(item)
+            uuid = self.makeRow(typeq)
             self.updateStateString()
             return uuid
 
-    def addItemWithState(self,item,fixed,linked,typequestion):
-        uuid = self.makeRow(typequestion)
+    def addItemWithState(self,title,fixed,linked,typequestion):
+        uuid = self.makeRow(typerow=typequestion,linked=linked,fixed=fixed,title=title)
         lastrow = self.model.rowCount()-1
         if fixed:
             FIXED_COL = self.headerItemNames.index('fixed')
