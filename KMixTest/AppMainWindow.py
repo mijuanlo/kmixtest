@@ -56,8 +56,8 @@ class AppMainWindow(QApplication):
             self.alter_models = False
             self.header_info = {}
             self.current_filename = None
-            # self.menuController('menu_print_exam')
             self.aborting = False
+            # self.menuController('menu_print_exam')
             # self.exitting()
         except Exception as e:
             print("Exception when initializing, {}".format(e))

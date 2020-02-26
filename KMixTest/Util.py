@@ -90,3 +90,16 @@ def loadPixMapData(data,pixmap=None):
     if not res:
         raise ValueError()
     return pixmap
+
+def fileToPixMap(filename):
+    pixmap = QPixmap()
+    res = pixmap.load(filename)
+    if res:
+        return pixmap
+    return None
+
+def dataPixMapToImage(data):
+    pixmap = loadPixMapData(data)
+    if pixmap:
+        return pixmap.toImage()
+    return None

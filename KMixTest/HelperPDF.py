@@ -4,11 +4,13 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData
+from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage
 from .PreviewPrinter import previewPrinter
 from .Config import ARTWORK
 
 from copy import deepcopy
+
+USE_FAKE_HEADER = True
 
 # Helper class with pdf stuff related things
 class helperPDF():
@@ -169,18 +171,34 @@ class helperPDF():
         self.printer.setOutputFileName('salida.pdf')
         self.document.print_(self.printer)
 
+    def buildFakeHeaderInfo(self):
+        from random import randint
+        a = randint(3,20)
+        b = randint(3,20)
+        header_info = { 
+            'west' : {
+                'type': 'image',
+                'data': dumpPixMapData(fileToPixMap(ARTWORK['left'])),
+                'content': QUrl(ARTWORK['left']).toString()
+            },
+            'north' : {
+                'type': 'image',
+                'data': dumpPixMapData(fileToPixMap(ARTWORK['center'])),
+                'content': QUrl(ARTWORK['center']).toString()
+            },
+            'south' : {
+                'type': 'text',
+                'content': "Lorem ipsum " * a
+            },
+            'east' : {
+                'type': 'text',
+                'content': "Lorem ipsum " * b
+            }
+        }
+        return header_info
+
     def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
-        def fileToPixMap(filename):
-            pixmap = QPixmap()
-            res = pixmap.load(filename)
-            if res:
-                return pixmap
-            return None
-        def dataPixMapToImage(data):
-            pixmap = loadPixMapData(data)
-            if pixmap:
-                return pixmap.toImage()
-            return None
+
         def setupCell(row=0,col=0):
             cell = table.cellAt(row,col)
             cursor = cell.firstCursorPosition()
@@ -206,30 +224,6 @@ class helperPDF():
         num_rows = 1
         num_cols = cols
 
-        if not self.header_info or not isinstance(self.header_info,dict):
-            from random import randint
-            a = randint(3,20)
-            b = randint(3,20)
-            self.header_info = { 
-                'west' : {
-                    'type': 'image',
-                    'data': dumpPixMapData(fileToPixMap(images['left'])),
-                    'content': QUrl(images['left']).toString()
-                },
-                'north' : {
-                    'type': 'image',
-                    'data': dumpPixMapData(fileToPixMap(images['center'])),
-                    'content': QUrl(images['center']).toString()
-                },
-                'south' : {
-                    'type': 'text',
-                    'content': "Lorem ipsum " * a
-                },
-                'east' : {
-                    'type': 'text',
-                    'content': "Lorem ipsum " * b
-                }
-            }
         coords = { 
             'west' : { 'y':0,'x':0 },
             'north': { 'y':0,'x':1 },
@@ -280,26 +274,49 @@ class helperPDF():
             cursor.insertBlock(self.styles['body'],self.styles['text'])
             cursor.insertText(text)
 
+    def validateHeader(self,header):
+        fake = None
+        if USE_FAKE_HEADER:
+            fake = self.buildFakeHeaderInfo()
+
+        if not header or not isinstance(header,dict):
+            if fake:
+                return fake
+            header = {'west':{},'north':{},'east':{},'south':{}}
+
+        ks = ['west','north','east','south']
+        for k in ks:
+            if k not in header.keys():
+                if fake:
+                    header[k] = deepcopy(fake[k])
+                    continue
+                header.setdefault(k,{})
+
+            if not isinstance(header[k],dict):
+                if fake:
+                    header[k] = deepcopy(fake[k])
+                    continue
+                header[k]={}
+
+            header[k].setdefault('type','text')
+            if header[k]['type'] not in ['image','text']:
+                if fake:
+                    header[k] = deepcopy(fake[k])
+                    continue
+                header[k]['type'] = 'text'
+
+            if header[k]['type'] == 'image':
+                if not header[k].get('data'):
+                    if fake:
+                        header[k] = deepcopy(fake[k])
+                        continue
+                    header[k]['type'] = 'text'
+
+            if header[k]['type'] == 'text':
+                header[k].setdefault('content','')
+
+        return header
+
     def setHeaderInfo(self,header_info):
-        if header_info and isinstance(header_info,dict):
-            ks = ['west','north','east','south']
-            for k in ks:
-                if k not in header_info.keys():
-                    raise ValueError()
-                # v = header_info.get(k)
-                # if not isinstance(v,dict):
-                #     raise ValueError()
-                # vkeys = v.keys()
-                # if 'type' not in vkeys:
-                #     raise ValueError()
-                # vtype = v.get('type')
-                # if vtype not in ['image','text']:
-                #     raise ValueError()
-                # if vtype == 'image':
-                #     if not v.get('data'):
-                #         raise ValueError()
-                # else:
-                #     if 'content' not in vkeys:
-                #         raise ValueError()
-            self.header_info = deepcopy(header_info)
+            self.header_info = deepcopy(self.validateHeader(header_info))
 
