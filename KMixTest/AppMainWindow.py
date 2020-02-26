@@ -631,6 +631,11 @@ class AppMainWindow(QApplication):
             self.window.statusbar.showMessage("New question: {}".format(data),10*1000)
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
+        elif data == 'menu_print_exam':
+            if not self.sheet:
+                self.sheet = helperPDF(parent=self)
+            self.sheet.setHeaderInfo(self.header_info)
+            self.sheet.doPDF()
         elif data == 'menu_generate_mix':
             self.generateMixMenu()
         elif data == 'menu_configure_header':

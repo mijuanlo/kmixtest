@@ -29,7 +29,7 @@ class helperPDF():
         self.styles = None
         self.widget = None
         self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
-        self.widget = self.initWidget(parent=self, printer=self.printer)
+        self.widget = None
         self.header_info = None
 
     def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None, orientation=None):
@@ -142,6 +142,7 @@ class helperPDF():
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
         qDebug("***** Repaint Event ! *****")
+        self.widget = self.initWidget(parent=self, printer=self.printer)
 
         self.initPrinter(printer)
         self.document = self.initDocument(printer = self.printer)
@@ -151,6 +152,14 @@ class helperPDF():
 
         document = self.makeHeaderTable(self.document,self.styles['header.table'] )
         document.print_(printer)
+    
+    def doPDF(self):
+        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
+        self.document = self.initDocument(printer = self.printer)
+        document = self.makeHeaderTable(self.document,self.styles['header.table'] )
+        self.printer.setOutputFormat(QPrinter.PdfFormat)
+        self.printer.setOutputFileName('salida.pdf')
+        document.print_(self.printer)
 
     def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
         def fileToPixMap(filename):
