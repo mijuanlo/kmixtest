@@ -56,6 +56,9 @@ class AppMainWindow(QApplication):
             self.alter_models = False
             self.header_info = {}
             self.current_filename = None
+            # self.menuController('menu_print_exam')
+            self.aborting = False
+            # self.exitting()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
             self.exitting()
@@ -63,6 +66,7 @@ class AppMainWindow(QApplication):
     @Slot()
     def exitting(self):
         global NATIVE_THREADS
+        self.aborting = True
         qDebug("Exitting")
         if self.tableQuestions:
             if self.tableQuestions.pool:
@@ -635,7 +639,12 @@ class AppMainWindow(QApplication):
             if not self.sheet:
                 self.sheet = helperPDF(parent=self)
             self.sheet.setHeaderInfo(self.header_info)
-            self.sheet.doPDF()
+            examData = self.buildExamData()
+            exam = examData.get('examdata')
+            if exam:
+                self.sheet.doPDF()
+                self.sheet.writeExamData(exam)
+            self.sheet.writePDF()
         elif data == 'menu_generate_mix':
             self.generateMixMenu()
         elif data == 'menu_configure_header':

@@ -133,7 +133,13 @@ class helperPDF():
         styles['centerV'] = QTextCharFormat()
         styles['centerV'].setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignMiddle)
 
+        styles['body'] = QTextBlockFormat()
+        styles['body'].setAlignment(Qt.AlignJustify)
+
         styles['text'] = QTextCharFormat()
+
+        styles['double'] = QTextBlockFormat()
+        styles['double'].setLineHeight(200,QTextBlockFormat.ProportionalHeight)
         
         qDebug("Using text multiplier size: {}".format(int(self.relTextToA4)))
         styles['text'].setFont(QFont("Times",10 * self.constPaperScreen * self.relTextToA4))
@@ -157,9 +163,11 @@ class helperPDF():
         self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
         self.document = self.initDocument(printer = self.printer)
         document = self.makeHeaderTable(self.document,self.styles['header.table'] )
+        
+    def writePDF(self):
         self.printer.setOutputFormat(QPrinter.PdfFormat)
         self.printer.setOutputFileName('salida.pdf')
-        document.print_(self.printer)
+        self.document.print_(self.printer)
 
     def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
         def fileToPixMap(filename):
@@ -192,15 +200,11 @@ class helperPDF():
                 image = image.scaled(new_image_width,max_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
             return image
 
-        cursor = QTextCursor(document)
-
-        table = cursor.insertTable(rows,cols,self.styles['header.table'])
+        
         first_element_row = 1
         first_element_col = 0
         num_rows = 1
         num_cols = cols
-
-        table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
 
         if not self.header_info or not isinstance(self.header_info,dict):
             from random import randint
@@ -232,6 +236,11 @@ class helperPDF():
             'south': { 'y':1,'x':0 },
             'east': {'y':0,'x':2 }
         }
+
+        cursor = QTextCursor(document)
+        table = cursor.insertTable(rows,cols,self.styles['header.table'])
+        table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
+
         positions = self.header_info.keys()
         for pos in positions:
             position = self.header_info.get(pos)
@@ -242,8 +251,34 @@ class helperPDF():
                 cursor.insertText(position.get('content'), self.styles['text'])
             elif typeh == 'image':
                 cursor.insertImage(imageResized(dataPixMapToImage(position.get('data'))))
-
+        self.writeSeparator(document)
+        qDebug(document.toHtml())
         return document
+
+    def initCursor(self,document):
+        cursor = QTextCursor(document)
+        cursor.movePosition(QTextCursor.End)
+        if cursor.hasSelection():
+            cursor.clearSelection()
+        return cursor
+
+    def writeSeparator(self,document):
+        cursor = self.initCursor(document)
+        cursor.insertBlock(self.styles['double'],self.styles['text'])
+        cursor.insertText(" ")
+
+    def writeExamData(self,examData):
+        for row in examData:
+            title = row.get('title')
+            if title:
+                self.writeTitle(self.document,title)
+                self.writeSeparator(self.document)
+
+    def writeTitle(self,document,text):
+        if document and text:
+            cursor = self.initCursor(document)
+            cursor.insertBlock(self.styles['body'],self.styles['text'])
+            cursor.insertText(text)
 
     def setHeaderInfo(self,header_info):
         if header_info and isinstance(header_info,dict):
@@ -251,20 +286,20 @@ class helperPDF():
             for k in ks:
                 if k not in header_info.keys():
                     raise ValueError()
-                v = header_info.get(k)
-                if not isinstance(v,dict):
-                    raise ValueError()
-                vkeys = v.keys()
-                if 'type' not in vkeys:
-                    raise ValueError()
-                vtype = v.get('type')
-                if vtype not in ['image','text']:
-                    raise ValueError()
-                if vtype == 'image':
-                    if not v.get('data'):
-                        raise ValueError()
-                else:
-                    if 'content' not in vkeys:
-                        raise ValueError()
+                # v = header_info.get(k)
+                # if not isinstance(v,dict):
+                #     raise ValueError()
+                # vkeys = v.keys()
+                # if 'type' not in vkeys:
+                #     raise ValueError()
+                # vtype = v.get('type')
+                # if vtype not in ['image','text']:
+                #     raise ValueError()
+                # if vtype == 'image':
+                #     if not v.get('data'):
+                #         raise ValueError()
+                # else:
+                #     if 'content' not in vkeys:
+                #         raise ValueError()
             self.header_info = deepcopy(header_info)
 

@@ -29,7 +29,7 @@ def start_kmixtest():
     QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     try:
         app = AppMainWindow()
-        if app and not exitting:
+        if app and not exitting and not app.aborting:
             sys.exit(app.exec_())
     except Exception as e:
         print('Initialization exception:{}'.format(e))
