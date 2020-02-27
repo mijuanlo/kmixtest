@@ -106,13 +106,24 @@ class AppMainWindow(QApplication):
         qDebug("Updating title col")
         self.tableQuestions.updateTitleRow(row_uuid,content)
 
-    @Slot(int)
-    def clickedPreview(self,checked):
-        qDebug("Preview clicked!")
+    def initializePrinting(self):
         if not self.sheet:
             self.sheet = helperPDF(parent=self)
         self.sheet.setHeaderInfo(self.header_info)
+        examData = self.buildExamData()
+        exam = examData.get('examdata')
+        if exam:
+            self.sheet.setExamData(exam)
+
+    @Slot(int)
+    def clickedPreview(self,checked):
+        qDebug("Preview clicked!")
+        self.initializePrinting()
         self.sheet.openWidget()
+
+    def print_exam(self):
+        self.initializePrinting()
+        self.sheet.writePDF()
 
     def loadUi(self):
         global UI
@@ -613,7 +624,7 @@ class AppMainWindow(QApplication):
         elif data == 'menu_save':
             if self.current_filename:
                 examData = self.buildExamData()
-                result = self.persistence.saveExam(filename,examData)
+                result = self.persistence.saveExam(self.current_filename,examData)
             else:
                 self.menuController('menu_save_as')
         elif data == 'menu_save_as':
@@ -636,15 +647,7 @@ class AppMainWindow(QApplication):
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
         elif data == 'menu_print_exam':
-            if not self.sheet:
-                self.sheet = helperPDF(parent=self)
-            self.sheet.setHeaderInfo(self.header_info)
-            examData = self.buildExamData()
-            exam = examData.get('examdata')
-            if exam:
-                self.sheet.doPDF()
-                self.sheet.writeExamData(exam)
-            self.sheet.writePDF()
+            self.print_exam()
         elif data == 'menu_generate_mix':
             self.generateMixMenu()
         elif data == 'menu_configure_header':

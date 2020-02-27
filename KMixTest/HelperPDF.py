@@ -110,7 +110,14 @@ class helperPDF():
         widget.paintRequested.connect(self.paintRequest)
         return widget 
 
+    def initSystem(self):
+        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
+        self.widget = self.initWidget(parent=self, printer=self.printer)
+        self.document = self.initDocument(printer = self.printer)
+
     def openWidget(self):
+        self.initSystem()
+        self.document.print_(self.printer)
         self.widget.exec_()
 
     def initStyles(self, styles=None):
@@ -150,23 +157,19 @@ class helperPDF():
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
         qDebug("***** Repaint Event ! *****")
-        self.widget = self.initWidget(parent=self, printer=self.printer)
-
-        self.initPrinter(printer)
-        self.document = self.initDocument(printer = self.printer)
-
-        print_document_data(self.document)
-        print_printer_data(printer)
-
-        document = self.makeHeaderTable(self.document,self.styles['header.table'] )
-        document.print_(printer)
-    
-    def doPDF(self):
-        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
-        self.document = self.initDocument(printer = self.printer)
-        document = self.makeHeaderTable(self.document,self.styles['header.table'] )
         
+        print_document_data(self.document)
+        print_printer_data(self.printer)
+
+        self.document = self.completeDocument(self.document)
+
+    def completeDocument(self,document):
+        document = self.makeHeaderTable(document,self.styles['header.table'] )
+        document = self.writeExamData(document)
+        return document
+
     def writePDF(self):
+        self.initSystem()
         self.printer.setOutputFormat(QPrinter.PdfFormat)
         self.printer.setOutputFileName('salida.pdf')
         self.document.print_(self.printer)
@@ -261,19 +264,23 @@ class helperPDF():
         cursor.insertBlock(self.styles['double'],self.styles['text'])
         cursor.insertText(" ")
 
-    def writeExamData(self,examData):
-        for row in examData:
+    def setExamData(self,examData):
+        self.examData = deepcopy(examData)
+
+    def writeExamData(self,document):
+        for row in self.examData:
             title = row.get('title')
             typeq = row.get('type')
             if title:
-                self.writeTitle(self.document,title)
+                self.writeTitle(document,title)
 
             nlines = 1
             if typeq == 'single_question':
                 nlines = row.get('empty_lines')
             
             for i in range(nlines):
-                self.writeSeparator(self.document)
+                self.writeSeparator(document)
+        return document
 
     def writeTitle(self,document,text):
         if document and text:
