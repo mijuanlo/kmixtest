@@ -887,7 +887,7 @@ class Box(QGroupBox):
         boxInfo['type'] = self.data.get('type')
         boxInfo['title'] = self.editableItems['TITLE_EDITOR'].toPlainText()
         lbl = self.findChild(QLabel,'image_title_label')
-        if lbl and lbl.isVisible():
+        if lbl and not lbl.isHidden():
             filename = lbl.property('_filename_')
             boxInfo['title_picname'] = filename
             boxInfo['title_pic'] = self.dumpFileData(filename)
