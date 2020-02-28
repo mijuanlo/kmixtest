@@ -195,6 +195,7 @@ class Box(QGroupBox):
         url = filename.toString()
         filename = filename.toLocalFile()
         image = None
+        data = None
         if filedata:
             image = loadPixMapData(filedata)
         else:
@@ -202,6 +203,7 @@ class Box(QGroupBox):
             res = image.load(filename)
             if not res:
                 return
+            data = dumpPixMapData(image)
         if not 'IMAGE_TITLE' in self.editableItems or not self.editableItems.get('IMAGE_TITLE'):
             label = QLabel(parent=self)
             label.setObjectName('image_title_label')
@@ -211,6 +213,7 @@ class Box(QGroupBox):
         image = image.scaled(QSize(100,100),Qt.KeepAspectRatio)
         label.setPixmap(image)
         label.setProperty('_filename_',url)
+        label.setProperty('_data_',data)
         label.show()
         self.editableItems['IMAGE_TITLE']=label
 
@@ -377,15 +380,18 @@ class Box(QGroupBox):
         url = filename.toString()
         filename = filename.toLocalFile()
         image = None
+        data = None
         if not filedata:
             image = QPixmap()
             res = image.load(filename)
             if not res:
                 return
+            data = dumpPixMapData(image)
         else:
             image = loadPixMapData(filedata)
         button.setIcon(QIcon(image))
         button.setProperty('_filename_',url)
+        button.setProperty('_data_',data)
         self.data[dataname] =  filename
         if is_join_activity:
             self.options_declared[number]['img'+answer_num] = filename
@@ -892,7 +898,8 @@ class Box(QGroupBox):
             boxInfo['title_picname'] = filename
             boxInfo['title_pic'] = self.dumpFileData(filename)
             if not boxInfo['title_pic']:
-                boxInfo['title_pic'] = dumpPixMapData(lbl.pixmap())
+                data = lbl.property('_data_')
+                boxInfo['title_pic'] = data
         boxInfo['empty_lines'] = self.empty_lines_for_answer
         boxInfo['locked'] = self.lock
         boxInfo['nvalid'] = self.count_trues
@@ -918,7 +925,7 @@ class Box(QGroupBox):
                         else:
                             btn = self.findChild(QPushButton,'OptionImageButton#{}'.format(o))
                             if btn:
-                                pixdata = dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                pixdata = btn.property('_data_')
                                 optInfo['pic1'] = pixdata
                             else:
                                 raise ValueError()
@@ -934,7 +941,7 @@ class Box(QGroupBox):
                             else:
                                 btn = self.findChild(QPushButton,'OptionImageButton{}#{}'.format(n,o))
                                 if btn:
-                                    pixdata = dumpPixMapData(btn.icon().pixmap(1920,1080))
+                                    pixdata = btn.property('_data_')
                                     optInfo['pic'+n] = pixdata
                                 else:
                                     raise ValueError()
