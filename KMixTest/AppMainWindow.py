@@ -305,6 +305,7 @@ class AppMainWindow(QApplication):
                 return
             else:
                 qDebug('filename {} valid'.format(filename))
+                data = dumpPixMapData(image)
                 found = False
                 for x in container_button.children():
                     if isinstance(x,QLabel):
@@ -316,12 +317,14 @@ class AppMainWindow(QApplication):
                     # image = image.scaled(container_button.rect().size(),Qt.KeepAspectRatio)
                     image = image.scaled(QSize(60,60),Qt.KeepAspectRatio)
                     la.setProperty('_filename_',url)
+                    la.setProperty('_data_',data)
                     la.setPixmap(image)
                     container_button.layout().addWidget(la)
                 else:
                     la = found
                     image = image.scaled(container_button.rect().size(),Qt.KeepAspectRatio)
                     la.setProperty('_filename_',filename)
+                    la.setProperty('_data_',data)
                     la.setPixmap(image)
                     la.show()
         else:
@@ -358,7 +361,7 @@ class AppMainWindow(QApplication):
                     if isinstance(c,QTextEdit):
                         self.header_info[x] = {'type': 'text' , 'content': c.toPlainText() }
                     elif isinstance(c,QLabel):
-                        self.header_info[x] = {'type': 'image', 'content': c.property('_filename_'), 'data': dumpPixMapData(c.pixmap()) }
+                        self.header_info[x] = {'type': 'image', 'content': c.property('_filename_'), 'data': c.property('_data_') }
                     elif isinstance(c,QPushButton):
                         self.header_info[x] = None
                     else:
@@ -474,10 +477,15 @@ class AppMainWindow(QApplication):
                         la = QLabel()
                         url = QUrl(content['content'])
                         image = None
+                        data = None
                         if url.isValid() and url.scheme() == 'file' and url.isLocalFile():
                             filename = url.toLocalFile()
                             image = QPixmap()
-                            image.load(filename)
+                            res = image.load(filename)
+                            if res:
+                                data = dumpPixMapData(image)
+                            else:
+                                raise ValueError()
                         else:
                             data = content['data']
                             if data:
@@ -488,6 +496,7 @@ class AppMainWindow(QApplication):
                         #image = image.scaled(contents[x].rect().size(),Qt.KeepAspectRatio)
                         image = image.scaled(QSize(60,60),Qt.KeepAspectRatio)
                         la.setProperty('_filename_',url)
+                        la.setProperty('_data_',data)
                         la.setPixmap(image)
                         layout_w.addWidget(la)
                     else:
