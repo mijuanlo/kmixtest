@@ -143,6 +143,19 @@ class helperPDF():
         styles['header.table'].setCellPadding(10 * self.constPaperScreen)
         styles['header.table'].setColumnWidthConstraints([ QTextLength(QTextLength.PercentageLength, 95/self.header_table_cols) ] * self.header_table_cols)
 
+        if not 'title.table' in styles:
+            styles.setdefault('title.table',QTextTableFormat())
+        styles['title.table'].setBorderStyle(QTextTableFormat.BorderStyle_None)
+        styles['title.table'].setBorder(0.0)
+        # styles['title.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
+        styles['title.table'].setMargin(0.0)
+        styles['title.table'].setCellSpacing(0.0)
+        styles['title.table'].setCellPadding(10 * self.constPaperScreen)
+        styles['title.table'].setColumnWidthConstraints([ 
+            QTextLength(QTextLength.PercentageLength, 75), 
+            QTextLength(QTextLength.PercentageLength, 20)
+        ] )
+
         styles['centerH'] = QTextBlockFormat()
         styles['centerH'].setAlignment(Qt.AlignCenter)
         
@@ -205,28 +218,27 @@ class helperPDF():
         }
         return header_info
 
+    def setupCell(self, table, row=0, col=0):
+        cell = table.cellAt(row,col)
+        cursor = cell.firstCursorPosition()
+        cursor.setBlockFormat(self.styles['centerH'])
+        cell.setFormat(self.styles['centerV'])
+        return cursor
+
+    def imageResized(self, name, max_image_height, max_image_width):
+        image = QImage(name)
+        new_image_height = image.height() * max_image_width / image.width()
+        image = image.scaled(max_image_width,new_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+        if image.height() > max_image_height:
+            new_image_width = image.width() * max_image_height / image.height()
+            image = image.scaled(new_image_width,max_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+        return image
+
     def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
 
-        def setupCell(row=0,col=0):
-            cell = table.cellAt(row,col)
-            cursor = cell.firstCursorPosition()
-            cursor.setBlockFormat(self.styles['centerH'])
-            cell.setFormat(self.styles['centerV'])
-            return cursor
-        
         max_image_width = (document.pageSize() / cols).width()
         max_image_height = (document.pageSize() / 6).height() # no big headers!
 
-        def imageResized(name):
-            image = QImage(name)
-            new_image_height = image.height() * max_image_width / image.width()
-            image = image.scaled(max_image_width,new_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-            if image.height() > max_image_height:
-                new_image_width = image.width() * max_image_height / image.height()
-                image = image.scaled(new_image_width,max_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-            return image
-
-        
         first_element_row = 1
         first_element_col = 0
         num_rows = 1
@@ -247,16 +259,21 @@ class helperPDF():
         for pos in positions:
             position = self.header_info.get(pos)
             coord = coords.get(pos)
-            cursor = setupCell(coord['y'],coord['x'])
+            cursor = self.setupCell(table,coord['y'],coord['x'])
             typeh = position.get('type')
             if typeh == 'text':
                 cursor.insertText(position.get('content'), self.styles['text'])
             elif typeh == 'image':
-                cursor.insertImage(imageResized(dataPixMapToImage(position.get('data'))))
+                cursor.insertImage(self.imageResized(dataPixMapToImage(position.get('data')),max_image_height,max_image_width))
         self.writeSeparator(document)
-        qDebug(document.toHtml())
         return document
 
+    def makeTitleTable(self, document, rows, cols, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        table = cursor.insertTable(rows,cols,self.styles['title.table'])
+        return table
+        
     def initCursor(self,document):
         cursor = QTextCursor(document)
         cursor.movePosition(QTextCursor.End)
@@ -264,20 +281,38 @@ class helperPDF():
             cursor.clearSelection()
         return cursor
 
-    def writeSeparator(self,document):
-        cursor = self.initCursor(document)
+    def writeSeparator(self, document, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
         cursor.insertBlock(self.styles['double'],self.styles['text'])
         cursor.insertText(" ")
 
     def setExamData(self,examData):
         self.examData = deepcopy(examData)
 
+    def writeImage(self, document, image, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        cursor.insertImage(image)
+
     def writeExamData(self,document):
         for row in self.examData:
             title = row.get('title')
             typeq = row.get('type')
-            if title:
-                self.writeTitle(document,title)
+            title_pic = row.get('title_pic')
+            cursor = self.initCursor(document)
+
+            if title_pic:
+                table = self.makeTitleTable(document, rows=1, cols=2, cursor=cursor)
+                if title:
+                    cursor1 = self.setupCell(table,0,0)
+                    self.writeTitle(document,title, cursor=cursor1)
+                cursor2 = self.setupCell(table,0,1)
+                image = dataPixMapToImage(title_pic)
+                self.writeImage(document, image, cursor=cursor2)
+            else:
+                if title:
+                    self.writeTitle(document,title, cursor=cursor)
 
             nlines = 1
             if typeq == 'single_question':
@@ -287,9 +322,10 @@ class helperPDF():
                 self.writeSeparator(document)
         return document
 
-    def writeTitle(self,document,text):
+    def writeTitle(self,document,text, cursor=None):
         if document and text:
-            cursor = self.initCursor(document)
+            if not cursor:
+                cursor = self.initCursor(document)
             cursor.insertBlock(self.styles['body'],self.styles['text'])
             cursor.insertText(text)
 
