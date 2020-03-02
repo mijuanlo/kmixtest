@@ -78,7 +78,7 @@ class tableHelper(QObject):
 
     @Slot(int,int)
     def cellChanged(self, row, col):
-        qDebug('Cell changed y={} x={}'.format(row,col))
+        # qDebug('Cell changed y={} x={}'.format(row,col))
         self.questionChanged.emit(row)
 
     def dumpTableModel(self):

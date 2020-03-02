@@ -67,7 +67,7 @@ class gridHelper(QObject):
             self.last_tabledata = data
         else:
             raise ValueError()
-        qDebug("Syncing table-grid data")
+        #qDebug("Syncing table-grid data")
         ids = []
         for x in data:
             id_row = x.get('_UUID_')

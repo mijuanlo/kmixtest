@@ -150,10 +150,10 @@ class helperPDF():
         # styles['title.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
         styles['title.table'].setMargin(0.0)
         styles['title.table'].setCellSpacing(0.0)
-        styles['title.table'].setCellPadding(10 * self.constPaperScreen)
+        #styles['title.table'].setCellPadding(10 * self.constPaperScreen)
         styles['title.table'].setColumnWidthConstraints([ 
             QTextLength(QTextLength.PercentageLength, 75), 
-            QTextLength(QTextLength.PercentageLength, 20)
+            QTextLength(QTextLength.PercentageLength, 25)
         ] )
 
         styles['centerH'] = QTextBlockFormat()
@@ -184,8 +184,10 @@ class helperPDF():
         print_printer_data(self.printer)
 
         self.document = self.completeDocument(self.document)
-
+        print_document_data(self.document)
         self.document.print_(self.printer)
+
+        #print_document_data(self.document)
 
     def completeDocument(self,document):
         document = self.makeHeaderTable(document,self.styles['header.table'] )
@@ -285,7 +287,7 @@ class helperPDF():
         if not cursor:
             cursor = self.initCursor(document)
         cursor.insertBlock(self.styles['double'],self.styles['text'])
-        cursor.insertText(" ")
+        cursor.insertText(chr(13))
 
     def setExamData(self,examData):
         self.examData = deepcopy(examData)

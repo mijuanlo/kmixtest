@@ -69,10 +69,101 @@ def print_printer_data(printer):
     units = layout.units().name.decode()
     qDebug("(Printer)  Rect: {}x{} Size: {} Margins: {} Unit: {}".format(pr.width(),pr.height(),size,marginsToString(margins),units))
 
+def ftype(numtype):
+    if numtype == -1:
+        return 'invalid'
+    elif numtype == 1:
+        return 'block'
+    elif numtype == 2:
+        return 'char'
+    elif numtype == 3:
+        return 'list'
+    elif numtype == 5:
+        return 'frame'
+    elif numtype == 100:
+        return 'user'
+    else:
+        return 'unknown'
+def otype(numtype):
+    if numtype == 0:
+        return 'no_object'
+    elif numtype == 1:
+        return 'image'
+    elif numtype == 2:
+        return 'table'
+    elif numtype == 3:
+        return 'tablecell'
+    elif numtype == 8:
+        return 'userobject'
+    else:
+        return 'unknown'
 # Function for debugging document configuration
 def print_document_data(document):
     size = document.pageSize()
-    qDebug('(document) Rect: {}x{}'.format(int(size.width()),int(size.height())))
+    page_w = int(size.width())
+    page_h = int(size.height())
+    doc_w = int(document.size().width())
+    doc_h = int(document.size().height())
+    doc_pagecount = document.pageCount()
+    qDebug('\n(document) pagesize: {}x{} size: {}x{} pagecount={}'.format(page_w,page_h,doc_w,doc_h,doc_pagecount))
+    doc_blockcount = document.blockCount()
+    qDebug('(document): {} Blocks'.format(doc_blockcount))
+    firstblock = document.firstBlock()
+    lastblock = document.lastBlock()
+    textblock = firstblock
+
+    acu_height1 = 0
+    acu_height2 = 0
+    while  textblock != lastblock:
+        blocknumber = textblock.blockNumber()
+        visible = textblock.isVisible()
+        linecount = textblock.lineCount()
+        text = textblock.text()
+
+        blockformat = textblock.blockFormat()
+        charformat = textblock.charFormat()
+        type_blockformat = blockformat.type()
+        objecttype_blockformat = blockformat.objectType()
+        type_charformat = charformat.type()
+        objecttype_charformat = charformat.objectType()
+        lineheight = int(blockformat.lineHeight())
+        
+        qDebug('\n(document) block #{} type={} otype={} charformat type={} otype={}'.format(blocknumber,ftype(type_blockformat),otype(objecttype_blockformat),ftype(type_charformat),otype(objecttype_charformat)))
+        
+        qDebug('#{} visible={} text="{}" linecount={} lineheight={}'.format(blocknumber,visible,text,linecount,lineheight))
+
+        rect = textblock.layout().boundingRect()
+        w = int(rect.width())
+        h = int(rect.height())
+
+        acu_height1 += h
+        acu_height2 += h + lineheight
+
+        pagenumber = int(acu_height2/page_h)+1
+        qDebug('#{} block into page={}'.format(blocknumber,pagenumber))
+        qDebug('#{} bounding rect:  x=[(block){} (page){} (doc){}] y=[(block){} (page){} (doc){}] acu1={} acu2={}'.format(blocknumber,w,page_w,doc_w,h,page_h,doc_h,acu_height1,acu_height2))
+
+        it = textblock.begin()
+        i = 0
+        while(it != textblock.end()):
+            if i == 0:
+                qDebug('#{} StartFragments'.format(blocknumber))
+            frag = it.fragment()
+            if not frag.isValid():
+                qDebug('Not VALID')
+            else:
+                frag_charformat = frag.charFormat()
+                qDebug('#{} (Fragment #{}) Text: "{}"'.format(blocknumber,i,frag.text()))
+                qDebug('#{} (Fragment #{}) Type charformat: {}'.format(blocknumber,i,ftype(frag_charformat.type())))
+                qDebug('#{} (Fragment #{}) Type object charformat: {}'.format(blocknumber,i,otype(frag_charformat.objectType())))
+            it+=1
+            i += 1
+        if i == 0:
+            qDebug('#{} NoFragments'.format(blocknumber))
+        else:
+            qDebug('#{} EndFragments'.format(blocknumber))
+
+        textblock = textblock.next()
 
 def dumpPixMapData(pixmap):
     byts = QByteArray()

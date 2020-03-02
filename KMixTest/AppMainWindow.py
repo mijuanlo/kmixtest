@@ -95,7 +95,6 @@ class AppMainWindow(QApplication):
 
     @Slot(int)
     def questionChanged(self,row=None):
-        qDebug("Question changed?")
         if row is not None and self.editing_question == row:
             self.editing_question = None
             qDebug("Question Changed {}".format(row))
@@ -103,7 +102,7 @@ class AppMainWindow(QApplication):
 
     @Slot(str,str)
     def updateTitleRow(self,row_uuid,content):
-        qDebug("Updating title col")
+        # qDebug("Updating title col")
         self.tableQuestions.updateTitleRow(row_uuid,content)
 
     def initializePrinting(self):
