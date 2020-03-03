@@ -34,6 +34,8 @@ class helperPDF():
         self.widget = None
         self.header_info = None
         self.preview = False
+        self.last_cursor_ack = None
+        self.last_page_ack = 1
 
     def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None, orientation=None):
         
@@ -133,6 +135,13 @@ class helperPDF():
             styles = {}
             self.styles = styles
 
+        styles['line'] = QTextFrameFormat()
+        styles['line'].setHeight(1*self.constPaperScreen*self.relTextToA4)
+        styles['line'].setBackground(Qt.black)
+
+        styles['pagebreak'] = QTextBlockFormat()
+        styles['pagebreak'].setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
+
         if not 'header.table' in styles:
             styles.setdefault('header.table',QTextTableFormat())
         styles['header.table'].setBorderStyle(QTextTableFormat.BorderStyle_Solid)
@@ -171,8 +180,19 @@ class helperPDF():
         styles['double'].setLineHeight(200,QTextBlockFormat.ProportionalHeight)
         
         qDebug("Using text multiplier size: {}".format(int(self.relTextToA4)))
-        styles['text'].setFont(QFont("Times",10 * self.constPaperScreen * self.relTextToA4))
+        styles['defaultfont'] = QFont("Times",10 * self.constPaperScreen * self.relTextToA4)
+        styles['text'].setFont(styles['defaultfont'])
         return styles
+
+    def print_cursor_position_y(self,document,cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        page_h = document.pageSize().height()
+        current_h = document.documentLayout().blockBoundingRect(cursor.block()).y()
+        pagenumber = int(current_h/page_h)+1
+        pagecount = document.pageCount()
+        qDebug('Cursor at: {} page={}'.format(current_h,pagenumber,pagecount))
+        return pagenumber
 
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
@@ -220,11 +240,13 @@ class helperPDF():
         }
         return header_info
 
-    def setupCell(self, table, row=0, col=0):
+    def setupCell(self, table, row=0, col=0, centerH=True, centerV=True):
         cell = table.cellAt(row,col)
         cursor = cell.firstCursorPosition()
-        cursor.setBlockFormat(self.styles['centerH'])
-        cell.setFormat(self.styles['centerV'])
+        if centerH:
+            cursor.setBlockFormat(self.styles['centerH'])
+        if centerV:
+            cell.setFormat(self.styles['centerV'])
         return cursor
 
     def imageResized(self, name, max_image_height, max_image_width):
@@ -283,11 +305,14 @@ class helperPDF():
             cursor.clearSelection()
         return cursor
 
-    def writeSeparator(self, document, cursor=None):
+    def writeSeparator(self, document, cursor=None, number=None):
         if not cursor:
             cursor = self.initCursor(document)
         cursor.insertBlock(self.styles['double'],self.styles['text'])
-        cursor.insertText(chr(13))
+        txt = ""
+        if number:
+            txt = '{}'.format(number)
+        cursor.insertText(txt)
 
     def setExamData(self,examData):
         self.examData = deepcopy(examData)
@@ -296,6 +321,39 @@ class helperPDF():
         if not cursor:
             cursor = self.initCursor(document)
         cursor.insertImage(image)
+
+    def debug_document_blocklayout(self,document):
+        ret=[]
+        blockCount = document.blockCount()
+        for i in range(blockCount):
+            r = document.documentLayout().blockBoundingRect(document.findBlockByNumber(i))
+            ret.append('Block #{} on ({},{}) with {}x{}'.format(i,r.x(),r.y(),r.width(),r.height()))
+        qDebug("\n".join(ret))
+        return ret
+
+    def writePageBreak(self, document, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        else:
+            cursor.blockFormat().setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
+            cursor.movePosition(QTextCursor.Down)
+        cursor.insertBlock(self.styles['pagebreak'])
+
+    def writeLine(self, document, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        pagenum = self.print_cursor_position_y(document,cursor)
+
+        cursor.insertFrame(self.styles['line'])
+        
+        self.debug_document_blocklayout(document)
+        if pagenum != self.last_page_ack:
+            qDebug('BACKTRACK')
+            self.writePageBreak(document,self.last_cursor_ack)
+            self.debug_document_blocklayout(document)
+
+        self.last_cursor_ack = cursor
+        self.last_page_ack = pagenum
 
     def writeExamData(self,document):
         for row in self.examData:
@@ -307,21 +365,30 @@ class helperPDF():
             if title_pic:
                 table = self.makeTitleTable(document, rows=1, cols=2, cursor=cursor)
                 if title:
-                    cursor1 = self.setupCell(table,0,0)
+                    cursor1 = self.setupCell(table,0,0,centerV=False)
                     self.writeTitle(document,title, cursor=cursor1)
-                cursor2 = self.setupCell(table,0,1)
+                cursor2 = self.setupCell(table,0,1,centerV=False)
                 image = dataPixMapToImage(title_pic)
+                max_image_width = (document.pageSize() / 4).width()
+                image = image.scaledToWidth(max_image_width,Qt.SmoothTransformation)
                 self.writeImage(document, image, cursor=cursor2)
+                qDebug('End question with table, (title={})'.format(title))
+                self.print_cursor_position_y(document)
             else:
                 if title:
                     self.writeTitle(document,title, cursor=cursor)
+                    qDebug('End question (title={})'.format(title))
+                    self.print_cursor_position_y(document)
 
-            nlines = 1
+            nlines = 0
             if typeq == 'single_question':
                 nlines = row.get('empty_lines')
             
-            for i in range(nlines):
-                self.writeSeparator(document)
+            for i in range(1,nlines+1):
+                self.writeSeparator(document,number=i)
+                qDebug('Space {}'.format(i))
+                self.print_cursor_position_y(document)
+            self.writeLine(document)
         return document
 
     def writeTitle(self,document,text, cursor=None):

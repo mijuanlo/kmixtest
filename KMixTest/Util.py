@@ -97,6 +97,37 @@ def otype(numtype):
         return 'userobject'
     else:
         return 'unknown'
+
+def format_info(f):
+    attrs = []
+    fmt = None
+    if not f.isValid():
+        attrs.append('Invalid')
+    else:
+        attrs.append('Valid')
+        if f.isBlockFormat():
+            attrs.append('BlockFormat')
+            fmt = f.toBlockFormat()
+        elif f.isCharFormat():
+            attrs.append('CharFormat')
+            fmt = f.toCharFormat()
+        elif f.isFrameFormat():
+            attrs.append('FrameFormat')
+            fmt = f.toFrameFormat()
+        elif f.isImageFormat():
+            attrs.append('ImageFormat')
+            fmt = f.toImageFormat()
+        elif f.isTableFormat():
+            attrs.append('TableFormat')
+            fmt = f.toTableFormat()
+        elif f.isTableCellFormat():
+            attrs.append('TableCellFormat')
+            fmt = f.toTableCellFormat()
+        elif f.isListFormat():
+            attrs.append('ListFormat')
+            fmt = f.toListFormat()
+    return ','.join(attrs)
+    
 # Function for debugging document configuration
 def print_document_data(document):
     size = document.pageSize()
@@ -114,6 +145,7 @@ def print_document_data(document):
 
     acu_height1 = 0
     acu_height2 = 0
+    acu_height3 = 0
     while  textblock != lastblock:
         blocknumber = textblock.blockNumber()
         visible = textblock.isVisible()
@@ -129,17 +161,23 @@ def print_document_data(document):
         lineheight = int(blockformat.lineHeight())
         
         qDebug('\n(document) block #{} type={} otype={} charformat type={} otype={}'.format(blocknumber,ftype(type_blockformat),otype(objecttype_blockformat),ftype(type_charformat),otype(objecttype_charformat)))
-        
+        qDebug('(document) block is: {}'.format(format_info(blockformat)))        
         qDebug('#{} visible={} text="{}" linecount={} lineheight={}'.format(blocknumber,visible,text,linecount,lineheight))
 
         rect = textblock.layout().boundingRect()
+        rect2 = document.documentLayout().blockBoundingRect(textblock)
         w = int(rect.width())
         h = int(rect.height())
+        h2y = int(rect2.y())
+        h2 = int(rect2.height())
+
+        qDebug('Bounding {} (sum_heights) vs {} (y)'.format(acu_height1,h2y))
 
         acu_height1 += h
-        acu_height2 += h + lineheight
+        acu_height2 += h2
 
-        pagenumber = int(acu_height2/page_h)+1
+        #pagenumber = int(acu_height2/page_h)+1
+        pagenumber = int(h2y/page_h)+1
         qDebug('#{} block into page={}'.format(blocknumber,pagenumber))
         qDebug('#{} bounding rect:  x=[(block){} (page){} (doc){}] y=[(block){} (page){} (doc){}] acu1={} acu2={}'.format(blocknumber,w,page_w,doc_w,h,page_h,doc_h,acu_height1,acu_height2))
 
@@ -164,7 +202,7 @@ def print_document_data(document):
             qDebug('#{} EndFragments'.format(blocknumber))
 
         textblock = textblock.next()
-
+    qDebug('{}'.format(acu_height2 + document.documentMargin() ))
 def dumpPixMapData(pixmap):
     byts = QByteArray()
     buff = QBuffer(byts)
