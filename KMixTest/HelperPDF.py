@@ -6,7 +6,7 @@ from PySide2.QtUiTools import *
 
 from .Util import marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage
 from .PreviewPrinter import previewPrinter
-from .Config import ARTWORK
+from .Config import ARTWORK, ICONS
 
 from copy import deepcopy
 
@@ -165,6 +165,14 @@ class helperPDF():
             QTextLength(QTextLength.PercentageLength, 25)
         ] )
 
+        if not 'option.table' in styles:
+            styles.setdefault('option.table',QTextTableFormat())
+        styles['option.table'].setBorderStyle(QTextTableFormat.BorderStyle_Solid)
+        styles['option.table'].setBorder(2.0)
+        styles['option.table'].setMargin(0.0)
+        styles['option.table'].setCellSpacing(10 * self.constPaperScreen)
+        styles['option.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
+
         styles['centerH'] = QTextBlockFormat()
         styles['centerH'].setAlignment(Qt.AlignCenter)
         
@@ -174,14 +182,21 @@ class helperPDF():
         styles['body'] = QTextBlockFormat()
         styles['body'].setAlignment(Qt.AlignJustify)
 
-        styles['text'] = QTextCharFormat()
-
         styles['double'] = QTextBlockFormat()
         styles['double'].setLineHeight(200,QTextBlockFormat.ProportionalHeight)
+
+        styles['single'] = QTextBlockFormat()
+        styles['single'].setLineHeight(100,QTextBlockFormat.ProportionalHeight)
         
         qDebug("Using text multiplier size: {}".format(int(self.relTextToA4)))
         styles['defaultfont'] = QFont("Times",10 * self.constPaperScreen * self.relTextToA4)
+        styles['bigfont'] = QFont("Times",30 * self.constPaperScreen * self.relTextToA4)
+
+        styles['text'] = QTextCharFormat()
+        styles['bigtext'] = QTextCharFormat()
         styles['text'].setFont(styles['defaultfont'])
+        styles['bigtext'].setFont(styles['bigfont'])
+        
         return styles
 
     def print_cursor_position_y(self,document,cursor=None):
@@ -247,7 +262,7 @@ class helperPDF():
             cursor.setBlockFormat(self.styles['centerH'])
         if centerV:
             cell.setFormat(self.styles['centerV'])
-        return cursor
+        return cursor,cell
 
     def imageResized(self, name, max_image_height, max_image_width):
         image = QImage(name)
@@ -283,7 +298,7 @@ class helperPDF():
         for pos in positions:
             position = self.header_info.get(pos)
             coord = coords.get(pos)
-            cursor = self.setupCell(table,coord['y'],coord['x'])
+            cursor,cell = self.setupCell(table,coord['y'],coord['x'])
             typeh = position.get('type')
             if typeh == 'text':
                 cursor.insertText(position.get('content'), self.styles['text'])
@@ -305,10 +320,14 @@ class helperPDF():
             cursor.clearSelection()
         return cursor
 
-    def writeSeparator(self, document, cursor=None, number=None):
+    def writeSeparator(self, document, cursor=None, number=None , single=False):
         if not cursor:
             cursor = self.initCursor(document)
-        cursor.insertBlock(self.styles['double'],self.styles['text'])
+        if single:
+            style = self.styles['single']
+        else:
+            style = self.styles['double']
+        cursor.insertBlock(style,self.styles['text'])
         txt = ""
         if number:
             txt = '{}'.format(number)
@@ -358,6 +377,7 @@ class helperPDF():
     def writeExamData(self,document):
         for row in self.examData:
             title = row.get('title')
+            title = title.capitalize()
             typeq = row.get('type')
             title_pic = row.get('title_pic')
             cursor = self.initCursor(document)
@@ -365,9 +385,9 @@ class helperPDF():
             if title_pic:
                 table = self.makeTitleTable(document, rows=1, cols=2, cursor=cursor)
                 if title:
-                    cursor1 = self.setupCell(table,0,0,centerV=False)
+                    cursor1,cell = self.setupCell(table,0,0,centerV=False)
                     self.writeTitle(document,title, cursor=cursor1)
-                cursor2 = self.setupCell(table,0,1,centerV=False)
+                cursor2,cell = self.setupCell(table,0,1,centerV=False)
                 image = dataPixMapToImage(title_pic)
                 max_image_width = (document.pageSize() / 4).width()
                 image = image.scaledToWidth(max_image_width,Qt.SmoothTransformation)
@@ -379,17 +399,70 @@ class helperPDF():
                     self.writeTitle(document,title, cursor=cursor)
                     qDebug('End question (title={})'.format(title))
                     self.print_cursor_position_y(document)
-
+            self.writeSeparator(document,single=True)
             nlines = 0
+            options = None
             if typeq == 'single_question':
                 nlines = row.get('empty_lines')
+            else:
+                options = row.get('options')
             
+            if typeq == 'test_question':
+                self.writeTest(document,options)
+            elif typeq == 'join_activity':
+                self.writeJoinActivity(document,options)
+
             for i in range(1,nlines+1):
                 self.writeSeparator(document,number=i)
                 qDebug('Space {}'.format(i))
                 self.print_cursor_position_y(document)
             self.writeLine(document)
         return document
+
+    def writeTest(self, document, options, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        
+        rows = len(options)
+        table = cursor.insertTable(rows,2,self.styles['option.table'])
+
+        i=0
+        for opt in options:
+            text = opt.get('text1')
+            text = text.capitalize()
+            pic = opt.get('pic1')
+            texta = "\t\t" + "\u25a2" 
+            textb = "\t\t" + text
+            
+            #cursor.insertText(texta)
+            c,cell = self.setupCell(table,i,0,centerV=False,centerH=False)
+            #f = QTextTableCellFormat()
+            # # f.setBackground(QBrush(Qt.black,Qt.SolidPattern))
+            #f.setTopPadding(20)
+            # f.merge(self.styles['bigtext'])
+            #cell.setFormat(f)
+            img = QImage(ICONS['option'])
+            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+            c.insertImage(img)
+            c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
+            c.setCharFormat(self.styles['text'])
+            c.insertText(text)
+            # f = QTextTableCellFormat()
+            # f.setBottomPadding(260)
+            # f.setFont(self.styles['bigfont'])
+# 
+            # cursor.insertBlock(self.styles['body'],self.styles['bigtext'])
+            # cursor.insertText(texta)
+            # cursor.setCharFormat(self.styles['text'])
+            # cursor.insertText(textb)
+
+            i += 1
+
+        self.writeSeparator(document,single=True)
+
+    def writeJoinActivity(self, document, options, cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
 
     def writeTitle(self,document,text, cursor=None):
         if document and text:

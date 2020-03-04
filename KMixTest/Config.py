@@ -48,7 +48,8 @@ ICONS = {
     'image_missing': 'image-missing.png',
     'remove_image': 'remove-image.png',
     'high': 'high.png',
-    'low': 'low.png'
+    'low': 'low.png',
+    'option': 'box.svg'
     }
 
 ARTWORK = {
