@@ -22,9 +22,17 @@ class previewPrinter(QPrintPreviewDialog):
     
     def setupButtons(self):
         self.preview.previewChanged.connect(self.previewChanged)
+    
 
     @Slot()
     def previewChanged(self):
         qDebug("***** Preview changed! *****")
         print_preview_data(self.preview)
         print_printer_data(self.parent.printer)
+
+class previewWidget(QPrintPreviewWidget):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+    @Slot()
+    def print(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)

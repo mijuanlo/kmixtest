@@ -939,7 +939,7 @@ class Box(QGroupBox):
                             if pixdata:
                                 optInfo['pic'+n] = pixdata
                             else:
-                                btn = self.findChild(QPushButton,'OptionImageButton{}#{}'.format(n,o))
+                                btn = self.findChild(QPushButton,'JoinOptionImageButton{}#{}'.format(n,o))
                                 if btn:
                                     pixdata = btn.property('_data_')
                                     optInfo['pic'+n] = pixdata

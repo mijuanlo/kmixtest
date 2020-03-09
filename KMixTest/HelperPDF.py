@@ -98,10 +98,11 @@ class helperPDF():
         if not printer:
             printer = self.printer
         if not document:
-            document = QTextDocument()
+            document = ExamDocument()
         if not self.document:
             self.document = document
-        document.setPageSize(QSize(printer.pageRect().size()))
+        document.setHeadersSize(16)
+        document.setPage(printer=printer)
         self.initStyles()
         return document
 
@@ -113,12 +114,16 @@ class helperPDF():
         widget.paintRequested.connect(self.paintRequest)
         return widget 
 
-    def initSystem(self):
-        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins, orientation=self.orientation)
+    def initSystem(self,printer=None):
+        self.last_cursor_ack = None
+        self.last_page_ack = 1
+        if printer:
+            self.printer = printer
+        self.printer, self.resolution, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution, margins=self.pageMargins)
         self.document = self.initDocument(printer = self.printer)
         if not self.preview:
             self.printer.setOutputFormat(QPrinter.PdfFormat)
-            self.printer.setOutputFileName('salida.pdf')
+            self.printer.setOutputFileName('out.pdf')
 
     def openWidget(self):
         self.preview = True
@@ -172,7 +177,10 @@ class helperPDF():
         styles['option.table'].setMargin(0.0)
         styles['option.table'].setCellSpacing(10 * self.constPaperScreen)
         styles['option.table'].setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
-
+        styles['option.table'].setColumnWidthConstraints([ 
+            QTextLength(QTextLength.PercentageLength, 5), 
+            QTextLength(QTextLength.PercentageLength, 20)
+        ] )
         styles['centerH'] = QTextBlockFormat()
         styles['centerH'].setAlignment(Qt.AlignCenter)
         
@@ -213,16 +221,104 @@ class helperPDF():
     def paintRequest(self, printer=None):
         qDebug("***** Repaint Event ! *****")
 
-        self.initSystem()
+        self.initSystem(printer)
         
-        print_document_data(self.document)
-        print_printer_data(self.printer)
+        #print_document_data(self.document)
+        #print_printer_data(self.printer)
 
         self.document = self.completeDocument(self.document)
-        print_document_data(self.document)
-        self.document.print_(self.printer)
+        #self.document = self.makeTestDocument(self.document)
+        #print_document_data(self.document)
+        self.document.printExamModel(self.printer,model="A")
 
         #print_document_data(self.document)
+
+    # def makeTestDocument(self,document):
+    #     #Init cursor
+    #     cursor = QTextCursor(document)
+    #     # cursor.movePosition(QTextCursor.End)
+    #     # if cursor.hasSelection():
+    #     #     cursor.clearSelection()
+    #     t={}
+    #     for l in list('abcdefghijk'):
+    #         t[l] = ''
+    #         for i in range(1,20):
+    #             t[l] += '{0:s}_{1:03d}_'.format(l*5,i*10)
+
+    #     style_t = QTextCharFormat()
+    #     font = QFont("Courier",10 * self.constPaperScreen * self.relTextToA4)
+    #     style_t.setFont(font)
+    #     style_b = QTextBlockFormat()
+    #     style_f = QTextFrameFormat()
+
+    #     cursor.insertBlock(style_b)
+    #     a = cursor.block()
+    #     a.setUserData(BData('a'))
+    #     cursor.insertText(t.get('a'),style_t)
+
+    #     cursor.movePosition(QTextCursor.End)
+    #     cursor.insertBlock(style_b)
+    #     b = cursor.block()
+    #     b.setUserData(BData('b'))
+    #     bpos = b.blockNumber()
+    #     cursor.insertText(t.get('b'),style_t)
+
+    #     cursor.movePosition(QTextCursor.Start)
+    #     cursor.insertBlock(style_b)
+    #     c = cursor.block()
+    #     cursor.insertText(t.get('c'),style_t)
+
+    #     cursor = QTextCursor(b)
+    #     pos = cursor.position()
+    #     cursor.insertBlock(style_b)
+    #     d = cursor.block()
+    #     cursor.setPosition(pos)
+    #     cursor.insertText(t.get('d'),style_t)
+
+    #     cursor = QTextCursor(b)
+    #     pos2 = cursor.position()
+    #     cursor.insertBlock(style_b)
+    #     e = cursor.block()
+    #     cursor.setPosition(pos2)
+    #     cursor.insertText(t.get('e'),style_t)
+
+    #     cursor.movePosition(QTextCursor.Start)
+    #     cursor.movePosition(QTextCursor.NextBlock,QTextCursor.MoveAnchor,b.blockNumber())
+    #     pos3 = cursor.position()
+    #     cursor.insertBlock(style_b)
+    #     f = cursor.block()
+    #     cursor.setPosition(pos3)
+    #     cursor.insertText(t.get('f'),style_t)
+
+    #     cursor.movePosition(QTextCursor.Start)
+    #     while cursor.block().userData() is None or cursor.block().userData().data != 'b':
+    #         cursor.movePosition(QTextCursor.NextBlock,QTextCursor.MoveAnchor,1)
+    #     cursor.setPosition(cursor.position()-1)
+    #     cursor.insertBlock(style_b)
+    #     g = cursor.block()
+    #     cursor.insertText(t.get('g'),style_t)
+
+    #     cursor.movePosition(QTextCursor.Start)
+    #     tb = cursor.block()
+    #     tb = tb.next().next().next()
+    #     cursor = QTextCursor(tb)
+    #     style_cr = QTextBlockFormat()
+    #     style_cr.setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
+    #     cursor.insertBlock(style_cr)
+
+    #     cursor.movePosition(QTextCursor.Start)
+    #     cursor = document.find('bbb')
+    #     if cursor.isNull():
+    #         qDebug('null')
+    #     else:
+    #         cursor.movePosition(QTextCursor.StartOfBlock)
+    #         cursor.insertBlock(style_cr)
+
+    #     qDebug('Total {} blocks'.format(document.blockCount()))
+
+    #     qDebug('{}'.format(document.toHtml()))
+    #     return document
+
 
     def completeDocument(self,document):
         document = self.makeHeaderTable(document,self.styles['header.table'] )
@@ -332,6 +428,7 @@ class helperPDF():
         if number:
             txt = '{}'.format(number)
         cursor.insertText(txt)
+        return cursor
 
     def setExamData(self,examData):
         self.examData = deepcopy(examData)
@@ -350,13 +447,18 @@ class helperPDF():
         qDebug("\n".join(ret))
         return ret
 
-    def writePageBreak(self, document, cursor=None):
-        if not cursor:
+    def writePageBreak(self, document, cursorpos=None):
+        cursor = QTextCursor(document)
+        if not cursorpos:
             cursor = self.initCursor(document)
+            cursor.insertBlock(self.styles['pagebreak'])
         else:
+            cursor.setPosition(cursorpos)
+            cursor.movePosition(QTextCursor.StartOfBlock)
             cursor.blockFormat().setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
-            cursor.movePosition(QTextCursor.Down)
-        cursor.insertBlock(self.styles['pagebreak'])
+            cursor.insertBlock(self.styles['pagebreak'])
+        pass
+        
 
     def writeLine(self, document, cursor=None):
         if not cursor:
@@ -364,24 +466,31 @@ class helperPDF():
         pagenum = self.print_cursor_position_y(document,cursor)
 
         cursor.insertFrame(self.styles['line'])
+        ret = cursor.movePosition(QTextCursor.Down)
+        return cursor
         
         self.debug_document_blocklayout(document)
         if pagenum != self.last_page_ack:
             qDebug('BACKTRACK')
-            self.writePageBreak(document,self.last_cursor_ack)
+            self.writePageBreak(document)
+            #self.writePageBreak(document,self.last_cursor_ack)
             self.debug_document_blocklayout(document)
 
         self.last_cursor_ack = cursor
         self.last_page_ack = pagenum
 
     def writeExamData(self,document):
+        self.pagequestion = {}
+        question_num = 0
         for row in self.examData:
+            question_num += 1
             title = row.get('title')
             title = title.capitalize()
             typeq = row.get('type')
             title_pic = row.get('title_pic')
             cursor = self.initCursor(document)
-
+            cursor_ini = cursor.position()
+            pagestart = self.print_cursor_position_y(document)
             if title_pic:
                 table = self.makeTitleTable(document, rows=1, cols=2, cursor=cursor)
                 if title:
@@ -416,7 +525,21 @@ class helperPDF():
                 self.writeSeparator(document,number=i)
                 qDebug('Space {}'.format(i))
                 self.print_cursor_position_y(document)
-            self.writeLine(document)
+            
+            cursor_end = self.writeLine(document)
+            cursor_end = cursor_end.position()
+            pageend = self.print_cursor_position_y(document)
+            self.pagequestion.setdefault(pagestart,[])
+            self.pagequestion.setdefault(pageend,[])
+            if pagestart == pageend:
+                self.pagequestion[pagestart].append(question_num)
+                self.last_cursor_ack = cursor_end
+            else:
+                if len(self.pagequestion[pagestart]) > 0:
+                    self.writePageBreak(document,cursor_ini)
+                else:
+                    pass
+            
         return document
 
     def writeTest(self, document, options, cursor=None):
@@ -424,45 +547,79 @@ class helperPDF():
             cursor = self.initCursor(document)
         
         rows = len(options)
+        f = QTextFrameFormat()
+        tabsize = 4
+        f.setLeftMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
+        cursor.insertFrame(f)
+        cursor.movePosition(QTextCursor.EndOfLine)
         table = cursor.insertTable(rows,2,self.styles['option.table'])
-
+        f = QTextFrameFormat()
+        tabsize = 4
+        f.setRightMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
+        ret = cursor.movePosition(QTextCursor.NextCell)
+        cursor.insertFrame(f)
+        cursor.insertText("A"*100)
         i=0
         for opt in options:
             text = opt.get('text1')
             text = text.capitalize()
             pic = opt.get('pic1')
-            texta = "\t\t" + "\u25a2" 
-            textb = "\t\t" + text
-            
-            #cursor.insertText(texta)
+
             c,cell = self.setupCell(table,i,0,centerV=False,centerH=False)
-            #f = QTextTableCellFormat()
-            # # f.setBackground(QBrush(Qt.black,Qt.SolidPattern))
-            #f.setTopPadding(20)
-            # f.merge(self.styles['bigtext'])
-            #cell.setFormat(f)
             img = QImage(ICONS['option'])
             img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
             c.insertImage(img)
             c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
             c.setCharFormat(self.styles['text'])
             c.insertText(text)
-            # f = QTextTableCellFormat()
-            # f.setBottomPadding(260)
-            # f.setFont(self.styles['bigfont'])
-# 
-            # cursor.insertBlock(self.styles['body'],self.styles['bigtext'])
-            # cursor.insertText(texta)
-            # cursor.setCharFormat(self.styles['text'])
-            # cursor.insertText(textb)
 
             i += 1
-
-        self.writeSeparator(document,single=True)
+       
+        return self.writeSeparator(document,single=True)
 
     def writeJoinActivity(self, document, options, cursor=None):
         if not cursor:
             cursor = self.initCursor(document)
+        
+        rows = len(options)
+        f = QTextFrameFormat()
+        tabsize = 4
+        f.setLeftMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
+        cursor.insertFrame(f)
+        cursor.movePosition(QTextCursor.EndOfLine)
+        table = cursor.insertTable(rows,5,self.styles['option.table'])
+        separator = " " * 50 
+        i=0
+        for opt in options:
+            text1 = opt.get('text1')
+            text1 = text1.capitalize()
+            pic1 = opt.get('pic1')
+            text2 = opt.get('text1')
+            text2 = text2.capitalize()
+            pic2 = opt.get('pic1')
+
+            c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
+            img = QImage(ICONS['option'])
+            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+            c.insertImage(img)
+            c,cell = self.setupCell(table,i,0,centerV=False,centerH=False)
+            c.setCharFormat(self.styles['text'])
+            c.insertText(text1)
+            
+            c,cell = self.setupCell(table,i,2,centerV=False,centerH=False)
+            c.setCharFormat(self.styles['text'])
+            c.insertText(separator)
+
+            c,cell = self.setupCell(table,i,3,centerV=False,centerH=False)
+            img = QImage(ICONS['option'])
+            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+            c.insertImage(img)
+            c,cell = self.setupCell(table,i,4,centerV=False,centerH=False)
+            c.setCharFormat(self.styles['text'])
+            c.insertText(text2)
+            i += 1
+
+        return self.writeSeparator(document,single=True)
 
     def writeTitle(self,document,text, cursor=None):
         if document and text:
@@ -517,3 +674,125 @@ class helperPDF():
     def setHeaderInfo(self,header_info):
             self.header_info = deepcopy(self.validateHeader(header_info))
 
+# class BData(QTextBlockUserData):
+#     def __init__(self,data=None):
+#         super().__init__()
+#         self.data = data
+
+class ExamDocument(QTextDocument):
+    def __init__(self,*args,**kwargs):
+        self.headersSize = 16
+        self.resolution = None
+        super().__init__(*args,**kwargs)
+
+    def setHeadersSize(self, value):
+        self.headersSize = value
+
+    def setPage(self,pageSize=None,printer=None):
+        if not pageSize:
+            if printer:
+                self.resolution = printer.resolution()
+                pageSize = printer.pageRect().size()
+                if self.headersSize:
+                    pageSize.setHeight(pageSize.height()-self.mmToPixels(self.headersSize))
+            else:
+                return
+        self.setPageSize(pageSize)
+    
+    def mmToPixels(self, mm, printer=None):
+        # 1 pixel per inch (ppi) = 0.03937 pixel per mm (dpi)
+        # 1 pixel per mm (dpi)   = 25.4 pixel per inch (ppi)
+        # 1 inch = 25.4 mm
+        res = None
+        if not printer:
+            if self.resolution:
+                res = self.resolution
+        else:
+            res = printer.resolution()
+        if res:
+            return mm * 0.039370147 * res
+        return None
+
+    def printPageWithHeaders(self,index,painter,document,body,printer,header="HEADER",footer="FOOTER"):
+
+        fontHeaders = QFont('courier',16,QFont.Black)
+
+        printer_height = printer.height()
+        paper_height = body.height()
+
+        offset_document = (index-1) * paper_height
+
+        free_space = printer_height - paper_height
+        header_height = free_space / 2
+        footer_height = free_space / 2
+
+        # header rect
+        # Coordinates into one page
+        headerPageRect = QRectF(0,0, printer.width(), header_height)
+        # text rect
+        # Coordinates into one page
+        # textPageRect = QRectF(0, header_height, printer.width(), body.height())
+        # view rect
+        # Coordinates into full document
+        viewRect = QRectF(QPointF(0,offset_document), body.size())
+        # footer rect
+        # Coordinates into one page
+        footerPageRect = QRectF(0,printer_height-footer_height, printer.width(), header_height)
+
+        offset_line = self.mmToPixels(2)
+
+        pen = painter.pen()
+        pen.setColor(Qt.black)
+
+        painter.save()        
+        painter.setRenderHint(QPainter.TextAntialiasing,True)
+        painter.setRenderHint(QPainter.HighQualityAntialiasing,False)
+
+        offset_header = 0
+
+        if header:
+            painter.setPen(pen)
+            painter.setFont(fontHeaders)
+            painter.drawText(headerPageRect,Qt.AlignRight, header)
+            pen.setWidth(5)
+            painter.setPen(pen)
+            painter.drawLine(0,header_height-offset_line,printer.width(),header_height-offset_line)
+            offset_header = header_height
+        
+        offset_header = - offset_document + offset_header
+        painter.translate(0, offset_header)
+        
+        layout = document.documentLayout()
+        ctx = QAbstractTextDocumentLayout.PaintContext()
+        ctx.clip = viewRect
+        ctx.palette.setColor(QPalette.Text,Qt.black)
+        layout.draw(painter,ctx)
+        painter.restore()
+        
+        if footer:
+            painter.save()
+            painter.setRenderHint(QPainter.TextAntialiasing,True)
+            painter.setRenderHint(QPainter.HighQualityAntialiasing,False)
+            pen = painter.pen()
+            pen.setWidth(5)
+            pen.setColor(Qt.black)
+            painter.setPen(pen)
+            painter.drawLine(0,paper_height+header_height-offset_line,printer.width(),paper_height+header_height-offset_line)
+            painter.setFont(fontHeaders)
+            painter.drawText(footerPageRect,Qt.AlignRight, footer)
+            painter.restore()
+
+    def printExamModel(self,printer,model=""):
+        p = QPainter(printer)       
+        self.setPage(printer=printer)
+        body = QRectF(QPointF(0,0),self.pageSize())
+        for i in range(self.pageCount()):
+            if i != 0:
+                printer.newPage()
+            self.printPageWithHeaders(i+1,p,self,body,printer,header=model,footer=str(i+1))
+
+# class MyPrinter(QPrinter):
+#     def __init__(self,*args,**kwargs):
+#         super().__init__(*args,**kwargs)
+#     def paintRequested(self,*args,**kwargs):
+#         super().__init__(*args,**kwargs)

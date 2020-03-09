@@ -20,7 +20,7 @@ from copy import deepcopy
 from .QuestionType import Question
 # Main class of application
 class AppMainWindow(QApplication):    
-    def __init__(self):
+    def __init__(self,load_filename=None):
         super().__init__([])
         try:
             self.window = self.loadUi()
@@ -57,7 +57,12 @@ class AppMainWindow(QApplication):
             self.header_info = {}
             self.current_filename = None
             self.aborting = False
-            # self.menuController('menu_print_exam')
+            if load_filename:
+                self.autoloadfilename = load_filename
+                self.menuController('menu_load_exam')
+                self.menuController('menu_print_preview')
+            else:
+                self.autoloadfilename = None
             # self.exitting()
         except Exception as e:
             print("Exception when initializing, {}".format(e))
@@ -606,7 +611,10 @@ class AppMainWindow(QApplication):
         if data == 'menu_exit_app':
             self.exitting()
         elif data == 'menu_load_exam':
-            filename = self.openfiledialog()
+            if self.autoloadfilename:
+                filename = self.autoloadfilename
+            else:
+                filename = self.openfiledialog()
             if filename:
                 self.tableQuestions.clearTable()
                 examData = self.persistence.loadExam(filename)
