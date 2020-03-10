@@ -15,7 +15,7 @@ def exit_control_c(sig, frame):
         print("User request exit from app")
         app.exitting()
     else:
-        print("Ending")
+        print("Ending QApplication")
         QApplication.quit()
     
     sys.exit(0)
@@ -34,7 +34,7 @@ def start_kmixtest(load_filename=None):
     except Exception as e:
         print('Initialization exception:{}'.format(e))
     finally:
-        print('{}'.format('Quitting'))
+        print('{}'.format('Quitting Kmixtest'))
         QApplication.quit()
         sys.exit(0)
     

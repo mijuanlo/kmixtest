@@ -48,6 +48,23 @@ def unmychr(char):
     if chars and isinstance(char,str):
         return chars.index(char)+1
 
+def picaToPixels(pica):
+    return pica * 12
+
+def mmToPixels(mm, printer=None, resolution=1200):
+    # 1 pixel per inch (ppi) = 0.03937 pixel per mm (dpi)
+    # 1 pixel per mm (dpi)   = 25.4 pixel per inch (ppi)
+    # 1 inch = 25.4 mm
+    res = None
+    if not printer or not isinstance(printer,QPrinter):
+        if resolution:
+            res = resolution
+    else:
+        res = printer.resolution()
+    if res:
+        return mm * 0.039370147 * res
+    return None
+
 # Function for debugging page printer configuration
 def print_preview_data(preview):
     orientation = preview.orientation().name.decode()

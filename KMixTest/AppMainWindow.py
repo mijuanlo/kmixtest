@@ -72,7 +72,7 @@ class AppMainWindow(QApplication):
     def exitting(self):
         global NATIVE_THREADS
         self.aborting = True
-        qDebug("Exitting")
+        qDebug("Terminating MainWindow")
         if self.tableQuestions:
             if self.tableQuestions.pool:
                 self.tableQuestions.pool.terminate = True
@@ -121,7 +121,7 @@ class AppMainWindow(QApplication):
 
     @Slot(int)
     def clickedPreview(self,checked):
-        qDebug("Preview clicked!")
+        # qDebug("Preview clicked!")
         self.initializePrinting()
         self.sheet.openWidget()
 
