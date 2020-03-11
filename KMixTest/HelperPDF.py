@@ -19,7 +19,7 @@ class helperPDF():
     header_table_rows = 2
 
     def __init__(self, parent=None):
-        self.debug = True
+        self.debug = False
         self.parent = parent
         self.pageMargins = QMarginsF(10,10,10,10)
         self.orientation = QPageLayout.Orientation.Portrait
@@ -38,10 +38,12 @@ class helperPDF():
         self.preview = False
         self.last_cursor_ack = None
         self.last_page_ack = 1
-        self.splitWithFrame = False
         self.numberedPages = True
         self.headerWithFrame = False
-
+        self.splitWithFrame = False
+        if self.debug:
+            self.headerWithFrame = True
+            self.splitWithFrame = True
     def setCustomizations(self,numberedPages, splitWithFrames, headerWithFrame):
         self.splitWithFrame = splitWithFrame
         self.numberedPages = numberedPages
@@ -241,10 +243,12 @@ class helperPDF():
         styles[x].setBorderStyle(tableborderstyle)
         styles[x].setBorder(tableborder)
         styles[x].setCellPadding(0.0)
+        styles[x].setLeftMargin(mmToPixels(10,resolution=resolution))
         styles[x].setColumnWidthConstraints(
             [ 
                 QTextLength(QTextLength.PercentageLength, 5), 
-                QTextLength(QTextLength.PercentageLength, 90)
+                QTextLength(),
+                QTextLength()
             ] )
 
         x = 'option.table.join'
@@ -303,13 +307,13 @@ class helperPDF():
         layout = document.documentLayout()
         rect = layout.blockBoundingRect(cursor.block())
         current_h = rect.y() + rect.height()
-        page_h -= 2*mmToPixels(16,1200)
+        # page_h -= 2 * mmToPixels(document.headersSize,1200)
         # current_h2 = document.documentLayout().blockBoundingRect(cursor.block()).y()
         pagenumber = int(current_h/page_h)+1
         pagecount = document.pageCount()
-        if self.debug:
-            qDebug('Cursor at: {} page={}'.format(current_h,pagenumber,pagecount))
-        pct = int(current_h*100/page_h)
+        # if self.debug:
+        #     qDebug('Cursor at: {} page={}'.format(current_h,pagenumber,pagecount))
+        pct = int(current_h*100/page_h)%100
         return pagenumber,pct
 
     @Slot(QPrinter)
@@ -320,7 +324,7 @@ class helperPDF():
         self.initSystem(printer)
 
         if self.debug:        
-            print_document_data(self.document)
+            # print_document_data(self.document)
             print_printer_data(self.printer)
 
         self.document = self.completeDocument(self.document)
@@ -448,8 +452,10 @@ class helperPDF():
     def setupCell(self, table, row=0, col=0, centerH=True, centerV=True):
         cell = table.cellAt(row,col)
         cursor = cell.firstCursorPosition()
+        
         if centerH:
             cursor.setBlockFormat(self.styles['centerH'])
+
         if centerV:
             cell.setFormat(self.styles['centerV'])
         return cursor,cell
@@ -553,14 +559,19 @@ class helperPDF():
             cursor.insertBlock(self.styles['pagebreak'])
         else:
             cursor.setPosition(cursorpos)
+            page1,pct1 = self.print_cursor_position_y(document,cursor)
             cursor.movePosition(QTextCursor.StartOfBlock)
             cursor.blockFormat().setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
             cursor.insertBlock(self.styles['pagebreak'])
+            page2,pct2 = self.print_cursor_position_y(document,cursor)
+            if self.debug:
+                qDebug('Break page: From {} {}% to {} {}%'.format(page1,pct1,page2,pct2))
 
     def writeLine(self, document, cursor=None):
         if not cursor:
             cursor = self.initCursor(document)
         if not self.splitWithFrame:
+            cursor.insertFrame(QTextFrameFormat())
             return cursor
         pagenum,pct = self.print_cursor_position_y(document,cursor)
 
@@ -580,6 +591,8 @@ class helperPDF():
             cursor = self.initCursor(document)
             cursor_ini = cursor.position()
             pagestart,pct = self.print_cursor_position_y(document)
+            if self.debug:
+                qDebug("Starting question {} at page {} {}%".format(question_num,pagestart,pct))
             if title or title_pic:
                 cols = 0
                 if title:
@@ -598,9 +611,11 @@ class helperPDF():
                     max_image_width = (document.pageSize() / 4).width()
                     image = image.scaledToWidth(max_image_width,Qt.SmoothTransformation)
                     self.writeImage(document, image, cursor=cursor2)
-                if self.debug:
-                    qDebug('End question with table, (title={})'.format(title))
-                    page,pct = self.print_cursor_position_y(document)
+            self.writeSeparator(document,single=True)
+            if self.debug:
+                page,pct = self.print_cursor_position_y(document)
+                qDebug("End title from question {} at page {} {}%, title={}...".format(question_num,pagestart,pct,title[:30]))
+
             self.writeSeparator(document,single=True)
 
             nlines = 0
@@ -618,29 +633,39 @@ class helperPDF():
             for i in range(1,nlines+1):
                 if self.debug:
                     self.writeSeparator(document,number=i)
-                    qDebug('Space {}'.format(i))
                     page,pct = self.print_cursor_position_y(document)
+                    qDebug('Space {} from question {} at page {} {}%'.format(i,question_num,page,pct))
                 else:
                     self.writeSeparator(document)
+
+            if self.debug:
+                page,pct = self.print_cursor_position_y(document)
+                qDebug("End options/lines from question {} at page {} {}%".format(question_num,page,pct))
 
             cursor_end = self.writeLine(document)
             cursor_end = cursor_end.position()
             pageend,pct  = self.print_cursor_position_y(document)
             self.pagequestion.setdefault(pagestart,[])
             self.pagequestion.setdefault(pageend,[])
-            if pct < 90 and pagestart == pageend:
+            if pagestart == pageend:
                 self.pagequestion[pagestart].append(question_num)
                 self.last_cursor_ack = cursor_end
                 if self.debug:
-                    qDebug('Page ack')
+                    qDebug('Question {} write success until page {} {}%'.format(question_num,pageend,pct))
             else:
                 if len(self.pagequestion[pagestart]) > 0:
-                    self.writePageBreak(document,cursor_ini)
                     if self.debug:
-                        qDebug('Breaking page')
+                        qDebug('Question {} goes next page, breaking page on last question'.format(question_num))
+                    self.writePageBreak(document,cursor_ini)
                 else:
-                    pass
-            
+                    if self.debug:
+                        qDebug('Question {} sizes more than one page, skipping break, write sucess'.format(question_num))
+
+            pageend,pct  = self.print_cursor_position_y(document)
+            self.pagequestion[pageend].append(question_num)
+            self.last_cursor_ack = cursor_end
+            if self.debug:
+                qDebug('End processing question {}, ended on page {} {}%'.format(question_num,pageend,pct))
         return document
 
     def writeTest(self, document, options, cursor=None):
@@ -648,31 +673,32 @@ class helperPDF():
             cursor = self.initCursor(document)
         
         rows = len(options)
-        f = QTextFrameFormat()
-        tabsize = 4
-        f.setLeftMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
-        cursor.insertFrame(f)
-        cursor.movePosition(QTextCursor.EndOfLine)
-        table = cursor.insertTable(rows,2,self.styles['option.table'])
-        f = QTextFrameFormat()
-        tabsize = 4
-        f.setRightMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
-        ret = cursor.movePosition(QTextCursor.NextCell)
-        cursor.insertFrame(f)
-        cursor.insertText("A"*100)
+        table = cursor.insertTable(rows,3,self.styles['option.table'])
         i=0
+        tf = table.format()
+        tf.setCellSpacing(mmToPixels(2,1200))
+        table.setFormat(tf)
         for opt in options:
             text = opt.get('text1')
             text = text.capitalize()
             pic = opt.get('pic1')
 
-            c,cell = self.setupCell(table,i,0,centerV=False,centerH=False)
+            c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
             img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height(),Qt.SmoothTransformation)
             c.insertImage(img)
-            c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(text)
+            if pic:
+                c,cell = self.setupCell(table,i,1,centerV=True,centerH=False)
+                img = dataPixMapToImage(pic)
+                if img.isNull():
+                    qDebug('Error: Invalid image detected')
+                else:
+                    img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
+                    c.insertImage(img)
+            if text:
+                c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
+                c.setCharFormat(self.styles['text'])
+                c.insertText(text)
 
             i += 1
        
@@ -683,14 +709,10 @@ class helperPDF():
             cursor = self.initCursor(document)
         
         rows = len(options)
-        # f = QTextFrameFormat()
-        # tabsize = 4
-        # f.setLeftMargin(QFontMetrics(self.styles['defaultfont']).maxWidth()*tabsize)
-        # cursor.insertFrame(f)
-        # cursor.movePosition(QTextCursor.EndOfLine)
-        self.writeSeparator(document,single=True)
         table = cursor.insertTable(rows,7,self.styles['option.table.join'])
-
+        tf = table.format()
+        tf.setCellSpacing(mmToPixels(2,1200))
+        table.setFormat(tf)
         i=0
         for opt in options:
             text1 = opt.get('text1')
@@ -712,41 +734,52 @@ class helperPDF():
             separator = " " * inc
 
             space = " " * 3
-            c,cell = self.setupCell(table,i,0,centerV=False,centerH=False)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(text1+space)
 
-            c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
-            img = QImage(pic1)
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
+            if text1:
+                c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
+                c.setCharFormat(self.styles['text'])
+                c.insertText(text1+space)
 
-            c,cell = self.setupCell(table,i,2,centerV=False,centerH=False)
+            if pic1:
+                c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
+                img = dataPixMapToImage(pic1)
+                if img.isNull():
+                    qDebug('Error: Invalid image detected')
+                else:
+                    img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
+                    c.insertImage(img)
+
+            c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
             c.setCharFormat(self.styles['text'])
             c.insertText(space)
             img = QImage(ICONS['option'])
             img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
             c.insertImage(img)
-            
+
             c,cell = self.setupCell(table,i,3,centerV=False,centerH=False)
             c.setCharFormat(self.styles['text'])
             c.insertText(separator)
 
-            c,cell = self.setupCell(table,i,4,centerV=False,centerH=False)
+            c,cell = self.setupCell(table,i,4,centerV=True,centerH=False)
             img = QImage(ICONS['option'])
             img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
             c.insertImage(img)
             c.setCharFormat(self.styles['text'])
             c.insertText(space)
 
-            c,cell = self.setupCell(table,i,5,centerV=False,centerH=False)
-            img = QImage(pic2)
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
+            if pic2:
+                c,cell = self.setupCell(table,i,5,centerV=False,centerH=False)
+                img = dataPixMapToImage(pic2)
+                if img.isNull():
+                    qDebug('Error: Invalid image detected')
+                else:
+                    img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
+                    c.insertImage(img)
 
-            c,cell = self.setupCell(table,i,6,centerV=False,centerH=False)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(space+text2)
+            if text2:
+                c,cell = self.setupCell(table,i,6,centerV=True,centerH=False)
+                c.setCharFormat(self.styles['text'])
+                c.insertText(space+text2)
 
             i += 1
 
