@@ -23,6 +23,7 @@ class AppMainWindow(QApplication):
     def __init__(self,load_filename=None):
         super().__init__([])
         try:
+            self.debug = False
             self.window = self.loadUi()
             left_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
             left_policy.setHorizontalStretch(2)
@@ -597,7 +598,8 @@ class AppMainWindow(QApplication):
 
     @Slot(str)
     def menuController(self,*args,**kwargs):
-        qDebug('Called menuController')
+        if self.debug:
+            qDebug('Called menuController')
         if not args:
             if self.sender():
                 data = self.sender().data()
@@ -607,7 +609,8 @@ class AppMainWindow(QApplication):
             data = args[0]
         if not data:
             raise ValueError()
-        qDebug('Menu "{}" click'.format(data))
+        if self.debug:
+            qDebug('Menu "{}" click'.format(data))
         if data == 'menu_exit_app':
             self.exitting()
         elif data == 'menu_load_exam':

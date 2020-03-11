@@ -1,9 +1,17 @@
+import os.path
+import sys
+
 #
 # START EDITABLE VARS
 #
 
 RESOURCES_PATH = [ ".", "./lib", "/usr/lib/kmixtest" ]
-
+MORE_PATHS = []
+for x in RESOURCES_PATH:
+    extra = os.path.realpath(os.path.realpath(os.path.dirname(sys.argv[0])) + "/" + x)
+    if os.path.exists(extra) and extra not in RESOURCES_PATH and extra not in MORE_PATHS:
+        MORE_PATHS.append(extra)
+RESOURCES_PATH.extend(MORE_PATHS)
 # IM_DEBUGGING: Fill editable vars with optimal values
 IM_DEBUGGING = False
 

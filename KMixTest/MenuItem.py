@@ -145,7 +145,7 @@ class MenuItem(QObject):
 
     def calculate_default_menubar_shortcut(self,name):
         used = []
-        print('names: {}'.format(self._get_names()))
+        # print('names: {}'.format(self._get_names()))
         for item in self._get_names():
             for character in item:
                 if character in used:

@@ -14,6 +14,7 @@ class gridHelper(QObject):
 
     def __init__(self, grid=None, parent=None):
         super().__init__()
+        self.debug = False
         self.parent = parent
         self.grid = grid
         # Links box_uuid with object
@@ -46,7 +47,8 @@ class gridHelper(QObject):
                 else:
                     rowstr.append('{}:<empty>'.format(x))
             if not is_empty:
-                qDebug('Row: {} -> {}'.format(y,','.join(rowstr)))
+                if self.debug:
+                    qDebug('Row: {} -> {}'.format(y,','.join(rowstr)))
     
     def getGridData(self):
         gridData=[]
@@ -183,7 +185,8 @@ class gridHelper(QObject):
         self.hide_all_boxes()
         id_box = self.tableDataMap.get(id_from_row)
         if id_box:
-            qDebug("Showing question {}".format(row))
+            if self.debug:
+                qDebug("Showing question {}".format(row))
             self.boxes.get(id_box).show()
         else:
             qDebug("Showing question {} (new)".format(row))
