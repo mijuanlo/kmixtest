@@ -15,6 +15,7 @@ from .Util import dumpPixMapData,loadPixMapData
 
 from os.path import expanduser
 from copy import deepcopy
+from random import randint
 
 #AllowedQuestionTypes = ["Single question","Test question","Join activity"]
 from .QuestionType import Question
@@ -124,13 +125,121 @@ class AppMainWindow(QApplication):
         if config:
             alter = config.get('alter')
             nmodels = config.get('nmodels')
+<<<<<<< HEAD
+=======
+
+            nmodels = 2
+
+
+>>>>>>> wip-multipage
             if exam:
                 exam , solution = self.mixData(exam,nmodels,alter)
         if exam:
             self.sheet.setExamData(exam)
 
     def mixData(self, examdata, nmodels=1, alter=False):
+<<<<<<< HEAD
         # return { 'A': examdata }, { 'A' : 'TODO'}
+=======
+        def getRandom(candidates,notprefer=[]):
+            maxiter = 5
+            if not isinstance(notprefer,list):
+                notprefer = [notprefer]
+            s = len(candidates)-1
+            for i in range(maxiter):
+                j = randint(0,s)
+                c = candidates[j]
+                if c not in notprefer:
+                    return c
+                elif i == maxiter-1:
+                    return c
+        fixed = sorted([ nquestion for nquestion,questiondata in enumerate(examdata) if questiondata.get('fixed') ])
+        linked = sorted([ nquestion for nquestion,questiondata in enumerate(examdata) if questiondata.get('linked') ])
+        linked_groups = []
+        group = []
+        for i in range(len(examdata)):
+            if i in linked:
+                group.append(i)
+            else:
+                if len(group):
+                    linked_groups.append(group)
+                    group = []
+            if i == len(examdata)-1:
+                if len(group):
+                    linked_groups.append(group)
+
+        mapping = {}
+        newOrder = {}
+        for i in range(nmodels):
+            modelname = chr(65+i).upper()
+            mapping.setdefault(modelname,[{}]*len(examdata))
+            newOrder.setdefault(modelname,[None]*len(examdata))
+            # put fixed elements
+            j = -1
+            used = []
+            while j < len(examdata):
+                j += 1
+                if j in fixed:
+                    mapping[modelname][j]=examdata[j]
+                    used.append(j)
+                    if j in linked:
+                        group = [ g for g in linked_groups if j in g ][0]
+                        if group[0] != j:
+                            raise ValueError()
+                        for g in group[1:]:
+                            if g != j+1:
+                                raise ValueError()
+                            mapping[modelname][g]=examdata[g]
+                            used.append(g)
+                            j += 1
+            
+            # put linked and not fixed
+            pending = [ x for x in range(len(examdata)) if not mapping[modelname][x] ]
+            for g in linked_groups:
+                size = len(g)
+                if not size:
+                    raise ValueError()
+                if g[0] in used:
+                    continue
+                available_holes = []
+                for p in pending:
+                    found = True
+                    for j in range(p,size+p):
+                        if j not in pending:
+                            found = False
+                            break
+                    if found:
+                        available_holes.append(p)
+                if not len(available_holes):
+                    raise ValueError()
+                candidate = getRandom(available_holes,[g[0]])
+                group_pos = g[0]
+                for j in range(len(g)):
+                    if mapping[modelname][candidate+j]:
+                        raise ValueError()
+                    mapping[modelname][candidate+j] = examdata[group_pos+j]
+                    used.append(group_pos+j)
+                    if candidate+j in available_holes:
+                        available_holes.remove(candidate+j)
+                    pending.remove(group_pos+j)
+            
+            # simple elements
+            available_holes = [ x for x in range(len(examdata)) if not mapping[modelname][x] ]
+            while len(pending):
+                p = pending[0]
+                candidate = getRandom(available_holes,[p])
+                if mapping[modelname][candidate]:
+                    raise ValueError()
+                mapping[modelname][candidate] = examdata[p]
+                used.append(p)
+                available_holes.remove(candidate)
+                pending.remove(p)
+            # write solution
+            for order,data in enumerate(mapping[modelname]):
+                newOrder[modelname][order] = data.get('order')
+        
+        return mapping, newOrder
+>>>>>>> wip-multipage
         return { 'A': examdata , 'B': examdata }, { 'A' : 'TODO', 'B': 'TODO'}
 
     @Slot(int)
