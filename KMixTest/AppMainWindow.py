@@ -125,22 +125,16 @@ class AppMainWindow(QApplication):
         if config:
             alter = config.get('alter')
             nmodels = config.get('nmodels')
-<<<<<<< HEAD
-=======
 
             nmodels = 2
 
 
->>>>>>> wip-multipage
             if exam:
                 exam , solution = self.mixData(exam,nmodels,alter)
         if exam:
             self.sheet.setExamData(exam)
 
     def mixData(self, examdata, nmodels=1, alter=False):
-<<<<<<< HEAD
-        # return { 'A': examdata }, { 'A' : 'TODO'}
-=======
         def getRandom(candidates,notprefer=[]):
             maxiter = 5
             if not isinstance(notprefer,list):
@@ -239,7 +233,6 @@ class AppMainWindow(QApplication):
                 newOrder[modelname][order] = data.get('order')
         
         return mapping, newOrder
->>>>>>> wip-multipage
         return { 'A': examdata , 'B': examdata }, { 'A' : 'TODO', 'B': 'TODO'}
 
     @Slot(int)
