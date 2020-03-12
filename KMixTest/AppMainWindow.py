@@ -114,11 +114,24 @@ class AppMainWindow(QApplication):
     def initializePrinting(self):
         if not self.sheet:
             self.sheet = helperPDF(parent=self)
-        self.sheet.setHeaderInfo(self.header_info)
         examData = self.buildExamData()
+        config = examData.get('config')
         exam = examData.get('examdata')
+        header = examData.get('header')
+        if header:
+            self.sheet.setHeaderInfo(header)
+        
+        if config:
+            alter = config.get('alter')
+            nmodels = config.get('nmodels')
+            if exam:
+                exam , solution = self.mixData(exam,nmodels,alter)
         if exam:
             self.sheet.setExamData(exam)
+
+    def mixData(self, examdata, nmodels=1, alter=False):
+        # return { 'A': examdata }, { 'A' : 'TODO'}
+        return { 'A': examdata , 'B': examdata }, { 'A' : 'TODO', 'B': 'TODO'}
 
     @Slot(int)
     def clickedPreview(self,checked):

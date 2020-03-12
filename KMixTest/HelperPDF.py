@@ -44,6 +44,7 @@ class helperPDF():
         if self.debug:
             self.headerWithFrame = True
             self.splitWithFrame = True
+
     def setCustomizations(self,numberedPages, splitWithFrames, headerWithFrame):
         self.splitWithFrame = splitWithFrame
         self.numberedPages = numberedPages
@@ -138,7 +139,6 @@ class helperPDF():
         if printer:
             self.printer = printer
         self.printer, self.dpi, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution_type, margins=self.pageMargins)
-        self.document = self.initDocument(printer = self.printer)
         if not self.preview:
             self.printer.setOutputFormat(QPrinter.PdfFormat)
             if filename:
@@ -214,7 +214,7 @@ class helperPDF():
         styles[x].setCellSpacing(0.0)
         styles[x].setBorderStyle(tableborderstyle)
         styles[x].setBorder(tableborder)
-        styles[x].setCellPadding(0.0)
+        styles[x].setCellPadding(mmToPixels(5,resolution=resolution))
         styles[x].setColumnWidthConstraints(
             [ 
                 QTextLength(QTextLength.PercentageLength, 75), 
@@ -327,9 +327,9 @@ class helperPDF():
             # print_document_data(self.document)
             print_printer_data(self.printer)
 
-        self.document = self.completeDocument(self.document)
+        self.document = self.completeDocument()
         #self.document = self.makeTestDocument(self.document)
-        self.document.printExamModel(self.printer,model="A",numbered=self.numberedPages,framed=self.headerWithFrame)
+        self.document.printExamModel(self.printer,numbered=self.numberedPages,framed=self.headerWithFrame)
 
     def makeTestDocument(self,document):
         #Init cursor
@@ -417,9 +417,8 @@ class helperPDF():
         qDebug('{}'.format(document.toHtml()))
         return document
 
-    def completeDocument(self,document):
-        document = self.makeHeaderTable(document,self.styles['header.table'] )
-        self.writeSeparator(document,single=False)
+    def completeDocument(self):
+        document = self.initDocument(printer = self.printer)
         document = self.writeExamData(document)
         return document
 
@@ -486,7 +485,8 @@ class helperPDF():
             'east': {'y':0,'x':2 }
         }
 
-        cursor = QTextCursor(document)
+        # cursor = QTextCursor(document)
+        cursor = self.initCursor(document)
         table = cursor.insertTable(rows,cols,self.styles['header.table'])
         table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
 
@@ -580,92 +580,98 @@ class helperPDF():
         return cursor
 
     def writeExamData(self,document):
-        self.pagequestion = {}
-        question_num = 0
-        for row in self.examData:
-            question_num += 1
-            title = row.get('title')
-            title = title.capitalize()
-            typeq = row.get('type')
-            title_pic = row.get('title_pic')
-            cursor = self.initCursor(document)
-            cursor_ini = cursor.position()
-            pagestart,pct = self.print_cursor_position_y(document)
-            if self.debug:
-                qDebug("Starting question {} at page {} {}%".format(question_num,pagestart,pct))
-            if title or title_pic:
-                cols = 0
-                if title:
-                    cols += 1
-                if title_pic:
-                    cols += 1
-                table = self.makeTitleTable(document, rows=1, cols=cols, cursor=cursor)
-                if title:
-                    cursor1,cell = self.setupCell(table,0,0,centerV=False)
-                    if title_pic:
-                        self.writeSeparator(document,cursor=cursor1,single=True)
-                    self.writeTitle(document,title, cursor=cursor1,qnumber=question_num)
-                if title_pic:
-                    cursor2,cell = self.setupCell(table,0,1,centerV=False)
-                    image = dataPixMapToImage(title_pic)
-                    max_image_width = (document.pageSize() / 4).width()
-                    image = image.scaledToWidth(max_image_width,Qt.SmoothTransformation)
-                    self.writeImage(document, image, cursor=cursor2)
-            self.writeSeparator(document,single=True)
-            if self.debug:
-                page,pct = self.print_cursor_position_y(document)
-                qDebug("End title from question {} at page {} {}%, title={}...".format(question_num,pagestart,pct,title[:30]))
-
-            self.writeSeparator(document,single=True)
-
-            nlines = 0
-            options = None
-            if typeq == 'single_question':
-                nlines = row.get('empty_lines')
-            else:
-                options = row.get('options')
-                if typeq == 'test_question':
-                    self.writeTest(document,options)
-                elif typeq == 'join_activity':
-                    self.writeJoinActivity(document,options)
-                self.writeSeparator(document,single=False)
-
-            for i in range(1,nlines+1):
+        for model in self.examData:
+            document.setInitModel(model)
+            document = self.makeHeaderTable(document,self.styles['header.table'] )
+            self.writeSeparator(document,single=False)
+            data = self.examData[model]
+            self.pagequestion = {}
+            question_num = 0
+            for row in data:
+                question_num += 1
+                title = row.get('title')
+                title = title.capitalize()
+                typeq = row.get('type')
+                title_pic = row.get('title_pic')
+                cursor = self.initCursor(document)
+                cursor_ini = cursor.position()
+                pagestart,pct = self.print_cursor_position_y(document)
                 if self.debug:
-                    self.writeSeparator(document,number=i)
+                    qDebug("Starting question {} at page {} {}%".format(question_num,pagestart,pct))
+                if title or title_pic:
+                    cols = 0
+                    if title:
+                        cols += 1
+                    if title_pic:
+                        cols += 1
+                    table = self.makeTitleTable(document, rows=1, cols=cols, cursor=cursor)
+                    if title:
+                        cursor1,cell = self.setupCell(table,0,0,centerV=False)
+                        if title_pic:
+                            self.writeSeparator(document,cursor=cursor1,single=True)
+                        self.writeTitle(document,title, cursor=cursor1,qnumber=question_num)
+                    if title_pic:
+                        cursor2,cell = self.setupCell(table,0,1,centerV=False)
+                        image = dataPixMapToImage(title_pic)
+                        max_image_width = (document.pageSize() / 4).width()
+                        image = image.scaledToWidth(max_image_width,Qt.SmoothTransformation)
+                        self.writeImage(document, image, cursor=cursor2)
+                self.writeSeparator(document,single=True)
+                if self.debug:
                     page,pct = self.print_cursor_position_y(document)
-                    qDebug('Space {} from question {} at page {} {}%'.format(i,question_num,page,pct))
+                    qDebug("End title from question {} at page {} {}%, title={}...".format(question_num,pagestart,pct,title[:30]))
+
+                self.writeSeparator(document,single=True)
+
+                nlines = 0
+                options = None
+                if typeq == 'single_question':
+                    nlines = row.get('empty_lines')
                 else:
-                    self.writeSeparator(document)
+                    options = row.get('options')
+                    if typeq == 'test_question':
+                        self.writeTest(document,options)
+                    elif typeq == 'join_activity':
+                        self.writeJoinActivity(document,options)
+                    self.writeSeparator(document,single=False)
 
-            if self.debug:
-                page,pct = self.print_cursor_position_y(document)
-                qDebug("End options/lines from question {} at page {} {}%".format(question_num,page,pct))
+                for i in range(1,nlines+1):
+                    if self.debug:
+                        self.writeSeparator(document,number=i)
+                        page,pct = self.print_cursor_position_y(document)
+                        qDebug('Space {} from question {} at page {} {}%'.format(i,question_num,page,pct))
+                    else:
+                        self.writeSeparator(document)
 
-            cursor_end = self.writeLine(document)
-            cursor_end = cursor_end.position()
-            pageend,pct  = self.print_cursor_position_y(document)
-            self.pagequestion.setdefault(pagestart,[])
-            self.pagequestion.setdefault(pageend,[])
-            if pagestart == pageend:
-                self.pagequestion[pagestart].append(question_num)
+                if self.debug:
+                    page,pct = self.print_cursor_position_y(document)
+                    qDebug("End options/lines from question {} at page {} {}%".format(question_num,page,pct))
+
+                cursor_end = self.writeLine(document)
+                cursor_end = cursor_end.position()
+                pageend,pct  = self.print_cursor_position_y(document)
+                self.pagequestion.setdefault(pagestart,[])
+                self.pagequestion.setdefault(pageend,[])
+                if pagestart == pageend:
+                    self.pagequestion[pagestart].append(question_num)
+                    self.last_cursor_ack = cursor_end
+                    if self.debug:
+                        qDebug('Question {} write success until page {} {}%'.format(question_num,pageend,pct))
+                else:
+                    if len(self.pagequestion[pagestart]) > 0:
+                        if self.debug:
+                            qDebug('Question {} goes next page, breaking page on last question'.format(question_num))
+                        self.writePageBreak(document,cursor_ini)
+                    else:
+                        if self.debug:
+                            qDebug('Question {} sizes more than one page, skipping break, write sucess'.format(question_num))
+
+                pageend,pct  = self.print_cursor_position_y(document)
+                self.pagequestion[pageend].append(question_num)
                 self.last_cursor_ack = cursor_end
                 if self.debug:
-                    qDebug('Question {} write success until page {} {}%'.format(question_num,pageend,pct))
-            else:
-                if len(self.pagequestion[pagestart]) > 0:
-                    if self.debug:
-                        qDebug('Question {} goes next page, breaking page on last question'.format(question_num))
-                    self.writePageBreak(document,cursor_ini)
-                else:
-                    if self.debug:
-                        qDebug('Question {} sizes more than one page, skipping break, write sucess'.format(question_num))
-
-            pageend,pct  = self.print_cursor_position_y(document)
-            self.pagequestion[pageend].append(question_num)
-            self.last_cursor_ack = cursor_end
-            if self.debug:
-                qDebug('End processing question {}, ended on page {} {}%'.format(question_num,pageend,pct))
+                    qDebug('End processing question {}, ended on page {} {}%'.format(question_num,pageend,pct))
+        document.setEndModel(breakPage=False)
         return document
 
     def writeTest(self, document, options, cursor=None):
@@ -849,10 +855,35 @@ class ExamDocument(QTextDocument):
     def __init__(self,*args,**kwargs):
         self.headersSize = 16
         self.resolution = None
+        self.modelOrder = []
+        self.models = {}
         super().__init__(*args,**kwargs)
 
     def setHeadersSize(self, value):
         self.headersSize = value
+
+    def setInitModel(self,model):
+        self.setEndModel()
+        self.modelOrder.append(model)
+        self.models.setdefault(model,{'ini': self.pageCount(), 'end':None, 'started': True})
+
+    def setEndModel(self,breakPage=True):
+        keys = self.models.keys()
+        if len(self.modelOrder) != len(keys) or len(keys) < 1:
+            return None
+        last = self.modelOrder[-1]
+        if last not in keys:
+            raise ValueError()
+        if self.models[last].get('started'):
+            self.models[last]['started'] = False
+            self.models[last]['end'] = self.pageCount()
+            if breakPage:
+                cursor = QTextCursor(self)
+                cursor.movePosition(QTextCursor.End)
+                pb = QTextBlockFormat()
+                pb.setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
+                cursor.insertBlock(pb)
+
 
     def setPage(self,pageSize=None,printer=None):
         if not pageSize:
@@ -936,17 +967,27 @@ class ExamDocument(QTextDocument):
             painter.drawText(footerPageRect,Qt.AlignRight, footer)
             painter.restore()
 
-    def printExamModel(self,printer,model="",numbered=True,framed=True):
-        p = QPainter(printer)       
+    def printExamModel(self,printer,numbered=True,framed=True):
+        headermap = {}
+        footermap = {}
+        for modelname, infomodel in self.models.items():
+            counter = 1
+            for i in range(infomodel.get('ini'),infomodel.get('end')+1):
+                headermap.setdefault(i,modelname)
+                footermap.setdefault(i,counter)
+                counter += 1
+        p = QPainter(printer)
         self.setPage(printer=printer)
         body = QRectF(QPointF(0,0),self.pageSize())
         for i in range(self.pageCount()):
             if i != 0:
                 printer.newPage()
+            header = str(headermap.get(i+1))
             footer=""
             if numbered:
-                footer = "{}/{}".format(i+1,self.pageCount())
-            self.printPageWithHeaders(i+1,p,self,body,printer,header=model,footer=footer,framed=framed)
+                info = self.models.get(headermap.get(i+1))
+                footer = "{}/{}".format(footermap.get(i+1),info.get('end')-info.get('ini')+1)
+            self.printPageWithHeaders(i+1,p,self,body,printer,header=header,footer=footer,framed=framed)
 
 # class MyPrinter(QPrinter):
 #     def __init__(self,*args,**kwargs):
