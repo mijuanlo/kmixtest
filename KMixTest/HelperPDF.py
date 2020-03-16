@@ -581,6 +581,8 @@ class helperPDF():
 
     def writeExamData(self,document):
         for model in self.examData:
+            if model[0] == '_':
+                continue
             document.setInitModel(model)
             document = self.makeHeaderTable(document,self.styles['header.table'] )
             self.writeSeparator(document,single=False)
@@ -724,9 +726,9 @@ class helperPDF():
             text1 = opt.get('text1')
             text1 = text1.capitalize()
             pic1 = opt.get('pic1')
-            text2 = opt.get('text1')
+            text2 = opt.get('text2')
             text2 = text2.capitalize()
-            pic2 = opt.get('pic1')
+            pic2 = opt.get('pic2')
 
             inc = 50
             if pic1:

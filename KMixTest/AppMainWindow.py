@@ -14,8 +14,9 @@ from .MenuItem import MenuItem
 from .Util import dumpPixMapData,loadPixMapData
 
 from os.path import expanduser
+from os import urandom
 from copy import deepcopy
-from random import randint
+from random import randint,shuffle,sample,choice,seed
 
 #AllowedQuestionTypes = ["Single question","Test question","Join activity"]
 from .QuestionType import Question
@@ -125,28 +126,83 @@ class AppMainWindow(QApplication):
         if config:
             alter = config.get('alter')
             nmodels = config.get('nmodels')
-
-            nmodels = 2
-
-
             if exam:
-                exam , solution = self.mixData(exam,nmodels,alter)
+                exam = self.mixData(exam,nmodels,alter)
         if exam:
             self.sheet.setExamData(exam)
 
+    def swapOptionElements(self,op1,op2):
+        keys = ['text2','pic2','pic2_name']
+        for x in keys:
+            tmp = op1[x]
+            op1[x] = op2[x]
+            op2[x] = tmp
+
+    def reorderJoinOptions(self, oplist):
+        newList = deepcopy(oplist)
+        mapping = [ None ] * len(oplist)
+        available = set( range(len(newList)) )
+        while len(available):
+            i = choice(list(available))
+            r = choice(list(available))
+            if r != i:
+                self.swapOptionElements(newList[i],newList[r])
+                available.remove(r)
+                available.remove(i)
+                mapping[i] = r
+                mapping[r] = i
+            else:
+                available.remove(i)
+                mapping[i] = i
+        return newList, mapping
+
+    def unSwapOptionElements(self,oplist,mapping):
+        i = -1
+        used = set()
+        for m in mapping:
+            i += 1
+            if i in used:
+                continue
+            used.add(i)
+            if m == i:
+                continue
+            used.add(m)
+            self.swapOptionElements(oplist[i],oplist[m])
+
+    def getRandomCandidate(self,candidates,notprefer=[]):
+        maxiter = 5
+        if not isinstance(notprefer,list):
+            notprefer = [notprefer]
+        s = len(candidates)-1
+        for i in range(maxiter):
+            seed(urandom(8))
+            j = randint(0,s)
+            c = candidates[j]
+            if c not in notprefer:
+                return c
+            elif i == maxiter-1:
+                return c
+
+    def reorderQuestionOptions(self, oplist):
+        oplistcopy = deepcopy(oplist)
+        newList = []
+        mapping = []
+        while len(oplistcopy):
+            seed(urandom(8))
+            pos = randint(0,len(oplistcopy)-1)
+            newList.append(oplistcopy.pop(pos))
+        for o in newList:
+            mapping.append(int(o.get('order'))-1)
+        return newList,mapping
+
     def mixData(self, examdata, nmodels=1, alter=False):
-        def getRandom(candidates,notprefer=[]):
-            maxiter = 5
-            if not isinstance(notprefer,list):
-                notprefer = [notprefer]
-            s = len(candidates)-1
-            for i in range(maxiter):
-                j = randint(0,s)
-                c = candidates[j]
-                if c not in notprefer:
-                    return c
-                elif i == maxiter-1:
-                    return c
+        # mix join options
+        for order,data in enumerate(examdata):
+            if data.get('type') == 'join_activity':
+                newdata, jmapping = self.reorderJoinOptions(data['options'])
+                data['options'] = newdata
+                data['join_mapping'] = jmapping
+
         fixed = sorted([ nquestion for nquestion,questiondata in enumerate(examdata) if questiondata.get('fixed') ])
         linked = sorted([ nquestion for nquestion,questiondata in enumerate(examdata) if questiondata.get('linked') ])
         linked_groups = []
@@ -163,18 +219,18 @@ class AppMainWindow(QApplication):
                     linked_groups.append(group)
 
         mapping = {}
-        newOrder = {}
         for i in range(nmodels):
+            examdatacopy = deepcopy(examdata)
             modelname = chr(65+i).upper()
-            mapping.setdefault(modelname,[{}]*len(examdata))
-            newOrder.setdefault(modelname,[None]*len(examdata))
+            mapping.setdefault(modelname,[{}]*len(examdatacopy))
+            newOrder = [{None:None}]*len(examdatacopy)
             # put fixed elements
             j = -1
             used = []
-            while j < len(examdata):
+            while j < len(examdatacopy):
                 j += 1
                 if j in fixed:
-                    mapping[modelname][j]=examdata[j]
+                    mapping[modelname][j]=examdatacopy[j]
                     used.append(j)
                     if j in linked:
                         group = [ g for g in linked_groups if j in g ][0]
@@ -183,10 +239,10 @@ class AppMainWindow(QApplication):
                         for g in group[1:]:
                             if g != j+1:
                                 raise ValueError()
-                            mapping[modelname][g]=examdata[g]
+                            mapping[modelname][g]=examdatacopy[g]
                             used.append(g)
                             j += 1
-            
+
             # put linked and not fixed
             pending = [ x for x in range(len(examdata)) if not mapping[modelname][x] ]
             for g in linked_groups:
@@ -206,37 +262,51 @@ class AppMainWindow(QApplication):
                         available_holes.append(p)
                 if not len(available_holes):
                     raise ValueError()
-                candidate = getRandom(available_holes,[g[0]])
+                candidate = self.getRandomCandidate(available_holes,[g[0]])
                 group_pos = g[0]
                 for j in range(len(g)):
                     if mapping[modelname][candidate+j]:
                         raise ValueError()
-                    mapping[modelname][candidate+j] = examdata[group_pos+j]
+                    mapping[modelname][candidate+j] = examdatacopy[group_pos+j]
                     used.append(group_pos+j)
                     if candidate+j in available_holes:
                         available_holes.remove(candidate+j)
                     pending.remove(group_pos+j)
-            
+
             # simple elements
-            available_holes = [ x for x in range(len(examdata)) if not mapping[modelname][x] ]
+            available_holes = [ x for x in range(len(examdatacopy)) if not mapping[modelname][x] ]
             while len(pending):
                 p = pending[0]
-                candidate = getRandom(available_holes,[p])
+                candidate = self.getRandomCandidate(available_holes,[p])
                 if mapping[modelname][candidate]:
                     raise ValueError()
                 mapping[modelname][candidate] = examdata[p]
                 used.append(p)
                 available_holes.remove(candidate)
                 pending.remove(p)
-            # write solution
-            for order,data in enumerate(mapping[modelname]):
-                newOrder[modelname][order] = data.get('order')
-        
-        return mapping, newOrder
-        return { 'A': examdata , 'B': examdata }, { 'A' : 'TODO', 'B': 'TODO'}
+
+            # reorder options into questions
+            if alter:
+                for order,data in enumerate(mapping[modelname]):
+                    options = data.get('options')
+                    join_mapping = None
+                    # debug_op = deepcopy(options)
+                    if options:
+                        join_mapping = data.get('join_mapping')
+                        if join_mapping:
+                            self.unSwapOptionElements(options,join_mapping)
+                            newdata, jmapping = self.reorderJoinOptions(options)
+                            data['options'] = newdata
+                            options = newdata
+                            data['join_mapping'] = jmapping
+                        newOptions,omapping = self.reorderQuestionOptions(options)
+                        data['option_mapping'] = omapping
+                        data['options'] = newOptions
+
+        return mapping
 
     @Slot(int)
-    def clickedPreview(self,checked):
+    def clickedPreview(self,checked):   
         # qDebug("Preview clicked!")
         self.initializePrinting()
         self.sheet.openWidget()
