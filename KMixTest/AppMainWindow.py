@@ -13,6 +13,9 @@ from .Persistence import Persistence
 from .MenuItem import MenuItem
 from .Util import dumpPixMapData,loadPixMapData
 
+import gettext
+_ = gettext.gettext
+
 from os.path import expanduser
 from os import urandom
 from copy import deepcopy
@@ -52,7 +55,7 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.menu.addMenuItem([{"Project":["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
+            self.menu.addMenuItem([{_("Project"):["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
             self.tableQuestions.pool.start_threads()
             self.editing_question = None
             self.n_models = 1
@@ -302,7 +305,6 @@ class AppMainWindow(QApplication):
                         newOptions,omapping = self.reorderQuestionOptions(options)
                         data['option_mapping'] = omapping
                         data['options'] = newOptions
-
         return mapping
 
     @Slot(int)
@@ -801,6 +803,7 @@ class AppMainWindow(QApplication):
         elif data == 'menu_load_exam':
             if self.autoloadfilename:
                 filename = self.autoloadfilename
+                self.autoloadfilename = None
             else:
                 filename = self.openfiledialog()
             if filename:

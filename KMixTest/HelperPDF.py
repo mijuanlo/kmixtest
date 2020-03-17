@@ -10,6 +10,9 @@ from .Config import ARTWORK, ICONS
 
 from copy import deepcopy
 
+import gettext
+_ = gettext.gettext
+
 USE_FAKE_HEADER = True
 
 # Helper class with pdf stuff related things
@@ -86,7 +89,7 @@ class helperPDF():
 
         if margins is not None and isinstance(margins,QMarginsF):
             if self.debug:
-                qDebug("Setting margins to {}".format(marginsToString(margins)))
+                qDebug("{} {}".format(_('Setting margins to'),marginsToString(margins)))
             current_layout.setMargins(margins)
             changed_layout = True
         else:
@@ -94,7 +97,7 @@ class helperPDF():
         
         if orientation is not None and isinstance(orientation, QPageLayout.Orientation):
             if self.debug:
-                qDebug("Setting orientation to {}".format(orientation.name.decode()))
+                qDebug("{} {}".format(_('Setting orientation to'),orientation.name.decode()))
             current_layout.setOrientation(orientation)
             changed_layout = True
 
@@ -104,12 +107,12 @@ class helperPDF():
         PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
         self.constPaperScreen = PaperToScreen
         if self.debug:
-            qDebug("Setting constant: {}".format(int(self.constPaperScreen)))
+            qDebug("{}: {}".format(_('Setting constant'),int(self.constPaperScreen)))
 
         relTextToA4 = int(self.printer.pageSizeMM().width()/210.0)
         self.relTextToA4 = relTextToA4
         if self.debug:
-            qDebug("Setting text multiplier size: {}".format(relTextToA4))
+            qDebug("{}: {}".format(_('Setting text multiplier size'),relTextToA4))
 
         return printer, resolution, PaperToScreen, current_layout
 
@@ -282,7 +285,7 @@ class helperPDF():
         styles['single'].setLineHeight(100,QTextBlockFormat.ProportionalHeight)
         
         if self.debug:
-            qDebug("Using text multiplier size: {}".format(int(self.relTextToA4)))
+            qDebug("{}: {}".format(_('Using text multiplier size'),int(self.relTextToA4)))
         
         # styles['defaultfont'] = QFont("Times",10 * self.constPaperScreen * self.relTextToA4)
         # styles['bigfont'] = QFont("Times",30 * self.constPaperScreen * self.relTextToA4)
@@ -319,7 +322,7 @@ class helperPDF():
     @Slot(QPrinter)
     def paintRequest(self, printer=None):
         if self.debug:
-            qDebug("***** Repaint Event ! *****")
+            qDebug("***** {} ! *****".format(_('Repaint Event')))
 
         self.initSystem(printer)
 
@@ -548,7 +551,7 @@ class helperPDF():
         blockCount = document.blockCount()
         for i in range(blockCount):
             r = document.documentLayout().blockBoundingRect(document.findBlockByNumber(i))
-            ret.append('Block #{} on ({},{}) with {}x{}'.format(i,r.x(),r.y(),r.width(),r.height()))
+            ret.append('{} #{} {} ({},{}) {} {}x{}'.format(_('Block'),i,_('on'),r.x(),r.y(),_('with'),r.width(),r.height()))
         qDebug("\n".join(ret))
         return ret
 
@@ -565,7 +568,7 @@ class helperPDF():
             cursor.insertBlock(self.styles['pagebreak'])
             page2,pct2 = self.print_cursor_position_y(document,cursor)
             if self.debug:
-                qDebug('Break page: From {} {}% to {} {}%'.format(page1,pct1,page2,pct2))
+                qDebug('{}: {} {} {}% {} {} {}%'.format(_('Break page'),_('From'),page1,pct1,_('to'),page2,pct2))
 
     def writeLine(self, document, cursor=None):
         if not cursor:
@@ -599,7 +602,7 @@ class helperPDF():
                 cursor_ini = cursor.position()
                 pagestart,pct = self.print_cursor_position_y(document)
                 if self.debug:
-                    qDebug("Starting question {} at page {} {}%".format(question_num,pagestart,pct))
+                    qDebug("{} {} {} {} {}%".format(_("Starting question"),question_num,_('at page'),pagestart,pct))
                 if title or title_pic:
                     cols = 0
                     if title:
@@ -621,19 +624,19 @@ class helperPDF():
                 self.writeSeparator(document,single=True)
                 if self.debug:
                     page,pct = self.print_cursor_position_y(document)
-                    qDebug("End title from question {} at page {} {}%, title={}...".format(question_num,pagestart,pct,title[:30]))
+                    qDebug("{} {} {} {} {}%, {}={}...".format(_('End title from question'),question_num,_('at page'),pagestart,pct,_('title'),title[:30]))
 
                 self.writeSeparator(document,single=True)
 
                 nlines = 0
                 options = None
-                if typeq == 'single_question':
+                if typeq == _('single_question'):
                     nlines = row.get('empty_lines')
                 else:
                     options = row.get('options')
-                    if typeq == 'test_question':
+                    if typeq == _('test_question'):
                         self.writeTest(document,options)
-                    elif typeq == 'join_activity':
+                    elif typeq == _('join_activity'):
                         self.writeJoinActivity(document,options)
                     self.writeSeparator(document,single=False)
 
@@ -641,13 +644,13 @@ class helperPDF():
                     if self.debug:
                         self.writeSeparator(document,number=i)
                         page,pct = self.print_cursor_position_y(document)
-                        qDebug('Space {} from question {} at page {} {}%'.format(i,question_num,page,pct))
+                        qDebug('{} {} {} {} {} {} {}%'.format(_('Space'),i,_('from question'),question_num,_('at page'),page,pct))
                     else:
                         self.writeSeparator(document)
 
                 if self.debug:
                     page,pct = self.print_cursor_position_y(document)
-                    qDebug("End options/lines from question {} at page {} {}%".format(question_num,page,pct))
+                    qDebug("{} {} {} {} {} {}%".format(_('End options/lines'),_('from question'),question_num,_('at page'),page,pct))
 
                 cursor_end = self.writeLine(document)
                 cursor_end = cursor_end.position()
@@ -658,21 +661,21 @@ class helperPDF():
                     self.pagequestion[pagestart].append(question_num)
                     self.last_cursor_ack = cursor_end
                     if self.debug:
-                        qDebug('Question {} write success until page {} {}%'.format(question_num,pageend,pct))
+                        qDebug('{} {} {} {} {}%'.format(_('Question'),question_num,_('write success until page'),pageend,pct))
                 else:
                     if len(self.pagequestion[pagestart]) > 0:
                         if self.debug:
-                            qDebug('Question {} goes next page, breaking page on last question'.format(question_num))
+                            qDebug('{} {} {}'.format(_('Question'),question_num,_('goes next page, breaking page on last question')))
                         self.writePageBreak(document,cursor_ini)
                     else:
                         if self.debug:
-                            qDebug('Question {} sizes more than one page, skipping break, write sucess'.format(question_num))
+                            qDebug('{} {} {}'.format(_('Question'),question_num,_('sizes more than one page, skipping break, write sucess')))
 
                 pageend,pct  = self.print_cursor_position_y(document)
                 self.pagequestion[pageend].append(question_num)
                 self.last_cursor_ack = cursor_end
                 if self.debug:
-                    qDebug('End processing question {}, ended on page {} {}%'.format(question_num,pageend,pct))
+                    qDebug('{} {}, {} {} {}%'.format(_('End processing question'),question_num,_('ended on page'),pageend,pct))
         document.setEndModel(breakPage=False)
         return document
 
@@ -699,7 +702,7 @@ class helperPDF():
                 c,cell = self.setupCell(table,i,1,centerV=True,centerH=False)
                 img = dataPixMapToImage(pic)
                 if img.isNull():
-                    qDebug('Error: Invalid image detected')
+                    qDebug(_('Error: Invalid image detected'))
                 else:
                     img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
                     c.insertImage(img)
@@ -752,7 +755,7 @@ class helperPDF():
                 c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
                 img = dataPixMapToImage(pic1)
                 if img.isNull():
-                    qDebug('Error: Invalid image detected')
+                    qDebug(_('Error: Invalid image detected'))
                 else:
                     img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
                     c.insertImage(img)
@@ -779,7 +782,7 @@ class helperPDF():
                 c,cell = self.setupCell(table,i,5,centerV=False,centerH=False)
                 img = dataPixMapToImage(pic2)
                 if img.isNull():
-                    qDebug('Error: Invalid image detected')
+                    qDebug(_('Error: Invalid image detected'))
                 else:
                     img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*5,Qt.SmoothTransformation)
                     c.insertImage(img)
@@ -799,7 +802,7 @@ class helperPDF():
                 cursor = self.initCursor(document)
             cursor.insertBlock(self.styles['body'],self.styles['text'])
             if qnumber:
-                cursor.insertText('Question {}: '.format(qnumber),self.styles['text.bold'])
+                cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
             cursor.insertText(text,self.styles['text'])
 
     def validateHeader(self,header):

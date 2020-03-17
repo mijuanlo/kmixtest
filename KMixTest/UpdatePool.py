@@ -10,6 +10,9 @@ from .Config import DEBUG_LEVEL, NATIVE_THREADS, TIMER_QUEUE, NUM_THREADS
 from .Worker import Worker
 from .Util import Direction, Color
 
+import gettext
+_ = gettext.gettext
+
 class UpdatePool(QObject):
     newResult = Signal(int,int,str)
     modelItemSize = 6
@@ -47,7 +50,7 @@ class UpdatePool(QObject):
         self.timer.setInterval(TIMER_QUEUE)
         self.timer.timeout.connect(self.runQueue)
 
-        msg = 'Initializing worker'
+        msg = _('Initializing worker')
         if not NATIVE_THREADS:
             import threading
             self.threads = list()
@@ -79,7 +82,7 @@ class UpdatePool(QObject):
             for t in self.threads:
                 t.start()
                 num += 1
-        qDebug("Started {} threads + timer".format(num))
+        qDebug("{} {} {}".format(_('Started'),num,_('threads + timer')))
 
     def row_is(self,state,row,col):
         return True if state[2*row+col] == '1' else False
@@ -110,7 +113,7 @@ class UpdatePool(QObject):
             if self.debug_level > 0:
                 njobs = self.jobs.qsize()
                 if njobs:
-                    qDebug('Running {} jobs'.format(njobs))
+                    qDebug('{} {} {}'.format(_('Running'),njobs,_('jobs')))
             while not self.jobs.empty():
                 self.dispatched.put(self.jobs.get())
 
@@ -118,7 +121,7 @@ class UpdatePool(QObject):
     @Slot(int,int,str)
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
-            qDebug("(Update pool) New Result \'{}\' \'{}\' \'{}\'".format(row,dir,result))
+            qDebug("{} \'{}\' \'{}\' \'{}\'".format(_('(Update pool) New Result'),row,dir,result))
         if row not in self.model:
             self.lock.lock()
             self.model.setdefault(row,[False,False,False,False,None,None])
@@ -159,7 +162,7 @@ class UpdatePool(QObject):
         global NATIVE_THREADS
 
         if self.debug_level > 0:
-            qDebug("Aborting UpdatePool")
+            qDebug(_("Aborting UpdatePool"))
         self.jobs = None
         self.dispatched = None
         for x in self.workers:
@@ -176,13 +179,13 @@ class UpdatePool(QObject):
 
     def resetWorkers(self):
         if self.debug_level > 1:
-            qDebug("Resetting workers")
+            qDebug(_("Resetting workers"))
         for w in self.workers:
             w.killresolver()
 
     def invalidate_model(self):
         if self.debug_level > 1:
-            qDebug("Invalidating pool model")
+            qDebug(_("Invalidating pool model"))
         self.resetWorkers()
         # Remove current job queue
         while not self.jobs.empty():

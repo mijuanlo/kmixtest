@@ -4,6 +4,9 @@ import signal
 import sys
 from .AppMainWindow import AppMainWindow
 
+import gettext
+_ = gettext.gettext
+
 app = None
 exitting = False
 
@@ -12,10 +15,10 @@ def exit_control_c(sig, frame):
     exitting = True
     
     if app:
-        print("User request exit from app")
+        print(_("User request exit from app"))
         app.exitting()
     else:
-        print("Ending QApplication")
+        print(_("Ending QApplication"))
         QApplication.quit()
     
     sys.exit(0)
@@ -32,9 +35,9 @@ def start_kmixtest(load_filename=None):
         if app and not exitting and not app.aborting:
             sys.exit(app.exec_())
     except Exception as e:
-        print('Initialization exception:{}'.format(e))
+        print('{}:{}'.format(_('Initialization exception'),e))
     finally:
-        print('{}'.format('Quitting Kmixtest'))
+        print('{}'.format(_('Quitting Kmixtest')))
         QApplication.quit()
         sys.exit(0)
     

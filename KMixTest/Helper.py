@@ -4,6 +4,9 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
+import gettext
+_ = gettext.gettext
+
 # Helper with static functions helping qt gui actions
 class Helper():
     def __init__(self):

@@ -1,6 +1,9 @@
 import os.path
 import sys
 
+import gettext
+_ = gettext.gettext
+
 #
 # START EDITABLE VARS
 #

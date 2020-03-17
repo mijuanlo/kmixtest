@@ -7,6 +7,9 @@ from PySide2.QtUiTools import *
 from .Box import Box
 from .QuestionType import Question
 
+import gettext
+_ = gettext.gettext
+
 # Class with helper to manage grid content used for question contents
 class gridHelper(QObject):
 
@@ -45,10 +48,10 @@ class gridHelper(QObject):
                     rowstr.append('{}:{}'.format(x,str(i)))
                     is_empty = False
                 else:
-                    rowstr.append('{}:<empty>'.format(x))
+                    rowstr.append('{}:<{}>'.format(x,_('empty')))
             if not is_empty:
                 if self.debug:
-                    qDebug('Row: {} -> {}'.format(y,','.join(rowstr)))
+                    qDebug('{}: {} -> {}'.format(_('Row'),y,','.join(rowstr)))
     
     def getGridData(self):
         gridData=[]
@@ -87,7 +90,7 @@ class gridHelper(QObject):
         self.tableDataMapReversed = { v:k for k,v in self.tableDataMap.items() }
         # update title
         for x in data:
-            title = x.get('title')
+            title = x.get(_('title'))
             if not title:
                 raise ValueError()
             id_row = x.get('_UUID_')
@@ -106,7 +109,7 @@ class gridHelper(QObject):
         
         content = ''
         if title:
-            content = '{} with type {}'.format(title,typeq)
+            content = '{} {} {}'.format(title,_('with type'),typeq)
         b.setData('initial_content',content)
 
         b.closedBox.connect(self.closeBox)
@@ -147,11 +150,11 @@ class gridHelper(QObject):
         if locked:
             b.lock = True
         # TYPED FIELDS
-        if typeq == 'single_question':
+        if typeq == _('single_question'):
             needed = ['empty_lines']
             check(boxData,needed)
             b.setSliderValue(boxData.get('empty_lines'))
-        elif typeq in ['test_question','join_activity']:
+        elif typeq in [_('test_question'),_('join_activity')]:
             options = boxData.get('options')
             opt_map = {}
             i = 0
@@ -163,33 +166,33 @@ class gridHelper(QObject):
                 i += 1
             for nop in sorted(opt_map.keys()):
                 option = options[opt_map.get(nop)]
-                if typeq == 'test_question':
+                if typeq == _('test_question'):
                     b.loadOptionTest(option)
                 else:
                     b.loadJoinOption(option)
-            if typeq == 'test_question':
+            if typeq == _('test_question'):
                 needed = ['nvalid']
                 check(boxData,needed)
                 b.configureSlider(1,len(options),boxData.get('nvalid'))
         else:
-            qDebug('Can\'t load type {}'.format(typeq))
+            qDebug('{} {}'.format(_("Can't load type"),typeq))
         b.do_lock()
 
     @Slot(int)
     def showQuestion(self, row):
         data = self.last_tabledata
         datarow = data[row]
-        name_from_row = datarow['title']
+        name_from_row = datarow[_('title')]
         id_from_row = datarow['_UUID_']
         type_from_row = datarow['_TYPE_']
         self.hide_all_boxes()
         id_box = self.tableDataMap.get(id_from_row)
         if id_box:
             if self.debug:
-                qDebug("Showing question {}".format(row))
+                qDebug("{} {}".format(_('Showing question'),row))
             self.boxes.get(id_box).show()
         else:
-            qDebug("Showing question {} (new)".format(row))
+            qDebug("{} {} ({})".format(_('Showing question'),row,_('new')))
             b = self.createBox(type_from_row,id_from_row,name_from_row)
             #self.addToGrid(b)
             #b.makeQuestionTypeLayout()
@@ -205,7 +208,7 @@ class gridHelper(QObject):
     def deleteBox(self,uuid):
         if not uuid:
             raise ValueError()
-        qDebug("Deleting {}".format(uuid))
+        qDebug("{} {}".format(_('Deleting '),uuid))
         b = self.boxes.get(uuid,None)
         if b:
             del self.boxes[uuid]
@@ -218,7 +221,7 @@ class gridHelper(QObject):
     def closeBox(self, uuid):
         if not uuid:
             raise ValueError()
-        qDebug("Closing {}".format(uuid))
+        qDebug("{} {}".format(_('Closing'),uuid))
         b = self.boxes.get(uuid,None)
         if b:
             b.hide()
@@ -275,7 +278,7 @@ class gridHelper(QObject):
                     if not all_widget:
                         break
                 if not all_widget:
-                    qDebug("Error")
+                    qDebug(_("Error"))
                     return
                 else:
                     offset_x=0

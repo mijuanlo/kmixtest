@@ -8,6 +8,9 @@ from time import time
 
 from .Util import mychr, unmychr, Color, Direction
 
+import gettext
+_ = gettext.gettext
+
 class Resolver(QObject):
     # class testclass:
     #     A = '00 00 10 11 01 10 00 01 01'
@@ -25,7 +28,7 @@ class Resolver(QObject):
         if self.debug_level < 2:
             return
         if not msg:
-            msg = "<empty>"
+            msg = "<{}>".format(_('empty'))
         if found is True:
             msg = Color.makecolor(msg,Color.GREEN)
         elif found is None:
@@ -66,16 +69,16 @@ class Resolver(QObject):
         self.results = []
         self.conditions = []
         if not self.initialize(self.thing):
-            print(Color.makecolor('Not valid',Color.RED))
+            print(Color.makecolor(_('Not valid'),Color.RED))
             exit(1)
 
     def abort(self):
         if self.debug_level > 0:
-            qDebug('Aborting resolver')
+            qDebug(_('Aborting resolver'))
         self.terminate = True
     def reset(self):
         if self.debug_level > 0:
-            qDebug('Killing resolver')
+            qDebug(_('Killing resolver'))
         self.killing = True
     # function to print metric counters when debugging
     def print_debug_info(self):
@@ -86,10 +89,10 @@ class Resolver(QObject):
                 cur = end-ini
                 acu += cur
                 s.append('{0:4.2f}'.format(cur))
-            qDebug("Checks: {0:10d}/{1:<10d} [ TOTAL {2:4.2f} seconds ] [{3:s}]".format(self.debug_info['counter']['partial'],self.debug_info['counter']['full'],acu,'+'.join(s)))
+            qDebug("{0:s}: {1:10d}/{2:<10d} [ {3:s} {4:4.2f} {5:s} ] [{6:s}]".format(_('Checks'),self.debug_info['counter']['partial'],self.debug_info['counter']['full'],_('TOTAL'),acu,_('seconds'),'+'.join(s)))
 
     def print_conditions(self):
-        s = 'Conditions:\n'
+        s = '{}:\n'.format(_('Conditions'))
         for c,places in self.conditions:
             strplaces = [ str(x) for x in places ]
             s += '{} --> {}\n'.format(c,','.join(strplaces))
@@ -313,7 +316,7 @@ class Resolver(QObject):
         #         print('/CHANGE/REORDER'*10)
         
         if len(possible) != len(out):
-            qDebug('Error')
+            qDebug(_('Error'))
             exit(1)
         return out
     # Reorder apply heuristic over possible recursion branches, improving time to answer and finding solution
@@ -521,13 +524,13 @@ class Resolver(QObject):
     def print_results(self):
         results = len(self.results)
         if not results:
-            r = 'No solution'
+            r = _('No solution')
         else:
             r = ','.join(self.results)
             if self.complete:
-                r += ' ({} results)'.format(results)
+                r += ' ({} {})'.format(results,_('results'))
             else:
-                r += ' (first result)'
+                r += ' ({})'.format(_('first result'))
         if self.debug_level > 0:
             qDebug(Color.makecolor(r,Color.BLUE))
         # Print metric counters

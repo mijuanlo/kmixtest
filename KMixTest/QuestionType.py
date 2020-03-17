@@ -1,4 +1,7 @@
-AllowedQuestionTypes = ["Single question","Test question","Join activity"]
+import gettext
+_ = gettext.gettext
+
+AllowedQuestionTypes = [_("Single question"),_("Test question"),_("Join activity")]
 
 class Question():
     counter = [0]

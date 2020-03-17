@@ -11,6 +11,9 @@ from .Util import Direction, Color, mychr, unmychr
 from .Helper import Helper
 from .QuestionType import Question
 
+import gettext
+_ = gettext.gettext
+
 # Class for helping related qt functions for table questions
 class tableHelper(QObject):
     # Signals triggered from delegated class
@@ -82,7 +85,7 @@ class tableHelper(QObject):
         self.questionChanged.emit(row)
 
     def dumpTableModel(self):
-        dumpColumns = ['fixed','linked','title','_TYPE_','_UUID_']
+        dumpColumns = [_('fixed'),_('linked'),_('title'),'_TYPE_','_UUID_']
         columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
         NUM_ROWS = self.model.rowCount()
         model = list()
@@ -101,7 +104,7 @@ class tableHelper(QObject):
         for y in range(self.model.rowCount()):
             uid = self.model.data(self.model.index(y,self.headerItemNames.index('_UUID_')),Qt.UserRole)
             if uid == row_uuid:
-                self.model.setData(self.model.index(y,self.headerItemNames.index('title')),content,Qt.DisplayRole)
+                self.model.setData(self.model.index(y,self.headerItemNames.index(_('title'))),content,Qt.DisplayRole)
                 break
     # Create header for tableview
     def configureHeader(self):
@@ -131,8 +134,8 @@ class tableHelper(QObject):
     # build new state string representing table
     # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells
     def getStateString(self):
-        FIXED_COL = self.headerItemNames.index('fixed')
-        LINKED_COL = self.headerItemNames.index('linked')
+        FIXED_COL = self.headerItemNames.index(_('fixed'))
+        LINKED_COL = self.headerItemNames.index(_('linked'))
         NUM_COLS = self.model.columnCount()
         NUM_ROWS = self.model.rowCount()
         states = ''
@@ -150,7 +153,7 @@ class tableHelper(QObject):
         if cols == 'all':
             cols = list(range(self.model.columnCount()))
         if self.debug_level > 1:
-            qDebug('Updating graphics for {} {}'.format(rows,cols))
+            qDebug('{} {} {}'.format(_('Updating graphics for'),rows,cols))
         if not isinstance(rows,list) and not isinstance(cols,list):
             return
         for y in rows:
@@ -480,7 +483,7 @@ class tableHelper(QObject):
         if flipCellState(rows,columns):
             removeAloneLinks()
             self.updateStateString()
-            self.updateCellGraphics(rows='all',cols=[self.headerItemNames.index('order')])
+            self.updateCellGraphics(rows='all',cols=[self.headerItemNames.index(_('order'))])
         return True
 
     # Build custom menu for each row
@@ -488,14 +491,14 @@ class tableHelper(QObject):
     def customMenu(self, position):
         item = self.table.itemAt(position)
         if not item:
-            qDebug("No item on that position!")
+            qDebug(_("No item on that position!"))
             return
-        qDebug("item on x:{} y:{} with value {}".format(item.column(),item.row(),item.text()))
-        qm = QMenu('titulo', self.table)
+        qDebug("{} x:{} y:{} {} {}".format(_('item on'),item.column(),item.row(),_('with value'),item.text()))
+        qm = QMenu(_('titulo'), self.table)
         if item.column()!=0:
             for seq in range(1,4):
-                qm.addAction(Helper.genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=ICONS['option'],shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
-            qm.addAction(Helper.genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
+                qm.addAction(Helper.genAction(name="{}{}_{}".format(_('ContextAction'),seq,item.text()),fn=self.printContextAction,data="{}_{}_{}".format(_('ContextAction'),seq,item.text(),_('Data')),icon=ICONS['option'],shortcut=None,tip="{}_{}".format(_('TipContextAction'),seq,item.text()),parent=qm))
+            qm.addAction(Helper.genAction(name="{} '{}'".format(_('Delete line'),item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="{}_{}_{}".format(_('TipContextAction'),_('Delete'),item.text()),parent=qm))
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())
@@ -504,9 +507,9 @@ class tableHelper(QObject):
     @Slot()
     def printContextAction(self):
         data = self.sender().data()
-        qDebug("senderData:{}".format(data))
+        qDebug("{}:{}".format(_('senderData'),data))
         if self.controller:
-            self.controller.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
+            self.controller.window.statusbar.showMessage("{} '{}' {}".format(_('Action from'),data,_('triggered')),10*1000)
 
     # Callback for delete row action triggered from contextmenu
     @Slot()
@@ -514,7 +517,7 @@ class tableHelper(QObject):
         data = self.sender().data()
         self.deleteItem(data)
         if self.controller:
-            self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
+            self.controller.window.statusbar.showMessage("{} {}".format(_('Deleted row'),data),10*1000)
 
     def deleteItem(self, item):
         if item and isinstance(item,list):
@@ -531,9 +534,9 @@ class tableHelper(QObject):
 
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
-            qDebug('(tablehelper) New result: \'{}\' \'{}\' \'{}\''.format(row,dir,result))
+            qDebug('(tablehelper) {}: \'{}\' \'{}\' \'{}\''.format(_('New result'),row,dir,result))
         
-        LINKED_COLUMN = self.headerItemNames.index('linked')
+        LINKED_COLUMN = self.headerItemNames.index(_('linked'))
         NUM_ROWS = self.model.rowCount()
 
         if NUM_ROWS < 3:
@@ -571,8 +574,8 @@ class tableHelper(QObject):
         ID = mychr(ROW)
 
         ROW_COUNT = index.model().rowCount()
-        LINKED_COLUMN = self.headerItemNames.index('linked')
-        FIXED_COLUMN = self.headerItemNames.index('fixed')
+        LINKED_COLUMN = self.headerItemNames.index(_('linked'))
+        FIXED_COLUMN = self.headerItemNames.index(_('fixed'))
         
         # First can't go up and Last can't go down
         if ROW == 0 and direction == Direction.UP:
@@ -619,7 +622,7 @@ class tableHelper(QObject):
 
         # Debug function printing model on terminal
         def printModel(m):
-            qDebug('MODEL')
+            qDebug(_('MODEL'))
             for y in range(0,m.rowCount()):
                 s = []
                 for x in range(1,m.columnCount()):
@@ -631,7 +634,7 @@ class tableHelper(QObject):
         
         MODEL = self.table.model()
         # Change to integer for direction
-        if dir == 'DOWN':
+        if dir == _('DOWN'):
             dir = Direction.DOWN.value
         else:
             dir = Direction.UP.value
@@ -642,7 +645,7 @@ class tableHelper(QObject):
         if R:
             R = [ unmychr(x)-1 for x in R[0] ]
         else:
-            self.controller.window.statusbar.showMessage("Thinking... please wait",10*1000)
+            self.controller.window.statusbar.showMessage(_("Thinking... please wait"),10*1000)
             return
 
         # Emit signal while model are changing
@@ -660,7 +663,7 @@ class tableHelper(QObject):
                 if dest != R[dest]:
                     # change rows
                     if self.debug_level > 1:
-                        print('CHANGING {} <-> {}'.format(dest,R[dest]))
+                        print('{} {} <-> {}'.format(_('CHANGING'),dest,R[dest]))
                         printModel(MODEL)
                     for x in range(1,NUM_COLS):
                         tmp = self.table.takeItem(dest,x)
@@ -701,12 +704,12 @@ class tableHelper(QObject):
         # Column 0 is for custom widget up & down movement
 
         # Columns 1,2 for fixed and linked settings
-        self.setCellContent(last_row,['fixed','linked'],[fixed,linked])
+        self.setCellContent(last_row,[_('fixed'),_('linked')],[fixed,linked])
 
         # Column 3 for Title
         if title is None:
             title = q.getName()
-        self.setCellContent(last_row,'title',"{}".format(title))
+        self.setCellContent(last_row,_('title'),"{}".format(title))
 
         # private columns 4(uuid), 5(type)
     
@@ -733,10 +736,10 @@ class tableHelper(QObject):
         uuid = self.makeRow(typerow=typequestion,linked=linked,fixed=fixed,title=title)
         lastrow = self.model.rowCount()-1
         if fixed:
-            FIXED_COL = self.headerItemNames.index('fixed')
+            FIXED_COL = self.headerItemNames.index(_('fixed'))
             self.model.setData(self.model.index(lastrow,FIXED_COL),fixed,Qt.DisplayRole)
         if linked:
-            LINKED_COL = self.headerItemNames.index('linked')
+            LINKED_COL = self.headerItemNames.index(_('linked'))
             self.model.setData(self.model.index(lastrow,LINKED_COL),linked,Qt.DisplayRole)
         self.updateStateString()
         self.updateCellGraphics()

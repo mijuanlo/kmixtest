@@ -7,6 +7,9 @@ from PySide2.QtUiTools import *
 from .Config import DEBUG_LEVEL, ICONS
 from .Util import Direction, Color
 
+import gettext
+_ = gettext.gettext
+
 # Delegate class for questions table logic 
 # Allows customize data representation from table model and customize action cells with custom widgets
 class tableDrawer(QStyledItemDelegate):
@@ -71,10 +74,10 @@ class tableDrawer(QStyledItemDelegate):
             # check what button is pressed thinking on mind that first middle width is for upbutton, rest for downbutton
             offset = option.rect.width() / 2
             if event.x() > offset:
-                go = 'DOWN'
+                go = _('DOWN')
                 direction = Direction.DOWN.value
             else:
-                go = 'UP'
+                go = _('UP')
                 direction = Direction.UP.value
             # Call for a helper function that manages if cell can be enabled or disabled
             if self.parent.canMove(index,direction):
@@ -82,7 +85,7 @@ class tableDrawer(QStyledItemDelegate):
                 self.parent.cellMoveClick.emit(index.row(),go)
             else:
                 # Disable movement not emitting signal
-                qDebug("Impossible movement")
+                qDebug(_("Impossible movement"))
             return True # Mark all events on column 0 handled
             # Events on column 0 ends here
 
@@ -110,10 +113,10 @@ class tableDrawer(QStyledItemDelegate):
         #    qDebug("Painting becaused state mouseover")
         
         CURRENT_COLUMN = index.column()
-        ORDER_COLUMN = self.parent.headerItemNames.index('order')
-        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-        QUESTION_COLUMN = self.parent.headerItemNames.index('title')
+        ORDER_COLUMN = self.parent.headerItemNames.index(_('order'))
+        FIXED_COLUMN = self.parent.headerItemNames.index(_('fixed'))
+        LINKED_COLUMN = self.parent.headerItemNames.index(_('linked'))
+        QUESTION_COLUMN = self.parent.headerItemNames.index(_('title'))
         
         # First (0) column with movement buttons
         if CURRENT_COLUMN == ORDER_COLUMN:

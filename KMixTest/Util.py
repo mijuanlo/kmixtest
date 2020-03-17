@@ -6,6 +6,9 @@ from PySide2.QtUiTools import *
 
 from enum import Enum,IntEnum,auto,unique
 
+import gettext
+_ = gettext.gettext
+
 @unique
 class Direction(IntEnum):
     UP = 0
@@ -220,6 +223,7 @@ def print_document_data(document):
 
         textblock = textblock.next()
     qDebug('{}'.format(acu_height2 + document.documentMargin() ))
+
 def dumpPixMapData(pixmap):
     byts = QByteArray()
     buff = QBuffer(byts)

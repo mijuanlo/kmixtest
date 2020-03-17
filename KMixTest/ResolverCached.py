@@ -8,6 +8,9 @@ from .Resolver import Resolver
 from .Config import DEBUG_LEVEL
 from .Util import mychr, unmychr, Direction, Color
 
+import gettext
+_ = gettext.gettext
+
 # Class that make a cache over resolver improving speed with already called combinations
 # This class it's needed cause resolver is called from update graphic functions from gui
 #
@@ -27,7 +30,7 @@ class ResolverCached(QObject):
     
     def abort(self):
         if self.debug_level > 0:
-            qDebug("Aborting resolver cached")
+            qDebug(_("Aborting resolver cached"))
         self.terminate = True
         if self.resolver:
             self.resolver.abort()

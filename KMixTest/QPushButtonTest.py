@@ -6,6 +6,9 @@ from PySide2.QtUiTools import *
 
 from .Config import ICONS
 
+import gettext
+_ = gettext.gettext
+
 class QPushButtonTest(QPushButton):
     def __init__(self,*args,**kwargs):
         parent = kwargs.get('parent')
