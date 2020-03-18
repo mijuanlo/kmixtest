@@ -4,11 +4,8 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Config import DEBUG_LEVEL, ICONS
+from .Config import _, DEBUG_LEVEL, ICONS
 from .Util import Direction, Color
-
-import gettext
-_ = gettext.gettext
 
 # Delegate class for questions table logic 
 # Allows customize data representation from table model and customize action cells with custom widgets

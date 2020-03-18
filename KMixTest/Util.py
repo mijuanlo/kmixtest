@@ -6,9 +6,6 @@ from PySide2.QtUiTools import *
 
 from enum import Enum,IntEnum,auto,unique
 
-import gettext
-_ = gettext.gettext
-
 @unique
 class Direction(IntEnum):
     UP = 0

@@ -3,9 +3,7 @@ from PySide2.QtCore import Qt
 import signal
 import sys
 from .AppMainWindow import AppMainWindow
-
-import gettext
-_ = gettext.gettext
+from .Config import _
 
 app = None
 exitting = False

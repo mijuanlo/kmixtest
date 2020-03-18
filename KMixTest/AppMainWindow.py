@@ -5,16 +5,13 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
 from .Helper import Helper
-from .Config import ICONS, UI, NATIVE_THREADS
+from .Config import _, ICONS, UI, NATIVE_THREADS
 from .TableHelper import tableHelper
 from .GridHelper import gridHelper
 from .HelperPDF import helperPDF
 from .Persistence import Persistence
 from .MenuItem import MenuItem
 from .Util import dumpPixMapData,loadPixMapData
-
-import gettext
-_ = gettext.gettext
 
 from os.path import expanduser
 from os import urandom
@@ -55,7 +52,7 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.menu.addMenuItem([{_("Project"):["New(menu_new)|new","-","Load exam(menu_load_exam)","Load template(menu_load_template)","-","Save(menu_save)|save","Save as(menu_save_as)|save","Save as template(menu_save_as_template)|save","-","Exit(menu_exit_app)|exit"]},{"Mixer":["Configure header(menu_configure_header)","Configure output(menu_configure_output)","Generate Mix(menu_generate_mix)"]},{"Print":["Print preview(menu_print_preview)|print","Print Exam(menu_print_exam)|print"]}])
+            self.menu.addMenuItem([{_("Project"):["{}(menu_new)|new".format(_('New')),"-","{}(menu_load_exam)".format(_('Load exam')),"{}(menu_load_template)".format(_('Load template')),"-","{}(menu_save)|save".format(_('Save')),"{}(menu_save_as)|save".format(_('Save as')),"{}(menu_save_as_template)|save".format(_('Save as template')),"-","{}(menu_exit_app)|exit".format(_('Exit'))]},{_("Mixer"):["{}(menu_configure_header)".format(_('Configure header')),"{}(menu_configure_output)".format(_('Configure output')),"{}(menu_generate_mix)".format(_('Generate Mix'))]},{_("Print"):["{}(menu_print_preview)|print".format(_('Print preview')),"{}(menu_print_exam)|print".format(_('Print Exam'))]}])
             self.tableQuestions.pool.start_threads()
             self.editing_question = None
             self.n_models = 1
@@ -71,14 +68,14 @@ class AppMainWindow(QApplication):
                 self.autoloadfilename = None
             # self.exitting()
         except Exception as e:
-            print("Exception when initializing, {}".format(e))
+            print("{}, {}".format(_('Exception while initializing'),e))
             self.exitting()
 
     @Slot()
     def exitting(self):
         global NATIVE_THREADS
         self.aborting = True
-        qDebug("Terminating MainWindow")
+        qDebug("{} MainWindow".format(_('Terminating')))
         if self.tableQuestions:
             if self.tableQuestions.pool:
                 self.tableQuestions.pool.terminate = True
@@ -90,7 +87,7 @@ class AppMainWindow(QApplication):
     def rowEditionPermitted(self,row_uuid):
         box = self.scroll.getBoxFromRowId(row_uuid)
         if box.lock:
-            qDebug('Edition not permitted, box locked')
+            qDebug(_('Edition not permitted, box locked'))
             return False
         return True
 
@@ -101,14 +98,14 @@ class AppMainWindow(QApplication):
 
     @Slot(int)
     def editingQuestion(self, row):
-        qDebug("Editing {}".format(row))
+        qDebug("{} {}".format(_('Editing'),row))
         self.editing_question = row
 
     @Slot(int)
     def questionChanged(self,row=None):
         if row is not None and self.editing_question == row:
             self.editing_question = None
-            qDebug("Question Changed {}".format(row))
+            qDebug("{} {}".format(_('Question changed'),row))
             self.tableQuestionsChanged()
 
     @Slot(str,str)
@@ -347,15 +344,15 @@ class AppMainWindow(QApplication):
                 pass
             else:
                 iconname = 'exit'
-            action = Helper.genAction(name=q.getName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=name,parent=self)
+            action = Helper.genAction(name=q.getTranslatedName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=name,parent=self)
             self.window.toolBar.addAction(action)
 
     def openfiledialog(self):
-        f = QFileDialog().getOpenFileName(None,self.tr("Open Exam"),expanduser("~"),self.tr("Exam files (*.kmt)"))
+        f = QFileDialog().getOpenFileName(None,_("Open Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
         return f[0] if f else None
 
     def savefiledialog(self):
-        f = QFileDialog().getSaveFileName(None,self.tr("Save Exam"),expanduser("~"),self.tr("Exam files (*.kmt)"))
+        f = QFileDialog().getSaveFileName(None,_("Save Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
         return f[0] if f else None
 
     def buildExamData(self, template=False):
@@ -486,17 +483,17 @@ class AppMainWindow(QApplication):
         name_container = container_button.objectName()
         ncontainer = name_container.split('#')[1]
         if button.text() == 'Image':
-            filename = QFileDialog.getOpenFileUrl(container_button,'Open image',QUrl().fromLocalFile(expanduser('~')),'Image Files (*.png *.jpg *.gif *.svg)')
+            filename = QFileDialog.getOpenFileUrl(container_button,_('Open image'),QUrl().fromLocalFile(expanduser('~')),'{} (*.png *.jpg *.gif *.svg)'.format(_('Image Files')))
             filename = filename[0]
             url = filename.toString()
             filename = filename.toLocalFile()
             image = QPixmap()
             res = image.load(filename)
             if res == False:
-                qDebug('filename {} invalid'.format(filename))
+                qDebug('{} {} {}'.format(_('filename'),filename,_('invalid')))
                 return
             else:
-                qDebug('filename {} valid'.format(filename))
+                qDebug('{} {} {}'.format(_('filename'),filename,_('valid')))
                 data = dumpPixMapData(image)
                 found = False
                 for x in container_button.children():
@@ -739,11 +736,11 @@ class AppMainWindow(QApplication):
 
         dialog = QDialog(self.window,Qt.Window)
         dialog.setModal(True)
-        dialog.setWindowTitle('Generate mix')
+        dialog.setWindowTitle(_('Generate mix'))
         dialog.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         vlayout = QVBoxLayout()
         dialog.setLayout(vlayout)
-        l1 = QLabel("Number disctinct models:")
+        l1 = QLabel("{}:".format(_('Number disctinct models')))
         le = QLineEdit()
         le.setObjectName('n_models')
         le.setMaxLength(1)
@@ -753,7 +750,7 @@ class AppMainWindow(QApplication):
         hlayout1 = QHBoxLayout()
         hlayout1.addWidget(l1)
         hlayout1.addWidget(le)
-        l2 = QLabel("Alter answer order:")
+        l2 = QLabel("{}:".format(_('Alter answer order')))
         c = QCheckBox()
         c.setObjectName('alter_models')
         state = Qt.Unchecked
@@ -764,8 +761,8 @@ class AppMainWindow(QApplication):
         hlayout2.addWidget(l2)
         hlayout2.addWidget(c,0,Qt.AlignRight)
         hlayout3 = QHBoxLayout()
-        b1 = QPushButton('Ok')
-        b2 = QPushButton('Close')
+        b1 = QPushButton(_('Ok'))
+        b2 = QPushButton(_('Close'))
         b1.setCheckable(False)
         b1.clicked.connect(lambda: updateValues(dialog))
         b2.setCheckable(False)
@@ -786,7 +783,7 @@ class AppMainWindow(QApplication):
     @Slot(str)
     def menuController(self,*args,**kwargs):
         if self.debug:
-            qDebug('Called menuController')
+            qDebug('{} menuController'.format(_('Called')))
         if not args:
             if self.sender():
                 data = self.sender().data()
@@ -797,7 +794,7 @@ class AppMainWindow(QApplication):
         if not data:
             raise ValueError()
         if self.debug:
-            qDebug('Menu "{}" click'.format(data))
+            qDebug('{} "{}" click'.format(_('Menu'),data))
         if data == 'menu_exit_app':
             self.exitting()
         elif data == 'menu_load_exam':
@@ -850,7 +847,7 @@ class AppMainWindow(QApplication):
             self.clickedPreview(True)
         elif data in Question().allTypes():
             self.editing_question = None
-            self.window.statusbar.showMessage("New question: {}".format(data),10*1000)
+            self.window.statusbar.showMessage("{}: {}".format(_('New question'),data),10*1000)
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
         elif data == 'menu_print_exam':
@@ -875,4 +872,4 @@ class AppMainWindow(QApplication):
                 if config:
                     self.loadConfig(config)
         else:
-            qDebug("No action declared for '{}' menuaction".format(data))
+            qDebug("{} '{}' menuaction".format(_('No action declared for'),data))

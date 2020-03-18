@@ -7,12 +7,10 @@ from PySide2.QtUiTools import *
 from queue import Queue, Empty
 from time import sleep, time
 
-from .Config import DEBUG_LEVEL, NATIVE_THREADS
+from .Config import _, DEBUG_LEVEL, NATIVE_THREADS, TRDOMAIN
 from .Util import mychr, unmychr, Direction, Color
 from .ResolverCached import ResolverCached
 
-import gettext
-_ = gettext.gettext
 
 class Worker (QRunnable,QObject):
     newResult = Signal(int,int,str)

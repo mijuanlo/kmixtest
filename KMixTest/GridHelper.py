@@ -6,9 +6,7 @@ from PySide2.QtUiTools import *
 
 from .Box import Box
 from .QuestionType import Question
-
-import gettext
-_ = gettext.gettext
+from .Config import _
 
 # Class with helper to manage grid content used for question contents
 class gridHelper(QObject):
@@ -150,11 +148,11 @@ class gridHelper(QObject):
         if locked:
             b.lock = True
         # TYPED FIELDS
-        if typeq == _('single_question'):
+        if typeq == 'single_question':
             needed = ['empty_lines']
             check(boxData,needed)
             b.setSliderValue(boxData.get('empty_lines'))
-        elif typeq in [_('test_question'),_('join_activity')]:
+        elif typeq in ['test_question','join_activity']:
             options = boxData.get('options')
             opt_map = {}
             i = 0
@@ -166,11 +164,11 @@ class gridHelper(QObject):
                 i += 1
             for nop in sorted(opt_map.keys()):
                 option = options[opt_map.get(nop)]
-                if typeq == _('test_question'):
+                if typeq == 'test_question':
                     b.loadOptionTest(option)
                 else:
                     b.loadJoinOption(option)
-            if typeq == _('test_question'):
+            if typeq == 'test_question':
                 needed = ['nvalid']
                 check(boxData,needed)
                 b.configureSlider(1,len(options),boxData.get('nvalid'))

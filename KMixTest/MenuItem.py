@@ -5,10 +5,7 @@ from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
 from .Helper import Helper
-from .Config import ICONS
-
-import gettext
-_ = gettext.gettext
+from .Config import _, ICONS
 
 class MenuItem(QObject):
     itemActivation = Signal(str)

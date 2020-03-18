@@ -6,9 +6,6 @@ from PySide2.QtUiTools import *
 
 from .Util import print_document_data, print_preview_data, print_printer_data
 
-import gettext
-_ = gettext.gettext
-
 # class for pdf preview object
 class previewPrinter(QPrintPreviewDialog):
     toolbar = None

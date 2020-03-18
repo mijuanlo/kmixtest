@@ -6,12 +6,9 @@ from PySide2.QtUiTools import *
 
 from .Util import mmToPixels, picaToPixels, marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage
 from .PreviewPrinter import previewPrinter
-from .Config import ARTWORK, ICONS
+from .Config import _, ARTWORK, ICONS
 
 from copy import deepcopy
-
-import gettext
-_ = gettext.gettext
 
 USE_FAKE_HEADER = True
 
@@ -630,13 +627,13 @@ class helperPDF():
 
                 nlines = 0
                 options = None
-                if typeq == _('single_question'):
+                if typeq == 'single_question':
                     nlines = row.get('empty_lines')
                 else:
                     options = row.get('options')
-                    if typeq == _('test_question'):
+                    if typeq == 'test_question':
                         self.writeTest(document,options)
-                    elif typeq == _('join_activity'):
+                    elif typeq == 'join_activity':
                         self.writeJoinActivity(document,options)
                     self.writeSeparator(document,single=False)
 

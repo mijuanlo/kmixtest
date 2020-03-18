@@ -1,13 +1,15 @@
 import os.path
+import os
 import sys
 
 import gettext
-_ = gettext.gettext
+
 
 #
 # START EDITABLE VARS
 #
-
+TRDOMAIN = 'kmixtest'
+LOCALEDIRS = [ './locales', '/usr/share/locale' ]
 RESOURCES_PATH = [ ".", "./lib", "/usr/lib/kmixtest" ]
 MORE_PATHS = []
 for x in RESOURCES_PATH:
@@ -34,6 +36,22 @@ TIMER_QUEUE=500
 #
 # END EDITABLE VARS
 #
+
+tr=None
+_=None
+for ld in LOCALEDIRS:
+    if gettext.find(TRDOMAIN,ld,all=True):
+        tr=gettext.translation(TRDOMAIN,ld)
+        LOCALEDIRS = [ld]
+        break
+    else:
+        tr=None
+if tr:
+    tr.install(TRDOMAIN)
+    _=tr.gettext
+else:
+    print("Can't load translations")
+    _=gettext.gettext
 
 ICONS = {
     'up':'go-up.svg',

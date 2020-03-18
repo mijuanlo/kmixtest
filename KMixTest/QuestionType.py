@@ -1,7 +1,7 @@
-import gettext
-_ = gettext.gettext
+from .Config import _
 
-AllowedQuestionTypes = [_("Single question"),_("Test question"),_("Join activity")]
+AllowedQuestionTypes = ["Single question","Test question","Join activity"]
+TranslatedQuestionTypes = [_("Single question"),_("Test question"),_("Join activity")]
 
 class Question():
     counter = [0]
@@ -15,6 +15,7 @@ class Question():
         if id_name not in self.types:
             self.types.setdefault(id_name,self)
             self.id_name = id_name
+            self.translated_name = TranslatedQuestionTypes[AllowedQuestionTypes.index(name)]
         else:
             return None
         self.counter[0] += 1
@@ -23,6 +24,8 @@ class Question():
         return None
     def getName(self):
         return self.name
+    def getTranslatedName(self):
+        return self.translated_name
     def getId(self):
         return self.id
     def getNameId(self):
@@ -46,5 +49,7 @@ class Question():
         return [ k for k,v in self.types.items() ]
     def allNames(self):
         return [ v.name for k,v in self.types.items() ]
+    def allTranslatedNames(self):
+        return [ v.translated_name for k,v in self.types.items() ]
     def allIds(self):
         return [ v.id for k,v in self.types.items() ]

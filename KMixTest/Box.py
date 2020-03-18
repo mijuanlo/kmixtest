@@ -6,16 +6,13 @@ from PySide2.QtUiTools import *
 
 from .MenuItem import MenuItem
 from .QPushButtonTest import QPushButtonTest
-from .Config import ICONS
+from .Config import _, ICONS
 from .QuestionType import Question
 from .Util import dumpPixMapData,loadPixMapData
 
 from os.path import expanduser
 from copy import deepcopy
 from pprint import pformat as pp
-
-import gettext
-_ = gettext.gettext
 
 VIEW_DUMP_OPTION = True
 
@@ -178,7 +175,7 @@ class Box(QGroupBox):
         self.closedBox.emit(self.id)
 
     def addTitleEditor(self, content=None ):
-        label = QLabel("Title")
+        label = QLabel(_("Title"))
         label.setFixedWidth(self.column_width)
         label.setStyleSheet('QLabel {{ margin-top: {}px; }}'.format(self.button_size))
         if content:
@@ -238,7 +235,7 @@ class Box(QGroupBox):
         name_lineedit2 = 'JoinOptionLineEdit2#{}'.format(number)
         image_button1_name = 'JoinOptionImageButton1#{}'.format(number)
         image_button2_name = 'JoinOptionImageButton2#{}'.format(number)
-        tlabel = QLabel("Option",parent=self)
+        tlabel = QLabel(_("Option"),parent=self)
         tlabel.setFixedWidth(self.column_width)
         label = QLabel("\u279C",parent=w)
         label.setFont(QFont('Arial',20,QFont.Bold))
@@ -340,7 +337,7 @@ class Box(QGroupBox):
         dataname = None
         is_join_activity = True
         answer_num = name_button.split('#')[0][-1]
-        if typequestion == _('test_question'):
+        if typequestion == 'test_question':
             is_join_activity = False
             dataname = '{}{}'.format('OptionWithImage#',number)
         elif typequestion == 'join_activity':
@@ -463,7 +460,7 @@ class Box(QGroupBox):
 
     @Slot(int)
     def buttonsChanged(self,checked=None):
-        if self.data.get('type') != _('test_question'):
+        if self.data.get('type') != 'test_question':
             return
 
         sender = self.sender()
@@ -545,10 +542,10 @@ class Box(QGroupBox):
             raise ValueError()
         search_for = None
         delete_items = []
-        if self.data['type'] == _('test_question'):
+        if self.data['type'] == 'test_question':
             search_for = 'OptionLineEdit#'
             delete_items = ['OptionLineEdit#','OptionButtonOk#','OptionButtonRemove#']
-        elif self.data['type'] == _('join_activity'):
+        elif self.data['type'] == 'join_activity':
             search_for = 'JoinOptionLineEdit1#' 
             delete_items = ['JoinOptionLineEdit1#','JoinOptionLineEdit2#','JoinOptionRemoveButton#']
         else:
@@ -567,7 +564,7 @@ class Box(QGroupBox):
             if not wlist:
                 raise ValueError()
             self.removeRowItems(wlist[0])
-            if self.data['type'] == _('test_question') and number in self.options_declared:
+            if self.data['type'] == 'test_question' and number in self.options_declared:
                 del self.options_declared[number]
             for pre in ["","1","2"]:
                 name = 'OptionWithImage{}#{}'.format(pre,number)
@@ -613,9 +610,9 @@ class Box(QGroupBox):
             return []
 
     def getCurrentOptions(self):
-        if self.data.get('type') == _('test_question'):
+        if self.data.get('type') == 'test_question':
             return { k:v for k,v in self.editableItems.items() if 'OptionLineEdit' in k }
-        elif self.data.get('type') == _('join_activity'):
+        elif self.data.get('type') == 'join_activity':
             return { k:v for k,v in self.editableItems.items() if 'JoinOptionLineEdit' in k }
 
     @Slot()
@@ -714,7 +711,7 @@ class Box(QGroupBox):
             if button_remove:
                 button_remove.setDisabled(True)
 
-        if self.data.get('type') != _('single_question'):
+        if self.data.get('type') != 'single_question':
             if options:
                 self.configureSlider(1,len(options))
             slider = self.findChild(QAction,'action_slider')
@@ -777,9 +774,9 @@ class Box(QGroupBox):
         label = self.editableItems['SLIDER_LABEL']
         label.setText("{}/{}".format(value,slider.maximum()))
         type_question = self.data.get('type')
-        if type_question == _('single_question'):
+        if type_question == 'single_question':
             self.updateLinesForAnswer(value)
-        elif type_question == _('test_question'):
+        elif type_question == 'test_question':
             for x in self.options_declared:
                 old_value = self.options_declared[x]['trueness']
                 if self.count_trues > value or not old_value:
@@ -810,7 +807,7 @@ class Box(QGroupBox):
         typeQuestion = self.data.get('type')
         if not typeQuestion:
             qDebug(_('Empty type for question received'))
-        if typeQuestion == _('single_question'):
+        if typeQuestion == 'single_question':
             self.menu.emptyMenu()
             self.editableItems['EMPTY_LINES_LABEL'] = QLabel()
             elements = ["{}(add_image)|image".format(_('Add image')),"{}(del_image)|image_missing".format(_('Delete image')),"{}(box_lock)|lock".format(_('Lock')),"{}(box_unlock)|unlock".format(_('Unlock'))]
@@ -824,7 +821,7 @@ class Box(QGroupBox):
             self.addToLayout([(self.editableItems['EMPTY_LINES_LABEL'],Qt.AlignCenter,True)])
             self.configureSlider(1,30)
             self.do_lock()
-        elif typeQuestion == _('test_question'):
+        elif typeQuestion == 'test_question':
             self.menu.emptyMenu()
             elements = ["{}(test_question_add)|add".format(_('Add option')),"{}(test_question_remove)|remove".format(_('Remove option')),"{}(add_image)|image".format(_('Add image')),"{}(del_image)|image_missing".format(_('Delete image')),"{}(box_lock)|lock".format(_('Lock')),"{}(box_unlock)|unlock".format(_('Unlock'))]
             if VIEW_DUMP_OPTION:
@@ -834,7 +831,7 @@ class Box(QGroupBox):
             self.addSlider(self.menu.menu,'{}:'.format(_('Valid')),self.sliderChanged)
             self.addTitleEditor(self.data.get('initial_content'))
             self.do_lock()
-        elif typeQuestion == _('join_activity'):
+        elif typeQuestion == 'join_activity':
             self.menu.emptyMenu()
             elements = ["{}(join_question_add)|add".format(_('Add option')),"{}(join_question_remove)|remove".format(_('Remove option')),"{}(add_image)|image".format(_('Add image')),"{}(del_image)|image_missing".format('Delete image'),"{}(box_lock)|lock".format(_('Lock')),"{}(box_unlock)|unlock".format(_('Unlock'))]
             if VIEW_DUMP_OPTION:
@@ -908,7 +905,7 @@ class Box(QGroupBox):
         boxInfo['nvalid'] = self.count_trues
         # options = self.getCurrentOptions()
         # noptions = sorted(list(set([ self.getNumber(x) for x in options.keys() ])))
-        if boxInfo['type'] != _('single_question'):
+        if boxInfo['type'] != 'single_question':
             boxInfo['options'] = []
             # for o in noptions:
             for o in sorted(self.options_declared.keys()):
@@ -918,7 +915,7 @@ class Box(QGroupBox):
                 optInfo['order'] = o
                 option = self.options_declared.get(o)
                 optInfo['valid'] = option.get('trueness') 
-                if boxInfo['type'] == _('test_question'):
+                if boxInfo['type'] == 'test_question':
                     optInfo['text1'] = option.get('text')
                     if option.get('img'):
                         optInfo['pic1_name'] = QUrl().fromLocalFile(option.get('img')).toString()
@@ -932,7 +929,7 @@ class Box(QGroupBox):
                                 optInfo['pic1'] = pixdata
                             else:
                                 raise ValueError()
-                elif boxInfo['type'] == _('join_activity'):
+                elif boxInfo['type'] == 'join_activity':
                     for n in ["1","2"]:
                         optInfo['text'+n] = option.get('text'+n)
                         optInfo['text'+n] = option.get('text'+n)

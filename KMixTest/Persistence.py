@@ -112,9 +112,6 @@
 import json
 import os
 
-import gettext
-_ = gettext.gettext
-
 class Persistence():
     def __init__(self,*args,**kwargs):
         pass

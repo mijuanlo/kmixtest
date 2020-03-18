@@ -6,12 +6,9 @@ from PySide2.QtUiTools import *
 
 from queue import Queue, Empty
 
-from .Config import DEBUG_LEVEL, NATIVE_THREADS, TIMER_QUEUE, NUM_THREADS
+from .Config import _, DEBUG_LEVEL, NATIVE_THREADS, TIMER_QUEUE, NUM_THREADS
 from .Worker import Worker
 from .Util import Direction, Color
-
-import gettext
-_ = gettext.gettext
 
 class UpdatePool(QObject):
     newResult = Signal(int,int,str)

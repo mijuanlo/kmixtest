@@ -4,15 +4,14 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Config import DEBUG_LEVEL, ICONS
+from .Config import _, DEBUG_LEVEL, ICONS
 from .TableDrawer import tableDrawer
 from .UpdatePool import UpdatePool
 from .Util import Direction, Color, mychr, unmychr
 from .Helper import Helper
 from .QuestionType import Question
 
-import gettext
-_ = gettext.gettext
+FIXED_HEADER_COLUMNS = [_('Order'),_('Fixed'),_('Linked'),_('Title')]
 
 # Class for helping related qt functions for table questions
 class tableHelper(QObject):
@@ -110,9 +109,16 @@ class tableHelper(QObject):
     def configureHeader(self):
         self.headerItemNames = []
         header  = self.table.horizontalHeader()
+        j=-1
         for i in range(self.table.columnCount()):
+            j+=1
             item = self.table.horizontalHeaderItem(i)
+            fixedname = None
+            if j < len(FIXED_HEADER_COLUMNS):
+                fixedname = FIXED_HEADER_COLUMNS[j]
             if item:
+                if fixedname:
+                    item.setText(fixedname)
                 header.setSectionResizeMode(i,QHeaderView.ResizeToContents)
                 self.headerItemNames.append(str.lower(item.text()))
             else:
@@ -408,8 +414,8 @@ class tableHelper(QObject):
         #
         # Method manager for click linkable, lockable cells, no movement here
         #
-        FIXED_COL = self.headerItemNames.index('fixed')
-        LINKED_COL = self.headerItemNames.index('linked')
+        FIXED_COL = self.headerItemNames.index(_('fixed'))
+        LINKED_COL = self.headerItemNames.index(_('linked'))
 
         if column not in [ FIXED_COL , LINKED_COL ]:
             return True

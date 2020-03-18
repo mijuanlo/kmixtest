@@ -7,9 +7,7 @@ from PySide2.QtUiTools import *
 from time import time
 
 from .Util import mychr, unmychr, Color, Direction
-
-import gettext
-_ = gettext.gettext
+from .Config import _
 
 class Resolver(QObject):
     # class testclass:
