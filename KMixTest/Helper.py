@@ -4,6 +4,8 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
+from .Config import _
+
 # Helper with static functions helping qt gui actions
 class Helper():
     def __init__(self):
@@ -29,11 +31,15 @@ class Helper():
                     pass
                 else:
                     icon = None
+            else:
+                icon = None
             # icon can be filename (string) or QIcon
+            name_id=name.lower().replace(" ","_")
             if icon:
                 action = QAction(icon,name,parent)
             else:
                 action = QAction(name,parent)
+            action.setObjectName(name_id)
             
             # allow empty data included
             if data != None:

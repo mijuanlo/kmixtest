@@ -4,11 +4,14 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Config import DEBUG_LEVEL, ICONS
+from .Config import _, DEBUG_LEVEL, ICONS
 from .TableDrawer import tableDrawer
 from .UpdatePool import UpdatePool
 from .Util import Direction, Color, mychr, unmychr
 from .Helper import Helper
+from .QuestionType import Question
+
+FIXED_HEADER_COLUMNS = [_('Order'),_('Fixed'),_('Linked'),_('Title')]
 
 # Class for helping related qt functions for table questions
 class tableHelper(QObject):
@@ -17,6 +20,12 @@ class tableHelper(QObject):
     cellMoveClick = Signal(int,str)
     # editingquestion trigger editor for cell string 
     editingQuestion = Signal(int)
+    # title changed
+    questionChanged = Signal(int)
+    # rowSelection trigger selection for a question
+    rowSelection = Signal(int)
+    #
+    tableChanged = Signal()
 
     # class initialization with:
     #  table: qtablewidget view
@@ -30,6 +39,9 @@ class tableHelper(QObject):
             self.controller = parent
 
         if table:
+            self.number_columns_to_set_into_model = 6
+            self.private_last_columns = 2
+            self.headerItemNames = []
             # initialize internal data with table data
             self.setTableView(table)
             # connect signals from table with local functions as callback
@@ -52,26 +64,69 @@ class tableHelper(QObject):
         # Maybe create own model in future
         # (model) QStandardItemModel(0,5)
         # (view) setModel(self.model)
-        self.table.setColumnCount(5)
+        self.table.setColumnCount(self.number_columns_to_set_into_model)
         self.model = table.model()
         # Last column is hidden, private data here
-        self.table.setColumnHidden(self.table.columnCount()-1,True)
+        for x in range(1,self.private_last_columns+1):
+            self.table.setColumnHidden(self.table.columnCount()-x,True)
         self.configureHeader()
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.customMenu)
         self.table.cellClicked.connect(self.ClickOnCell)
+        self.table.cellChanged.connect(self.cellChanged)
 
+    def rowEditionPermitted(self,row):
+        return self.controller.rowEditionPermitted(self.getCellContent(row,'_UUID_'))
+
+    @Slot(int,int)
+    def cellChanged(self, row, col):
+        # qDebug('Cell changed y={} x={}'.format(row,col))
+        self.questionChanged.emit(row)
+
+    def dumpTableModel(self):
+        dumpColumns = [_('fixed'),_('linked'),_('title'),'_TYPE_','_UUID_']
+        columns = [ self.headerItemNames.index(x) for x in dumpColumns ]
+        NUM_ROWS = self.model.rowCount()
+        model = list()
+        i = 0
+        for y in range(NUM_ROWS):
+            row = list()
+            for x in columns: 
+                row.append(self.getCellContent(y,x))
+            if row:
+                row.insert(0,i)
+            model.append(row)
+            i += 1
+        return model
+
+    def updateTitleRow(self,row_uuid,content):
+        for y in range(self.model.rowCount()):
+            uid = self.model.data(self.model.index(y,self.headerItemNames.index('_UUID_')),Qt.UserRole)
+            if uid == row_uuid:
+                self.model.setData(self.model.index(y,self.headerItemNames.index(_('title'))),content,Qt.DisplayRole)
+                break
     # Create header for tableview
     def configureHeader(self):
         self.headerItemNames = []
         header  = self.table.horizontalHeader()
+        j=-1
         for i in range(self.table.columnCount()):
+            j+=1
             item = self.table.horizontalHeaderItem(i)
+            fixedname = None
+            if j < len(FIXED_HEADER_COLUMNS):
+                fixedname = FIXED_HEADER_COLUMNS[j]
             if item:
+                if fixedname:
+                    item.setText(fixedname)
                 header.setSectionResizeMode(i,QHeaderView.ResizeToContents)
                 self.headerItemNames.append(str.lower(item.text()))
             else:
-                self.headerItemNames.append("PRIVATE")
+                #self.headerItemNames.append("PRIVATE")
+                if i == 4:
+                    self.headerItemNames.append("_UUID_")
+                if i == 5:
+                    self.headerItemNames.append("_TYPE_")
         self.table.horizontalHeader().setStretchLastSection(True)
 
     # Update internal statestring used by resolver
@@ -80,12 +135,13 @@ class tableHelper(QObject):
         self.stateString = self.getStateString()
         #self.resolver.reset()
         self.pool.set_stateString(self.stateString)
+        self.tableChanged.emit()
 
     # build new state string representing table
     # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells
     def getStateString(self):
-        FIXED_COL = self.headerItemNames.index('fixed')
-        LINKED_COL = self.headerItemNames.index('linked')
+        FIXED_COL = self.headerItemNames.index(_('fixed'))
+        LINKED_COL = self.headerItemNames.index(_('linked'))
         NUM_COLS = self.model.columnCount()
         NUM_ROWS = self.model.rowCount()
         states = ''
@@ -103,21 +159,263 @@ class tableHelper(QObject):
         if cols == 'all':
             cols = list(range(self.model.columnCount()))
         if self.debug_level > 1:
-            qDebug('Updating graphics for {} {}'.format(rows,cols))
+            qDebug('{} {} {}'.format(_('Updating graphics for'),rows,cols))
         if not isinstance(rows,list) and not isinstance(cols,list):
             return
         for y in rows:
             for x in cols:
                 self.table.update(self.model.index(y,x))
     
+    def setCellContent(self,row=None,col=None,values=None,named=False):
+        return self.manipulateCellContent(mode='SET',row=row,col=col,values=values,named=named)
+
+    def getCellContent(self,row=None,col=None,named=False):
+        return self.manipulateCellContent(mode='GET',row=row,col=col,values=None,named=named)
+
+    def manipulateCellContent(self,mode='GET',row=None,col=None,values=None,named=False):
+        if mode == 'SET' and values is None:
+            raise ValueError()
+        if col is None:
+            col = list(range(self.table.columnCount()))
+        if row is None:
+            row = list(range(self.table.rowCount()))
+
+        retry = False
+        if not isinstance(col,list):
+            col = [ col ]
+            retry = True
+        if not isinstance(row,list):
+            row = [ row ]
+            retry = True
+        if retry:
+            return self.manipulateCellContent(mode=mode,row=row,col=col,values=values,named=named)
+        
+        for i in range(len(col)):
+            if isinstance(col[i],str):
+                if col[i] in self.headerItemNames:
+                    col[i] = self.headerItemNames.index(col[i])
+                else:
+                    raise ValueError()
+            elif not isinstance(col[i],int):
+                raise ValueError()
+            if col[i] < 0 or col[i] >= self.number_columns_to_set_into_model:
+                raise ValueError()
+        for i in range(len(row)):
+            if not isinstance(row[i],int):
+                raise ValueError()
+            if row[i] < 0 or row[i] >= self.table.rowCount():
+                raise ValueError()
+        
+        result = []
+        if len(row) == 1 and len(col) == 1:
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1:
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != 1:
+                            raise ValueError()
+                        else:
+                            putvalue = values[0][0]
+                    else:
+                        putvalue = values[0]
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = values
+                if putvalue == '_None':
+                    raise ValueError()
+            role = Qt.DisplayRole
+            name = self.headerItemNames[col[0]]
+            if name[0] == "_":
+                role = Qt.UserRole
+            if mode == 'GET':
+                value = self.model.data(self.model.index(row[0],col[0]),role)
+            elif mode == 'SET':
+                self.model.setData(self.model.index(row[0],col[0]),putvalue,role)
+                return
+            else:
+                raise ValueError()
+            if named:
+                return {name:value}
+            else:
+                return value
+        elif len(row) == 1 and len(col) != 1:
+            result = []
+            result_dict = {}
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1 and len(values) != len(col):
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != len(col):
+                            if len(values[0])==1:
+                                putvalue = values[0] * len(col)
+                            else:
+                                raise ValueError()
+                        else: # matrix 1xN
+                            putvalue = values[0]
+                    else: # list(N)
+                        if len(values) == 1:
+                            putvalue = values * len(col)
+                        elif len(values) == len(col):
+                            putvalue = values
+                        else:
+                            raise ValueError()     
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = [ values ] * len(col)
+                if len(putvalue) != len(col):
+                    raise ValueError()
+                if putvalue == '_None':
+                    raise ValueError()
+            i=0
+            for x in col:
+                role = Qt.DisplayRole
+                name = self.headerItemNames[x]
+                if name[0] == "_":
+                    role = Qt.UserRole
+                if mode == 'GET':
+                    value = self.model.data(self.model.index(row[0],x),role)
+                    if named:
+                        result_dict.setdefault(name,value)
+                    else:
+                        result.append(value)
+                elif mode == 'SET':
+                    self.model.setData(self.model.index(row[0],x),putvalue[i],role)
+                    i+=1
+                else:
+                    raise ValueError()
+            if mode == 'SET':
+                return
+            if named:
+                return [result_dict]
+            else:
+                return result
+        elif len(row) != 1 and len(col) == 1:
+            result = []
+            putvalue = '_None'
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != 1 or len(values) != len(row):
+                        raise ValueError()
+                    if isinstance(values[0],(list)):
+                        if len(values[0]) != len(row):
+                            if len(values[0])==1:
+                                putvalue = []
+                                for i in range(0,len(row)):
+                                    putvalue.insert(i,values[0])
+                            else:
+                                raise ValueError()
+                        else: # matrix 1xN
+                            putvalue = values[0]
+                    else: # list(N)
+                        putvalue = []
+                        for i in range(0,len(row)):
+                            putvalue.insert(0,values[0])
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalue = []
+                    for x in range(len(row)):
+                        putvalue.append([values])
+                if len(putvalue) != len(row):
+                    raise ValueError()
+                if putvalue == '_None':
+                    raise ValueError()
+            i=0
+            for y in row:
+                role = Qt.DisplayRole
+                name = self.headerItemNames[col[0]]
+                if name[0] == "_":
+                    role = Qt.UserRole
+                if mode == 'GET':
+                    value = self.model.data(self.model.index(y,col[0]),role)
+                    if named:
+                        result.append({name:value})
+                    else:
+                        result.append(value)
+                elif mode == 'SET':
+                    self.model.setData(self.model.index(y,col[0]),putvalue[i][0],role)
+                    i+=1
+                else:
+                    raise ValueError()
+            return result
+        elif len(row) != 1 and len(col) != 1:
+            result = []
+            putvalues = []
+            if mode == 'SET':
+                if isinstance(values,(list)):
+                    if len(values) != len(row):
+                        if len(values) == 1:
+                            if not isinstance(values[0],list):
+                                values[0]=[values[0]]
+                            for i in range(1,len(row)):
+                                values.append(values[0])
+                        else:
+                            raise ValueError()
+                    for v in range(len(values)):
+                        if not isinstance(values[v],(list)):
+                            raise ValueError()
+                        if len(values[v]) != len(col):
+                            if len(values[v]) == 1:
+                                values[v]=values[v] * len(col)
+                            else:
+                                raise ValueError()
+                        putvalues.append(values[v])
+                elif isinstance(values,dict):
+                    raise ValueError("TODO!")
+                else:
+                    putvalues = []
+                    for y in range(len(row)):
+                        putvalues.append([values]*len(col))
+                if not putvalues:
+                    raise ValueError()
+                if len(putvalues) != len(row):
+                    raise ValueError()
+                for i in range(len(putvalues)):
+                    if len(putvalues[i]) != len(col):
+                        raise ValueError()
+            i=0
+            for y in row:
+                j=0
+                sub_result = []
+                sub_result_dict = {}
+                for x in col:
+                    role = Qt.DisplayRole
+                    name = self.headerItemNames[x]
+                    if name[0] == "_":
+                        role = Qt.UserRole
+                    if mode == 'GET':
+                        value = self.model.data(self.model.index(y,x),role)
+                        if named:
+                            sub_result_dict.setdefault(name,value)
+                        else:
+                            sub_result.append(value)
+                    else:
+                        self.model.setData(self.model.index(y,x),putvalues[i][j],role)
+                        j+=1
+                i+=1
+                if mode == 'GET':
+                    if named:
+                        result.append(sub_result_dict)
+                    else:
+                        result.append(sub_result)
+            return result
+        else:
+            raise ValueError()
+
     # Callback from delegate class when click is done on cells linked (col 2) or fixed (col 1)
     @Slot(int, int)
     def ClickOnCell(self, row, column):
         #
         # Method manager for click linkable, lockable cells, no movement here
         #
-        FIXED_COL = self.headerItemNames.index('fixed')
-        LINKED_COL = self.headerItemNames.index('linked')
+        FIXED_COL = self.headerItemNames.index(_('fixed'))
+        LINKED_COL = self.headerItemNames.index(_('linked'))
 
         if column not in [ FIXED_COL , LINKED_COL ]:
             return True
@@ -191,7 +489,7 @@ class tableHelper(QObject):
         if flipCellState(rows,columns):
             removeAloneLinks()
             self.updateStateString()
-            self.updateCellGraphics(rows='all',cols=[self.headerItemNames.index('order')])
+            self.updateCellGraphics(rows='all',cols=[self.headerItemNames.index(_('order'))])
         return True
 
     # Build custom menu for each row
@@ -199,14 +497,14 @@ class tableHelper(QObject):
     def customMenu(self, position):
         item = self.table.itemAt(position)
         if not item:
-            qDebug("No item on that position!")
+            qDebug(_("No item on that position!"))
             return
-        qDebug("item on x:{} y:{} with value {}".format(item.column(),item.row(),item.text()))
-        qm = QMenu('titulo', self.table)
+        qDebug("{} x:{} y:{} {} {}".format(_('item on'),item.column(),item.row(),_('with value'),item.text()))
+        qm = QMenu(_('titulo'), self.table)
         if item.column()!=0:
             for seq in range(1,4):
-                qm.addAction(Helper.genAction(name="ContextAction{}_{}".format(seq,item.text()),fn=self.printContextAction,data="ContextAction_{}_Data".format(seq,item.text()),icon=ICONS['option'],shortcut=None,tip="TipContextAction_{}".format(seq,item.text()),parent=qm))
-            qm.addAction(Helper.genAction(name="Delete line '{}'".format(item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="TipContextAction_Delete_{}".format(item.text()),parent=qm))
+                qm.addAction(Helper.genAction(name="{}{}_{}".format(_('ContextAction'),seq,item.text()),fn=self.printContextAction,data="{}_{}_{}".format(_('ContextAction'),seq,item.text(),_('Data')),icon=ICONS['option'],shortcut=None,tip="{}_{}".format(_('TipContextAction'),seq,item.text()),parent=qm))
+            qm.addAction(Helper.genAction(name="{} '{}'".format(_('Delete line'),item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="{}_{}_{}".format(_('TipContextAction'),_('Delete'),item.text()),parent=qm))
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())
@@ -215,24 +513,36 @@ class tableHelper(QObject):
     @Slot()
     def printContextAction(self):
         data = self.sender().data()
-        qDebug("senderData:{}".format(data))
+        qDebug("{}:{}".format(_('senderData'),data))
         if self.controller:
-            self.controller.window.statusbar.showMessage("Action from '{}' triggered".format(data),10*1000)
+            self.controller.window.statusbar.showMessage("{} '{}' {}".format(_('Action from'),data,_('triggered')),10*1000)
 
     # Callback for delete row action triggered from contextmenu
     @Slot()
     def deleteContextAction(self):
         data = self.sender().data()
-        self.table.removeRow(data)
-        self.updateStateString()
+        self.deleteItem(data)
         if self.controller:
-            self.controller.window.statusbar.showMessage("Deleted row {}".format(data),10*1000)
+            self.controller.window.statusbar.showMessage("{} {}".format(_('Deleted row'),data),10*1000)
+
+    def deleteItem(self, item):
+        if item and isinstance(item,list):
+            for i in item:
+                self.deleteItem(i)
+        else:
+            self.table.removeRow(item)
+            self.updateStateString()
+
+    def clearTable(self):
+        for x in range(self.table.rowCount(),-1,-1):
+            self.table.removeRow(x)
+        self.updateStateString()
 
     def newResultCompleted(self,row,dir,result):
         if self.debug_level > 1:
-            qDebug('(tablehelper) New result: \'{}\' \'{}\' \'{}\''.format(row,dir,result))
+            qDebug('(tablehelper) {}: \'{}\' \'{}\' \'{}\''.format(_('New result'),row,dir,result))
         
-        LINKED_COLUMN = self.headerItemNames.index('linked')
+        LINKED_COLUMN = self.headerItemNames.index(_('linked'))
         NUM_ROWS = self.model.rowCount()
 
         if NUM_ROWS < 3:
@@ -270,8 +580,8 @@ class tableHelper(QObject):
         ID = mychr(ROW)
 
         ROW_COUNT = index.model().rowCount()
-        LINKED_COLUMN = self.headerItemNames.index('linked')
-        FIXED_COLUMN = self.headerItemNames.index('fixed')
+        LINKED_COLUMN = self.headerItemNames.index(_('linked'))
+        FIXED_COLUMN = self.headerItemNames.index(_('fixed'))
         
         # First can't go up and Last can't go down
         if ROW == 0 and direction == Direction.UP:
@@ -318,7 +628,7 @@ class tableHelper(QObject):
 
         # Debug function printing model on terminal
         def printModel(m):
-            qDebug('MODEL')
+            qDebug(_('MODEL'))
             for y in range(0,m.rowCount()):
                 s = []
                 for x in range(1,m.columnCount()):
@@ -330,7 +640,7 @@ class tableHelper(QObject):
         
         MODEL = self.table.model()
         # Change to integer for direction
-        if dir == 'DOWN':
+        if dir == _('DOWN'):
             dir = Direction.DOWN.value
         else:
             dir = Direction.UP.value
@@ -341,7 +651,7 @@ class tableHelper(QObject):
         if R:
             R = [ unmychr(x)-1 for x in R[0] ]
         else:
-            self.controller.window.statusbar.showMessage("Thinking... please wait",10*1000)
+            self.controller.window.statusbar.showMessage(_("Thinking... please wait"),10*1000)
             return
 
         # Emit signal while model are changing
@@ -359,7 +669,7 @@ class tableHelper(QObject):
                 if dest != R[dest]:
                     # change rows
                     if self.debug_level > 1:
-                        print('CHANGING {} <-> {}'.format(dest,R[dest]))
+                        print('{} {} <-> {}'.format(_('CHANGING'),dest,R[dest]))
                         printModel(MODEL)
                     for x in range(1,NUM_COLS):
                         tmp = self.table.takeItem(dest,x)
@@ -381,32 +691,62 @@ class tableHelper(QObject):
         return
 
     # Method for create and insert new row triggered for action bar or menu
-    def makeRow(self, item="", table=None):
+    def makeRow(self, typerow=None, fixed=False, linked=False, title=None, table=None):
         if table is None and self.table is not None:
             table = self.table
+
+        if not typerow:
+            raise ValueError()
+
+        q = Question().search(typerow)
+        if not q:
+            raise ValueError()
+
         last_row = table.rowCount()
         table.insertRow(last_row)
+
         # Columns 1,2,3 alignment & size is set from delegated class
-        #table.setItem(last_row,0,QTableWidgetItem())
+        
+        # Column 0 is for custom widget up & down movement
 
-        for col in [1,2]:
-            idx=self.model.index(last_row,col)
-            self.model.setData(idx,False,Qt.DisplayRole)
+        # Columns 1,2 for fixed and linked settings
+        self.setCellContent(last_row,[_('fixed'),_('linked')],[fixed,linked])
 
-        # i = QTableWidgetItem("{}".format(item))
-        # i.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        # table.setItem(last_row,3,i)
-        self.model.setData(self.model.index(last_row,3),"{}:{}".format(last_row,item))
+        # Column 3 for Title
+        if title is None:
+            title = q.getName()
+        self.setCellContent(last_row,_('title'),"{}".format(title))
 
-        col = self.model.columnCount() -1
-        idx=self.model.index(last_row,col)
-        # Store as UserRole into hidden column
-        self.model.setData(idx,"{}".format(QUuid.createUuid().toString()),Qt.UserRole)
+        # private columns 4(uuid), 5(type)
+    
+        # # Store as UserRole into hidden column
+        uuid = QUuid.createUuid().toString()
+        self.setCellContent(last_row,'_UUID_',"{}".format(uuid))
 
-    def addItem(self, item):
-        if item and isinstance(item,list):
-            for i in item:
-                self.addItem(i)
+        # # Store as UserRole into hidden column
+        self.setCellContent(last_row,'_TYPE_',"{}".format(q.getNameId()))
+        return uuid
+
+    def addItem(self, typeq):
+        if typeq and isinstance(typeq,list):
+            ret = list()
+            for i in typeq:
+                ret.append(self.addItem(i))
+            return ret
         else:
-            self.makeRow(item)
+            uuid = self.makeRow(typeq)
             self.updateStateString()
+            return uuid
+
+    def addItemWithState(self,title,fixed,linked,typequestion):
+        uuid = self.makeRow(typerow=typequestion,linked=linked,fixed=fixed,title=title)
+        lastrow = self.model.rowCount()-1
+        if fixed:
+            FIXED_COL = self.headerItemNames.index(_('fixed'))
+            self.model.setData(self.model.index(lastrow,FIXED_COL),fixed,Qt.DisplayRole)
+        if linked:
+            LINKED_COL = self.headerItemNames.index(_('linked'))
+            self.model.setData(self.model.index(lastrow,LINKED_COL),linked,Qt.DisplayRole)
+        self.updateStateString()
+        self.updateCellGraphics()
+        return uuid

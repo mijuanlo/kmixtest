@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "KmixTest",
+            "type": "python",
+            "request": "launch",
+            "program": "kmixtest",
+            "args": ["~/kmixtest/exammodel.kmt"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "KmixTest Fixed",
+            "type": "python",
+            "request": "launch",
+            "program": "kmixtest",
+            "args": ["~/allfixed.kmt"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "KmixTest Fixed no alter",
+            "type": "python",
+            "request": "launch",
+            "program": "kmixtest",
+            "args": ["~/allfixedsinalter.kmt"],
+            "console": "integratedTerminal"
+        }
+    ]
+}

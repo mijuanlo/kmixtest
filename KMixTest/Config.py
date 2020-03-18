@@ -1,9 +1,22 @@
+import os.path
+import os
+import sys
+
+import gettext
+
+
 #
 # START EDITABLE VARS
 #
-
-RESOURCES_PATH = [ ".", "/usr/lib/kmixtest" ]
-
+TRDOMAIN = 'kmixtest'
+LOCALEDIRS = [ './locales', '/usr/share/locale' ]
+RESOURCES_PATH = [ ".", "./lib", "/usr/lib/kmixtest" ]
+MORE_PATHS = []
+for x in RESOURCES_PATH:
+    extra = os.path.realpath(os.path.realpath(os.path.dirname(sys.argv[0])) + "/" + x)
+    if os.path.exists(extra) and extra not in RESOURCES_PATH and extra not in MORE_PATHS:
+        MORE_PATHS.append(extra)
+RESOURCES_PATH.extend(MORE_PATHS)
 # IM_DEBUGGING: Fill editable vars with optimal values
 IM_DEBUGGING = False
 
@@ -24,13 +37,48 @@ TIMER_QUEUE=500
 # END EDITABLE VARS
 #
 
+tr=None
+_=None
+for ld in LOCALEDIRS:
+    if gettext.find(TRDOMAIN,ld,all=True):
+        tr=gettext.translation(TRDOMAIN,ld)
+        LOCALEDIRS = [ld]
+        break
+    else:
+        tr=None
+if tr:
+    tr.install(TRDOMAIN)
+    _=tr.gettext
+else:
+    print("Can't load translations")
+    _=gettext.gettext
+
 ICONS = {
     'up':'go-up.svg',
     'down':'go-down.svg',
     'linked':'linked.svg',
     'fixed': 'fixed.svg',
     'close': 'close.svg',
-    'option': 'option.svg'
+    'option': 'option.svg',
+    'add': 'add.png',
+    'exit': 'exit.png',
+    'new': 'new.png',
+    'nok': 'nok.png',
+    'ok': 'ok.png',
+    'print': 'print.png',
+    'remove': 'remove.png',
+    'save': 'save.png',
+    'okbw': 'okbw.png',
+    'lock': 'lock.png',
+    'unlock': 'unlock.png',
+    'alertbw': 'alertbw.svg',
+    'negated': 'nok.svg',
+    'image': 'image.png',
+    'image_missing': 'image-missing.png',
+    'remove_image': 'remove-image.png',
+    'high': 'high.png',
+    'low': 'low.png',
+    'option': 'box.svg'
     }
 
 ARTWORK = {

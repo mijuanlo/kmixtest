@@ -28,7 +28,7 @@
            <x>0</x>
            <y>0</y>
            <width>386</width>
-           <height>455</height>
+           <height>475</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -87,7 +87,7 @@
             </column>
             <column>
              <property name="text">
-              <string>Question Type</string>
+              <string>Title</string>
              </property>
             </column>
            </widget>
@@ -107,7 +107,7 @@
            <x>0</x>
            <y>0</y>
            <width>386</width>
-           <height>455</height>
+           <height>475</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -168,37 +168,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionNewSingleQuestion"/>
-   <addaction name="actionNewSingleAnswer"/>
-   <addaction name="actionNewMultipleAnswer"/>
-   <addaction name="actionNewJoinActivity"/>
   </widget>
-  <action name="actionNewSingleQuestion">
-   <property name="text">
-    <string>NewSingleQuestion</string>
-   </property>
-   <property name="toolTip">
-    <string>NewSingleQuestion</string>
-   </property>
-  </action>
-  <action name="actionNewSingleAnswer">
-   <property name="text">
-    <string>NewSingleAnswer</string>
-   </property>
-   <property name="toolTip">
-    <string>NewSingleAnswer</string>
-   </property>
-  </action>
-  <action name="actionNewMultipleAnswer">
-   <property name="text">
-    <string>NewMultipleAnswer</string>
-   </property>
-  </action>
-  <action name="actionNewJoinActivity">
-   <property name="text">
-    <string>NewJoinActivity</string>
-   </property>
-  </action>
  </widget>
  <resources/>
  <connections/>

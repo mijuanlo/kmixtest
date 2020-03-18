@@ -16,15 +16,22 @@ class previewPrinter(QPrintPreviewDialog):
             self.parent = parent
         super().__init__(printer)
         self.preview = self.findChild(QPrintPreviewWidget)
-        #self.toolbar = self.findChild(QToolBar)
-        #self.actions = { a.iconText() : a for a in self.toolbar.actions() if (type(a) == type(QAction()) and a.isVisible()) and not a.isSeparator() }
-        self.setupButtons()
-    
-    def setupButtons(self):
-        self.preview.previewChanged.connect(self.previewChanged)
+        # self.toolbar = self.findChild(QToolBar)
+        # self.actions = { a.iconText() : a for a in self.toolbar.actions() if (type(a) == type(QAction()) and a.isVisible()) and not a.isSeparator() }
+        # self.setupButtons()
 
-    @Slot()
-    def previewChanged(self):
-        qDebug("***** Preview changed! *****")
-        print_preview_data(self.preview)
-        print_printer_data(self.parent.printer)
+    # def setupButtons(self):
+    #     self.preview.previewChanged.connect(self.previewChanged)
+
+    # @Slot()
+    # def previewChanged(self):
+    #     qDebug("***** Preview changed! *****")
+    #     print_preview_data(self.preview)
+    #     print_printer_data(self.parent.printer)
+
+# class previewWidget(QPrintPreviewWidget):
+#     def __init__(self,*args,**kwargs):
+#         super().__init__(*args,**kwargs)
+#     @Slot()
+#     def print(self,*args,**kwargs):
+#         super().__init__(*args,**kwargs)

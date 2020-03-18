@@ -7,9 +7,10 @@ from PySide2.QtUiTools import *
 from queue import Queue, Empty
 from time import sleep, time
 
-from .Config import DEBUG_LEVEL, NATIVE_THREADS
+from .Config import _, DEBUG_LEVEL, NATIVE_THREADS, TRDOMAIN
 from .Util import mychr, unmychr, Direction, Color
 from .ResolverCached import ResolverCached
+
 
 class Worker (QRunnable,QObject):
     newResult = Signal(int,int,str)
@@ -29,13 +30,13 @@ class Worker (QRunnable,QObject):
 
     def abort(self):
         if self.debug_level > 0:
-            qDebug("Aborting worker {}".format(self.id))
+            qDebug("{} {}".format(_('Aborting worker'),self.id))
         self.terminate = True
         self.joblist = None
         self.resolver.abort()
     def killresolver(self):
         if self.debug_level > 0:
-            qDebug("Killing on worker {} internal resolver".format(self.id))
+            qDebug("{} {} {}".format(_('Killing on worker'),_('internal resolver'),self.id))
         self.resolver.reset()
 
     def row_is(self,state,row,col):
@@ -69,7 +70,7 @@ class Worker (QRunnable,QObject):
                     change = x % 2
                     if change:
                         strstate += '{}({}{}) '.format(mychr(level),state[x-1],state[x])
-                qDebug('Running worker #{} state={} row={} dir={}'.format(self.id,strstate,row,direction))
+                qDebug('{} #{} {}={} {}={} {}={}'.format(_('Running worker'),self.id,_('state'),strstate,_('row'),row,_('direction'),direction))
 
             ret = False
             # First can't go up and Last can't go down
@@ -105,20 +106,20 @@ class Worker (QRunnable,QObject):
                 self.resolver.configureResolver(state,row,direction)
                 stime = time()
                 if self.debug_level > 0:
-                    qDebug('#{}({}) can move {}? (Thinking...)'.format(unmychr(ID),ID,'DOWN' if direction else 'UP'))
+                    qDebug('#{}({}) {} {}? ({}...)'.format(unmychr(ID),ID,_('can move'),_('DOWN') if direction else _('UP')),_('Thinking'))
                 R = self.resolver.getResults()
                 dur = time()-stime
                 duration = "{0:4.2f}".format(dur)
                 flagdirection = True if R else False
                 result = R[0] if R else []
-                s = '#{}({}) can move {}? {} [ {} secs ]'.format(unmychr(ID),ID,'DOWN' if direction else 'UP','YES' if result else 'NO',duration)
+                s = '#{}({}) {} {}? {} [ {} {} ]'.format(unmychr(ID),ID,_('can move'),_('DOWN') if direction else _('UP'),_('YES') if result else _('NO'),duration,_('seconds'))
                 if dur > 2.0:
                     qDebug(Color.makecolor(s,Color.RED))
                 else:
                     if self.debug_level > 0:
                         qDebug(Color.makecolor(s,Color.GREEN))
                 if self.debug_level > 0:
-                    qDebug('End worker {} [ {} sec ]--> Sending: \'{}\' \'{}\' \'{}\' '.format(self.id,duration,row,direction,R))
+                    qDebug('{} {} [ {} {} ]--> {}: \'{}\' \'{}\' \'{}\' '.format(_('End worker'),self.id,duration,_('seconds'),_('Sending'),row,direction,R))
                 self.newResult.emit(row,direction,result)
             if self.joblist:
                self.joblist.task_done()

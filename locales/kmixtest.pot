@@ -1,0 +1,667 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2020-03-18 15:36+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Configure header"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Configure output"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Exit"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Generate Mix"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Load exam"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Load template"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Mixer"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "New"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Print"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Print Exam"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Print preview"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Project"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Save"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Save as"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:55
+msgid "Save as template"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:71
+msgid "Exception while initializing"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:78
+msgid "Terminating"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:90
+msgid "Edition not permitted, box locked"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:101
+msgid "Editing"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:108
+msgid "Question changed"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:351
+msgid "Open Exam"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:351 ./KMixTest/AppMainWindow.py:355
+msgid "Exam files"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:355
+msgid "Save Exam"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:486 ./KMixTest/Box.py:191 ./KMixTest/Box.py:376
+msgid "Image Files"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:486 ./KMixTest/Box.py:191 ./KMixTest/Box.py:376
+msgid "Open image"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:493
+msgid "invalid"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:493 ./KMixTest/AppMainWindow.py:496
+msgid "filename"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:496
+msgid "valid"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:739
+msgid "Generate mix"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:743
+msgid "Number disctinct models"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:753
+msgid "Alter answer order"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:764
+msgid "Ok"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:765
+msgid "Close"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:786 ./KMixTest/Box.py:629
+msgid "Called"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:797
+msgid "Menu"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:850
+msgid "New question"
+msgstr ""
+
+#: ./KMixTest/AppMainWindow.py:875 ./KMixTest/Box.py:665
+msgid "No action declared for"
+msgstr ""
+
+#: ./KMixTest/Box.py:178 ./KMixTest/TableHelper.py:14
+msgid "Title"
+msgstr ""
+
+#: ./KMixTest/Box.py:238 ./KMixTest/Box.py:404
+msgid "Option"
+msgstr ""
+
+#: ./KMixTest/Box.py:356
+msgid "Do you wan't to remove image?"
+msgstr ""
+
+#: ./KMixTest/Box.py:561
+msgid "from"
+msgstr ""
+
+#: ./KMixTest/Box.py:678
+msgid "Can't lock"
+msgstr ""
+
+#: ./KMixTest/Box.py:695
+msgid "Can't unlock"
+msgstr ""
+
+#: ./KMixTest/Box.py:762
+msgid "Empty lines for answer"
+msgstr ""
+
+#: ./KMixTest/Box.py:809
+msgid "Empty type for question received"
+msgstr ""
+
+#: ./KMixTest/Box.py:813 ./KMixTest/Box.py:826
+msgid "Delete image"
+msgstr ""
+
+#: ./KMixTest/Box.py:813 ./KMixTest/Box.py:826 ./KMixTest/Box.py:836
+msgid "Add image"
+msgstr ""
+
+#: ./KMixTest/Box.py:813 ./KMixTest/Box.py:826 ./KMixTest/Box.py:836
+msgid "Lock"
+msgstr ""
+
+#: ./KMixTest/Box.py:813 ./KMixTest/Box.py:826 ./KMixTest/Box.py:836
+msgid "Unlock"
+msgstr ""
+
+#: ./KMixTest/Box.py:818
+msgid "Empty lines"
+msgstr ""
+
+#: ./KMixTest/Box.py:826 ./KMixTest/Box.py:836
+msgid "Add option"
+msgstr ""
+
+#: ./KMixTest/Box.py:826 ./KMixTest/Box.py:836
+msgid "Remove option"
+msgstr ""
+
+#: ./KMixTest/Box.py:828 ./KMixTest/Box.py:838
+msgid "Dump"
+msgstr ""
+
+#: ./KMixTest/Box.py:831
+msgid "Valid"
+msgstr ""
+
+#: ./KMixTest/Box.py:845
+msgid "skipping"
+msgstr ""
+
+#: ./KMixTest/Box.py:845
+msgid "type for question"
+msgstr ""
+
+#: ./KMixTest/Box.py:845
+msgid "unknown"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:49 ./KMixTest/Resolver.py:29
+msgid "empty"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:52
+msgid "Row"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:91 ./KMixTest/GridHelper.py:183
+#: ./KMixTest/HelperPDF.py:624 ./KMixTest/TableDrawer.py:116
+#: ./KMixTest/TableHelper.py:87 ./KMixTest/TableHelper.py:106
+#: ./KMixTest/TableHelper.py:718
+msgid "title"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:110
+msgid "with type"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:176
+msgid "Can't load type"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:190 ./KMixTest/GridHelper.py:193
+msgid "Showing question"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:193
+msgid "new"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:209
+msgid "Deleting "
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:222
+msgid "Closing"
+msgstr ""
+
+#: ./KMixTest/GridHelper.py:279 ./KMixTest/Resolver.py:317
+msgid "Error"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:89
+msgid "Setting margins to"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:97
+msgid "Setting orientation to"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:107
+msgid "Setting constant"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:112
+msgid "Setting text multiplier size"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:285
+msgid "Using text multiplier size"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:322
+msgid "Repaint Event"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:551
+msgid "Block"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:551
+msgid "on"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:551
+msgid "with"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:568
+msgid "Break page"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:568
+msgid "From"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:568
+msgid "to"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:602
+msgid "Starting question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:602 ./KMixTest/HelperPDF.py:624
+#: ./KMixTest/HelperPDF.py:644 ./KMixTest/HelperPDF.py:650
+msgid "at page"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:624
+msgid "End title from question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:644
+msgid "Space"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:644 ./KMixTest/HelperPDF.py:650
+msgid "from question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:650
+msgid "End options/lines"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:661
+msgid "write success until page"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:661 ./KMixTest/HelperPDF.py:665
+#: ./KMixTest/HelperPDF.py:669 ./KMixTest/HelperPDF.py:802
+msgid "Question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:665
+msgid "goes next page, breaking page on last question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:669
+msgid "sizes more than one page, skipping break, write sucess"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:675
+msgid "End processing question"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:675
+msgid "ended on page"
+msgstr ""
+
+#: ./KMixTest/HelperPDF.py:702 ./KMixTest/HelperPDF.py:755
+#: ./KMixTest/HelperPDF.py:782
+msgid "Error: Invalid image detected"
+msgstr ""
+
+#: ./KMixTest/QuestionType.py:4
+msgid "Join activity"
+msgstr ""
+
+#: ./KMixTest/QuestionType.py:4
+msgid "Single question"
+msgstr ""
+
+#: ./KMixTest/QuestionType.py:4
+msgid "Test question"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:70
+msgid "Not valid"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:75
+msgid "Aborting resolver"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:79
+msgid "Killing resolver"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:90
+msgid "Checks"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:90
+msgid "TOTAL"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:90 ./KMixTest/Worker.py:115 ./KMixTest/Worker.py:122
+msgid "seconds"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:93
+msgid "Conditions"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:525
+msgid "No solution"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:529
+msgid "results"
+msgstr ""
+
+#: ./KMixTest/Resolver.py:531
+msgid "first result"
+msgstr ""
+
+#: ./KMixTest/ResolverCached.py:30
+msgid "Aborting resolver cached"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:74 ./KMixTest/TableHelper.py:643
+#: ./KMixTest/Worker.py:109 ./KMixTest/Worker.py:115
+msgid "DOWN"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:77 ./KMixTest/Worker.py:109
+#: ./KMixTest/Worker.py:115
+msgid "UP"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:85
+msgid "Impossible movement"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:113 ./KMixTest/TableHelper.py:492
+msgid "order"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:114 ./KMixTest/TableHelper.py:87
+#: ./KMixTest/TableHelper.py:143 ./KMixTest/TableHelper.py:417
+#: ./KMixTest/TableHelper.py:584 ./KMixTest/TableHelper.py:713
+#: ./KMixTest/TableHelper.py:745
+msgid "fixed"
+msgstr ""
+
+#: ./KMixTest/TableDrawer.py:115 ./KMixTest/TableHelper.py:87
+#: ./KMixTest/TableHelper.py:144 ./KMixTest/TableHelper.py:418
+#: ./KMixTest/TableHelper.py:545 ./KMixTest/TableHelper.py:583
+#: ./KMixTest/TableHelper.py:713 ./KMixTest/TableHelper.py:748
+msgid "linked"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:14
+msgid "Fixed"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:14
+msgid "Linked"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:14
+msgid "Order"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:162
+msgid "Updating graphics for"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:500
+msgid "No item on that position!"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:502
+msgid "item on"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:502
+msgid "with value"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:503
+msgid "titulo"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:506
+msgid "ContextAction"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:506
+msgid "Data"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:506 ./KMixTest/TableHelper.py:507
+msgid "TipContextAction"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:507
+msgid "Delete"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:507
+msgid "Delete line"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:516
+msgid "senderData"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:518
+msgid "Action from"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:518
+msgid "triggered"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:526
+msgid "Deleted row"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:543
+msgid "New result"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:631
+msgid "MODEL"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:654
+msgid "Thinking... please wait"
+msgstr ""
+
+#: ./KMixTest/TableHelper.py:672
+msgid "CHANGING"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:50
+msgid "Initializing worker"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:82
+msgid "Started"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:82
+msgid "threads + timer"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:113
+msgid "Running"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:113
+msgid "jobs"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:121
+msgid "(Update pool) New Result"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:162
+msgid "Aborting UpdatePool"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:179
+msgid "Resetting workers"
+msgstr ""
+
+#: ./KMixTest/UpdatePool.py:185
+msgid "Invalidating pool model"
+msgstr ""
+
+#: ./KMixTest/Worker.py:33
+msgid "Aborting worker"
+msgstr ""
+
+#: ./KMixTest/Worker.py:39
+msgid "Killing on worker"
+msgstr ""
+
+#: ./KMixTest/Worker.py:39
+msgid "internal resolver"
+msgstr ""
+
+#: ./KMixTest/Worker.py:73
+msgid "Running worker"
+msgstr ""
+
+#: ./KMixTest/Worker.py:73
+msgid "direction"
+msgstr ""
+
+#: ./KMixTest/Worker.py:73
+msgid "row"
+msgstr ""
+
+#: ./KMixTest/Worker.py:73
+msgid "state"
+msgstr ""
+
+#: ./KMixTest/Worker.py:109
+msgid "Thinking"
+msgstr ""
+
+#: ./KMixTest/Worker.py:109 ./KMixTest/Worker.py:115
+msgid "can move"
+msgstr ""
+
+#: ./KMixTest/Worker.py:115
+msgid "NO"
+msgstr ""
+
+#: ./KMixTest/Worker.py:115
+msgid "YES"
+msgstr ""
+
+#: ./KMixTest/Worker.py:122
+msgid "End worker"
+msgstr ""
+
+#: ./KMixTest/Worker.py:122
+msgid "Sending"
+msgstr ""
+
+#: ./KMixTest/__init__.py:16
+msgid "User request exit from app"
+msgstr ""
+
+#: ./KMixTest/__init__.py:19
+msgid "Ending QApplication"
+msgstr ""
+
+#: ./KMixTest/__init__.py:36
+msgid "Initialization exception"
+msgstr ""
+
+#: ./KMixTest/__init__.py:38
+msgid "Quitting Kmixtest"
+msgstr ""
+

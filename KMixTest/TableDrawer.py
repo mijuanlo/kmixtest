@@ -4,7 +4,7 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Config import DEBUG_LEVEL, ICONS
+from .Config import _, DEBUG_LEVEL, ICONS
 from .Util import Direction, Color
 
 # Delegate class for questions table logic 
@@ -55,6 +55,9 @@ class tableDrawer(QStyledItemDelegate):
 
         # Disable not click release events
         disabled = True
+        # Selected row, emit signal for update other view
+        if column == 3 and event.type() == QEvent.MouseButtonRelease:
+            self.parent.rowSelection.emit(index.row())
         if column == 3 and event.type() == QEvent.MouseButtonDblClick:
             disabled = False
         elif column != 3 and event.type() != QEvent.MouseButtonRelease:
@@ -68,10 +71,10 @@ class tableDrawer(QStyledItemDelegate):
             # check what button is pressed thinking on mind that first middle width is for upbutton, rest for downbutton
             offset = option.rect.width() / 2
             if event.x() > offset:
-                go = 'DOWN'
+                go = _('DOWN')
                 direction = Direction.DOWN.value
             else:
-                go = 'UP'
+                go = _('UP')
                 direction = Direction.UP.value
             # Call for a helper function that manages if cell can be enabled or disabled
             if self.parent.canMove(index,direction):
@@ -79,7 +82,7 @@ class tableDrawer(QStyledItemDelegate):
                 self.parent.cellMoveClick.emit(index.row(),go)
             else:
                 # Disable movement not emitting signal
-                qDebug("Impossible movement")
+                qDebug(_("Impossible movement"))
             return True # Mark all events on column 0 handled
             # Events on column 0 ends here
 
@@ -90,7 +93,10 @@ class tableDrawer(QStyledItemDelegate):
 
         # Column 3 (text) does not handle event here
         if column == 3:
-            self.parent.editingQuestion.emit(index.row())
+            if self.parent.rowEditionPermitted(index.row()):
+                self.parent.editingQuestion.emit(index.row())
+            else:
+                return True
 
         return super().editorEvent(event, model, option, index) # same as return False
 
@@ -104,10 +110,10 @@ class tableDrawer(QStyledItemDelegate):
         #    qDebug("Painting becaused state mouseover")
         
         CURRENT_COLUMN = index.column()
-        ORDER_COLUMN = self.parent.headerItemNames.index('order')
-        FIXED_COLUMN = self.parent.headerItemNames.index('fixed')
-        LINKED_COLUMN = self.parent.headerItemNames.index('linked')
-        QUESTION_COLUMN = self.parent.headerItemNames.index('question type')
+        ORDER_COLUMN = self.parent.headerItemNames.index(_('order'))
+        FIXED_COLUMN = self.parent.headerItemNames.index(_('fixed'))
+        LINKED_COLUMN = self.parent.headerItemNames.index(_('linked'))
+        QUESTION_COLUMN = self.parent.headerItemNames.index(_('title'))
         
         # First (0) column with movement buttons
         if CURRENT_COLUMN == ORDER_COLUMN:
