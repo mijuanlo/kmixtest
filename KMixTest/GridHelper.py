@@ -107,7 +107,8 @@ class gridHelper(QObject):
         
         content = ''
         if title:
-            content = '{} {} {}'.format(title,_('with type'),typeq)
+            #content = '{} {} {}'.format(title,_('with type'),typeq)
+            content = '{}'.format(title)
         b.setData('initial_content',content)
 
         b.closedBox.connect(self.closeBox)
