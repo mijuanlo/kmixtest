@@ -1,4 +1,5 @@
 lib/* /usr/lib/kmixtest/
 KMixTest /usr/lib/python3/dist-packages/
 kmixtest /usr/bin/
-locales/* /usr/share/locales/
+locales/* /usr/share/locale/
+exammodel.kmt /usr/share/doc/kmixtest/
