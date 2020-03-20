@@ -715,7 +715,7 @@ class tableHelper(QObject):
         # Column 3 for Title
         if title is None:
             title = q.getName()
-        self.setCellContent(last_row,_('title'),"{}".format(title))
+        self.setCellContent(last_row,_('title'),"{}".format(_(title)))
 
         # private columns 4(uuid), 5(type)
     

@@ -14,7 +14,7 @@ from os.path import expanduser
 from copy import deepcopy
 from pprint import pformat as pp
 
-VIEW_DUMP_OPTION = True
+VIEW_DUMP_OPTION = False
 
 # Custom object for display content questions
 class Box(QGroupBox):
