@@ -3,3 +3,5 @@ KMixTest /usr/lib/python3/dist-packages/
 kmixtest /usr/bin/
 locales/* /usr/share/locale/
 exammodel.kmt /usr/share/doc/kmixtest/
+desktop/kmixtest.svg /usr/share/icons/lliurex/apps/48/
+desktop/kmixtest.desktop /usr/share/applications/
