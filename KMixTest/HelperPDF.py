@@ -41,6 +41,7 @@ class helperPDF():
         self.numberedPages = True
         self.headerWithFrame = False
         self.splitWithFrame = False
+        self.examData = None
         if self.debug:
             self.headerWithFrame = True
             self.splitWithFrame = True
@@ -126,7 +127,6 @@ class helperPDF():
         return document
 
     def initWidget(self, parent=None, printer=None):
-        
         widget = previewPrinter(parent=parent,printer=printer)
         if not self.widget:
             self.widget = widget
@@ -151,9 +151,9 @@ class helperPDF():
         self.widget = self.initWidget(parent=self, printer=self.printer)
         self.widget.exec_()
 
-    def writePDF(self):
+    def writePDF(self,filename=None):
         self.preview = False
-        self.paintRequest()
+        self.paintRequest(filename=filename)
 
     def initStyles(self, styles=None, printer=None):
         
@@ -317,11 +317,11 @@ class helperPDF():
         return pagenumber,pct
 
     @Slot(QPrinter)
-    def paintRequest(self, printer=None):
+    def paintRequest(self, printer=None, filename=None):
         if self.debug:
             qDebug("***** {} ! *****".format(_('Repaint Event')))
 
-        self.initSystem(printer)
+        self.initSystem(printer,filename)
 
         if self.debug:        
             # print_document_data(self.document)
@@ -580,6 +580,8 @@ class helperPDF():
         return cursor
 
     def writeExamData(self,document):
+        if not self.examData:
+            return document
         for model in self.examData:
             if model[0] == '_':
                 continue
@@ -972,6 +974,8 @@ class ExamDocument(QTextDocument):
     def printExamModel(self,printer,numbered=True,framed=True):
         headermap = {}
         footermap = {}
+        footer = ''
+        header = ''
         for modelname, infomodel in self.models.items():
             counter = 1
             for i in range(infomodel.get('ini'),infomodel.get('end')+1):
@@ -984,11 +988,11 @@ class ExamDocument(QTextDocument):
         for i in range(self.pageCount()):
             if i != 0:
                 printer.newPage()
-            header = str(headermap.get(i+1))
-            footer=""
-            if numbered:
-                info = self.models.get(headermap.get(i+1))
-                footer = "{}/{}".format(footermap.get(i+1),info.get('end')-info.get('ini')+1)
+            if headermap:
+                header = str(headermap.get(i+1))
+                if numbered:
+                    info = self.models.get(headermap.get(i+1))
+                    footer = "{}/{}".format(footermap.get(i+1),info.get('end')-info.get('ini')+1)
             self.printPageWithHeaders(i+1,p,self,body,printer,header=header,footer=footer,framed=framed)
 
 # class MyPrinter(QPrinter):
