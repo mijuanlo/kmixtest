@@ -1,0 +1,21 @@
+[Desktop Entry]
+Version=1.0
+Name=KMixTest
+Name[es]=Generador de exámenes de test en PDF
+Name[ca_ES.UTF-8@valencia]=Generador de test per examens en PDF
+Name[ca_ES@valencia]=Generador de test per examens en PDF
+Name[ca]=Generador de test per examens en PDF
+Name[ca_ES]=Generador de test per examens en PDF
+Comment=PDF test generator
+Comment[es]=Generador de test de examen en PDF
+Comment[ca_ES.UTF-8@valencia]=Generador de test per examens en PDF
+Comment[ca_ES@valencia]=Generador de test per examens en PDF
+Comment[ca]=Generador de test per examens en PDF
+Comment[ca_ES]=Generador de test per examens en PDF
+Type=Application
+Exec=kmixtest
+TryExec=kmixtest
+Icon=kmixtest
+Categories=Office;
+Terminal=false
+StartupNotify=false
