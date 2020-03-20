@@ -27,7 +27,7 @@ class AppMainWindow(QApplication):
         super().__init__([])
         try:
             self.debug = False
-            self.debug_translations = True
+            self.debug_translations = False
             self.window = self.loadUi()
             self.translator = self.initTranslator()
             left_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
