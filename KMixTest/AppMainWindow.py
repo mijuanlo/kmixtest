@@ -12,6 +12,7 @@ from .HelperPDF import helperPDF
 from .Persistence import Persistence
 from .MenuItem import MenuItem
 from .Util import dumpPixMapData,loadPixMapData
+from .CustomTranslator import CustomTranslator
 
 from os.path import expanduser
 from os import urandom
@@ -26,7 +27,9 @@ class AppMainWindow(QApplication):
         super().__init__([])
         try:
             self.debug = False
+            self.debug_translations = False
             self.window = self.loadUi()
+            self.translator = self.initTranslator()
             left_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
             left_policy.setHorizontalStretch(2)
             right_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
@@ -59,6 +62,7 @@ class AppMainWindow(QApplication):
             self.alter_models = False
             self.header_info = {}
             self.current_filename = None
+            self.output_filename = None
             self.aborting = False
             if load_filename:
                 self.autoloadfilename = load_filename
@@ -70,6 +74,11 @@ class AppMainWindow(QApplication):
         except Exception as e:
             print("{}, {}".format(_('Exception while initializing'),e))
             self.exitting()
+
+    def initTranslator(self):
+        translator = CustomTranslator(debug=self.debug_translations)
+        self.installTranslator(translator)
+        return translator
 
     @Slot()
     def exitting(self):
@@ -310,9 +319,9 @@ class AppMainWindow(QApplication):
         self.initializePrinting()
         self.sheet.openWidget()
 
-    def print_exam(self):
+    def print_exam(self, filename=None):
         self.initializePrinting()
-        self.sheet.writePDF()
+        self.sheet.writePDF(filename)
 
     def loadUi(self):
         global UI
@@ -346,6 +355,9 @@ class AppMainWindow(QApplication):
                 iconname = 'exit'
             action = Helper.genAction(name=q.getTranslatedName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=name,parent=self)
             self.window.toolBar.addAction(action)
+        if self.debug_translations:
+            action = Helper.genAction(name=_('Print Qt translations'),fn=self.translator.printAcumulatedPythonStrings,icon=QIcon(ICONS['print']),tip=_('Print Qt translations'),parent=self)
+            self.window.toolBar.addAction(action)
 
     def openfiledialog(self):
         f = QFileDialog().getOpenFileName(None,_("Open Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
@@ -353,6 +365,10 @@ class AppMainWindow(QApplication):
 
     def savefiledialog(self):
         f = QFileDialog().getSaveFileName(None,_("Save Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
+        return f[0] if f else None
+
+    def openOutputFilenamedialog(self):
+        f = QFileDialog().getSaveFileName(None,'{} PDF'.format(_("Export to")),expanduser("~"),"{} (*.pdf)".format(_('Document files')))
         return f[0] if f else None
 
     def buildExamData(self, template=False):
@@ -851,7 +867,9 @@ class AppMainWindow(QApplication):
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
         elif data == 'menu_print_exam':
-            self.print_exam()
+            self.output_filename = self.openOutputFilenamedialog()
+            if self.output_filename:
+                self.print_exam(self.output_filename)
         elif data == 'menu_generate_mix':
             self.generateMixMenu()
         elif data == 'menu_configure_header':

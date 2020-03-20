@@ -78,7 +78,10 @@ ICONS = {
     'remove_image': 'remove-image.png',
     'high': 'high.png',
     'low': 'low.png',
-    'option': 'box.svg'
+    'option': 'box.svg',
+    'single_question': 'single_question.svg',
+    'test_question': 'test_question.svg',
+    'join_activity': 'join_activity.svg'
     }
 
 ARTWORK = {

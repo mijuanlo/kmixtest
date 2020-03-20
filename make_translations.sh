@@ -32,7 +32,7 @@ for lang in $LANGUAGES; do
     mofile="${copydir}/${DOMAIN}.mo"
     mkdir -p ${copydir}
     if [ -f "${pofile}" ]; then
-	${MSGMERGE} -U ${pofile} ${POTFILE}
+	${MSGMERGE} -v -U ${pofile} ${POTFILE}
     else
         cp ${POTFILE} ${pofile}
     fi
