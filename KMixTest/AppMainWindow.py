@@ -19,7 +19,6 @@ from os import urandom
 from copy import deepcopy
 from random import randint,shuffle,sample,choice,seed
 
-#AllowedQuestionTypes = ["Single question","Test question","Join activity"]
 from .QuestionType import Question
 # Main class of application
 class AppMainWindow(QApplication):    

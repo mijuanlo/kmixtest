@@ -153,7 +153,12 @@ class helperPDF():
 
     def writePDF(self,filename=None):
         self.preview = False
+        dialog = QMessageBox()
+        dialog.setProperty('icon',QMessageBox.Information)
+        dialog.setStandardButtons(QMessageBox.Ok)
+        dialog.setText("{} '{}' {}".format(_('Filename'),filename,_('generated')))
         self.paintRequest(filename=filename)
+        dialog.exec_()
 
     def initStyles(self, styles=None, printer=None):
         
@@ -887,7 +892,6 @@ class ExamDocument(QTextDocument):
                 pb = QTextBlockFormat()
                 pb.setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
                 cursor.insertBlock(pb)
-
 
     def setPage(self,pageSize=None,printer=None):
         if not pageSize:
