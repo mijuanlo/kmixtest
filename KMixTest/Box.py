@@ -16,6 +16,32 @@ from pprint import pformat as pp
 
 VIEW_DUMP_OPTION = False
 
+class customEventFilter(QObject):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self._toolbar = None
+
+    def eventFilter(self,obj,event,*args):
+        if event.type() == QEvent.Enter:
+            if self._toolbar is None:
+                self._parents = []
+                self._parent = self.parent()
+                while self._parent:
+                    self._parents.append(self._parent)
+                    self._parent = self._parent.parent()
+                self._toolbar = self._parents[-1].findChild(QStatusBar)
+                if not self._toolbar:
+                    self._toolbar = False
+                del self._parent
+                del self._parents
+            self._toolbar.showMessage(obj.toolTip())
+            return True
+        elif event.type() == QEvent.Leave:
+            if self._toolbar:
+                self._toolbar.clearMessage()
+            return True
+        return False
+
 # Custom object for display content questions
 class Box(QGroupBox):
     closedBox = Signal(str)
@@ -37,6 +63,9 @@ class Box(QGroupBox):
         self.addToLayout(self.toolbar,True)
         self.menu = MenuItem(menu=self.toolbar,parent=self)
         self.button = QPushButton(QIcon(ICONS['close']),"",self)
+        self.button.setToolTip(_('Close'))
+        self.ev = customEventFilter(self)
+        self.button.installEventFilter(self.ev)
         self.button.setFlat(True)
         self.button.setIconSize(QSize(self.button_size,self.button_size))
         self.button.resize(self.button_size,self.button_size)

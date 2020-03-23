@@ -102,7 +102,7 @@ class gridHelper(QObject):
         if typeq not in q.allTypes():
             raise ValueError()
 
-        b = Box()
+        b = Box(parent=self.parent.window.scrollAreaContentsAnswers)
         b.setData('type',typeq)
         
         content = ''
