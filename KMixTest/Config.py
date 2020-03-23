@@ -86,7 +86,9 @@ ICONS = {
     'header': 'header.png',
     'merge': 'merge.png',
     'configure': 'configure.png',
-    'application': 'application.svg'
+    'application': 'application.svg',
+    'boxok': 'boxok.svg',
+    'boxfail': 'boxfail.svg',
     }
 
 ARTWORK = {

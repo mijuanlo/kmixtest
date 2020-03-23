@@ -156,12 +156,11 @@ class helperPDF():
         dialog = QMessageBox()
         dialog.setProperty('icon',QMessageBox.Information)
         dialog.setStandardButtons(QMessageBox.Ok)
-        dialog.setText("{} '{}' {}".format(_('Filename'),filename,_('generated')))
+        dialog.setText("{} '{}' {}".format(_('Pdf file'),filename,_('generated')))
         self.paintRequest(filename=filename)
         dialog.exec_()
 
     def initStyles(self, styles=None, printer=None):
-        
         if printer and isinstance(printer,QPrinter):
             resolution = printer.resolution()
         else:
@@ -683,7 +682,7 @@ class helperPDF():
         document.setEndModel(breakPage=False)
         return document
 
-    def writeTest(self, document, options, cursor=None):
+    def writeTest(self, document, options, cursor=None, html=True, color='red'):
         if not cursor:
             cursor = self.initCursor(document)
         
@@ -712,14 +711,19 @@ class helperPDF():
                     c.insertImage(img)
             if text:
                 c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(text)
-
+                if html:
+                    family = self.styles['text'].fontFamily()
+                    weight = int(self.styles['text'].fontWeight()*8)
+                    size = int(self.styles['text'].fontPointSize())
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(text)
             i += 1
        
         return self.writeSeparator(document,single=True)
 
-    def writeJoinActivity(self, document, options, cursor=None):
+    def writeJoinActivity(self, document, options, cursor=None, html=True, color='red'):
         if not cursor:
             cursor = self.initCursor(document)
         
@@ -752,8 +756,14 @@ class helperPDF():
 
             if text1:
                 c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(text1+space)
+                if html:
+                    family = self.styles['text'].fontFamily()
+                    weight = int(self.styles['text'].fontWeight()*8)
+                    size = int(self.styles['text'].fontPointSize())
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text1+space))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(text1+space)
 
             if pic1:
                 c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
@@ -793,21 +803,39 @@ class helperPDF():
 
             if text2:
                 c,cell = self.setupCell(table,i,6,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(space+text2)
+                if html:
+                    family = self.styles['text'].fontFamily()
+                    weight = int(self.styles['text'].fontWeight()*8)
+                    size = int(self.styles['text'].fontPointSize())
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,space+text2))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(space+text2)
 
             i += 1
 
         return self.writeSeparator(document,single=True)
 
-    def writeTitle(self,document,text, cursor=None, qnumber=None):
+    def writeTitle(self,document,text, cursor=None, qnumber=None, html=True, color='red'):
         if document and text:
             if not cursor:
                 cursor = self.initCursor(document)
             cursor.insertBlock(self.styles['body'],self.styles['text'])
+            family = self.styles['text'].fontFamily()
+            weight = int(self.styles['text'].fontWeight()*8)
+            size = int(self.styles['text'].fontPointSize())
+            bfamily = self.styles['text.bold'].fontFamily()
+            bweight = int(self.styles['text.bold'].fontWeight()*8)
+            bsize = int(self.styles['text.bold'].fontPointSize())
             if qnumber:
-                cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
-            cursor.insertText(text,self.styles['text'])
+                if html:
+                    cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{} {}: </span>'.format(bsize,bfamily,color,900,_('Question'),qnumber))
+                else:
+                    cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
+            if html:
+                cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
+            else:
+                cursor.insertText(text,self.styles['text'])
 
     def validateHeader(self,header):
         fake = None
