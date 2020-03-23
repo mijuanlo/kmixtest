@@ -55,7 +55,36 @@ class AppMainWindow(QApplication):
             self.sheet = None
             self.aboutToQuit.connect(self.exitting)
             self.persistence = Persistence(debug=True)
-            self.menu.addMenuItem([{_("Project"):["{}(menu_new)|new".format(_('New')),"-","{}(menu_load_exam)".format(_('Load exam')),"{}(menu_load_template)".format(_('Load template')),"-","{}(menu_save)|save".format(_('Save')),"{}(menu_save_as)|save".format(_('Save as')),"{}(menu_save_as_template)|save".format(_('Save as template')),"-","{}(menu_exit_app)|exit".format(_('Exit'))]},{_("Mixer"):["{}(menu_configure_header)".format(_('Configure header')),"{}(menu_configure_output)".format(_('Configure output')),"{}(menu_generate_mix)".format(_('Generate Mix'))]},{_("Print"):["{}(menu_print_preview)|print".format(_('Print preview')),"{}(menu_print_exam)|print".format(_('Print Exam'))]}])
+            self.menu.addMenuItem(
+                [
+                    {_("Project"):
+                        [
+                            "{}(menu_new)|new".format(_('New')),
+                            "-",
+                            "{}(menu_load_exam)|open".format(_('Load exam')),
+                            "{}(menu_load_template)|open".format(_('Load template')),
+                            "-",
+                            "{}(menu_save)|save".format(_('Save')),
+                            "{}(menu_save_as)|save".format(_('Save as')),
+                            "{}(menu_save_as_template)|save".format(_('Save as template')),
+                            "-","{}(menu_exit_app)|exit".format(_('Exit'))
+                        ]
+                    },
+                    {_("Mixer"):
+                        [
+                            "{}(menu_configure_header)|header".format(_('Configure header')),
+                            "{}(menu_configure_output)|configure".format(_('Configure output')),
+                            "{}(menu_generate_mix)|merge".format(_('Generate Mix'))
+                        ]
+                    },
+                    {_("Print"):
+                        [
+                            "{}(menu_print_preview)|print".format(_('Print preview')),
+                            "{}(menu_print_exam)|print".format(_('Print Exam'))
+                        ]
+                    }
+                ]
+            )
             self.tableQuestions.pool.start_threads()
             self.editing_question = None
             self.n_models = 1
@@ -353,7 +382,7 @@ class AppMainWindow(QApplication):
                 pass
             else:
                 iconname = 'exit'
-            action = Helper.genAction(name=q.getTranslatedName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=name,parent=self)
+            action = Helper.genAction(name=q.getTranslatedName(),fn=self.menuController,data=q.getNameId(),icon=QIcon(ICONS[iconname]),tip=q.getTranslatedName(),parent=self)
             self.window.toolBar.addAction(action)
         if self.debug_translations:
             action = Helper.genAction(name=_('Print Qt translations'),fn=self.translator.printAcumulatedPythonStrings,icon=QIcon(ICONS['print']),tip=_('Print Qt translations'),parent=self)

@@ -81,7 +81,11 @@ ICONS = {
     'option': 'box.svg',
     'single_question': 'single_question.svg',
     'test_question': 'test_question.svg',
-    'join_activity': 'join_activity.svg'
+    'join_activity': 'join_activity.svg',
+    'open': 'open.png',
+    'header': 'header.png',
+    'merge': 'merge.png',
+    'configure': 'configure.png'
     }
 
 ARTWORK = {
