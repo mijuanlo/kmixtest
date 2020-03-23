@@ -85,7 +85,8 @@ ICONS = {
     'open': 'open.png',
     'header': 'header.png',
     'merge': 'merge.png',
-    'configure': 'configure.png'
+    'configure': 'configure.png',
+    'application': 'application.svg'
     }
 
 ARTWORK = {

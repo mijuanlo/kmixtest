@@ -29,6 +29,7 @@ class AppMainWindow(QApplication):
             self.debug = False
             self.debug_translations = False
             self.window = self.loadUi()
+            self.setWindowIcon(QIcon(ICONS['application']))
             self.translator = self.initTranslator()
             left_policy = QSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
             left_policy.setHorizontalStretch(2)
