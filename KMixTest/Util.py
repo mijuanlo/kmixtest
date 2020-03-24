@@ -250,3 +250,24 @@ def dataPixMapToImage(data):
     if pixmap:
         return pixmap.toImage()
     return None
+
+import time
+DEBUG_TIMES = {}
+DEBUG_TIMES.setdefault('_level_',0)
+def timed(func):
+    def f(*args,**kwargs):
+        fname = func.__qualname__
+        ts = time.time()
+        dur = -ts
+        DEBUG_TIMES.setdefault('_',ts)
+        ts -= DEBUG_TIMES['_']
+        print('-> {:.3f} {:2d}: {}[{}]'.format(ts,DEBUG_TIMES['_level_'],'  '*DEBUG_TIMES['_level_'],fname))
+        DEBUG_TIMES.setdefault(ts,{'type':'in','name':fname,'level':DEBUG_TIMES['_level_']})
+        DEBUG_TIMES['_level_'] += 1
+        res = func(*args,**kwargs)
+        DEBUG_TIMES['_level_'] -= 1
+        dur += time.time()
+        DEBUG_TIMES.setdefault(ts,{'type':'out','name':fname,'level':DEBUG_TIMES['_level_'],'time':dur})
+        print('<- {:.3f} {:2d}: {}[{}] {:.3f}'.format(ts,DEBUG_TIMES['_level_'],'  '*DEBUG_TIMES['_level_'],fname,dur))
+        return res
+    return f

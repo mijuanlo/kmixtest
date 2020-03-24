@@ -96,7 +96,8 @@ class AppMainWindow(QApplication):
             if load_filename:
                 self.autoloadfilename = load_filename
                 self.menuController('menu_load_exam')
-                self.menuController('menu_print_preview')
+                # self.menuController('menu_print_preview')
+                self.menuController('menu_print_exam')
             else:
                 self.autoloadfilename = None
             # self.exitting()
@@ -346,11 +347,13 @@ class AppMainWindow(QApplication):
     def clickedPreview(self,checked):   
         # qDebug("Preview clicked!")
         self.initializePrinting()
-        self.sheet.openWidget()
+        self.sheet.openWidget(answermode=False)
+        self.sheet.openWidget(answermode=True)
 
     def print_exam(self, filename=None):
         self.initializePrinting()
-        self.sheet.writePDF(filename)
+        self.sheet.writePDF(filename,answermode=False)
+        self.sheet.writePDF(filename,answermode=True)
 
     def loadUi(self):
         global UI
