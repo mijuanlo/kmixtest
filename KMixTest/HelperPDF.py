@@ -142,6 +142,7 @@ class helperPDF():
                 self.printer.setOutputFileName(filename)
             else:
                 self.printer.setOutputFileName('out.pdf')
+
     @timed
     def openWidget(self,answermode=False):
         self.preview = True
@@ -301,6 +302,9 @@ class helperPDF():
 
         styles['defaultfont'] = QFont("Times", picaToPixels(10))
         styles['bigfont'] = QFont("Times", picaToPixels(30))
+        styles['answer_ok'] = QFont("Times", picaToPixels(14),QFont.Bold)
+        styles['answer_fail'] = styles['defaultfont']
+        styles['answer_fail'].setWeight(QFont.Light)
 
         styles['text'] = QTextCharFormat()
         styles['bigtext'] = QTextCharFormat()
@@ -656,7 +660,8 @@ class helperPDF():
                             self.writeTest(document,options, html=False)
                     elif typeq == 'join_activity':
                         if answermode:
-                            self.writeJoinActivity(document,options, html=True)
+                            row_mapping = row.get('join_mapping')
+                            self.writeJoinActivity(document,options, html=True, mapping=row_mapping)
                         else:
                             self.writeJoinActivity(document,options, html=False)
                     self.writeSeparator(document,single=False)
@@ -714,10 +719,33 @@ class helperPDF():
             text = opt.get('text1')
             text = text.capitalize()
             pic = opt.get('pic1')
+            is_valid = opt.get('valid')
+
+            iconbox = ICONS['option']
+            size = None
+            family = None
+            color = None
+            weight = None
+            style = 'defaultfont'
+            if html:
+                if is_valid:
+                    style = 'answer_ok'
+                    color = 'darkgreen'
+                    iconbox = ICONS['boxok']
+                    family = self.styles[style].family()
+                    size = int(self.styles[style].pointSize())
+                    weight = int(self.styles[style].weight()*8)
+                else:
+                    style = 'answer_fail'
+                    color = 'darksalmon'
+                    iconbox = ICONS['boxfail']
+                    family = self.styles[style].family()
+                    size = int(self.styles[style].pointSize())
+                    weight = int(self.styles[style].weight()*8)
 
             c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height(),Qt.SmoothTransformation)
+            img = QImage(iconbox)
+            img = img.scaledToHeight(QFontMetrics(self.styles[style]).height(),Qt.SmoothTransformation)
             c.insertImage(img)
             if pic:
                 c,cell = self.setupCell(table,i,1,centerV=True,centerH=False)
@@ -730,9 +758,6 @@ class helperPDF():
             if text:
                 c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
                 if html:
-                    family = self.styles['text'].fontFamily()
-                    weight = int(self.styles['text'].fontWeight()*8)
-                    size = int(self.styles['text'].fontPointSize())
                     c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
                 else:
                     c.setCharFormat(self.styles['text'])
@@ -741,7 +766,7 @@ class helperPDF():
        
         return self.writeSeparator(document,single=True)
 
-    def writeJoinActivity(self, document, options, cursor=None, html=False, color='red'):
+    def writeJoinActivity(self, document, options, cursor=None, html=False, color='red', mapping=None):
         if not cursor:
             cursor = self.initCursor(document)
         
@@ -750,8 +775,9 @@ class helperPDF():
         tf = table.format()
         tf.setCellSpacing(mmToPixels(2,1200))
         table.setFormat(tf)
-        i=0
+        i=-1
         for opt in options:
+            i += 1
             text1 = opt.get('text1')
             text1 = text1.capitalize()
             pic1 = opt.get('pic1')
@@ -778,6 +804,7 @@ class helperPDF():
                     family = self.styles['text'].fontFamily()
                     weight = int(self.styles['text'].fontWeight()*8)
                     size = int(self.styles['text'].fontPointSize())
+                    color = 'dimgray'
                     c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text1+space))
                 else:
                     c.setCharFormat(self.styles['text'])
@@ -793,22 +820,38 @@ class helperPDF():
                     c.insertImage(img)
 
             c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(space)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
+            if html and mapping:
+                text = chr(i+65)
+                family = self.styles['answer_ok'].family()
+                weight = int(self.styles['answer_ok'].weight()*8)
+                size = int(self.styles['answer_ok'].pointSize())
+                color = 'black'
+                c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};"> {}</span>'.format(size,family,color,weight,text))
+            else:
+                c.setCharFormat(self.styles['text'])
+                c.insertText(space)
+                img = QImage(ICONS['option'])
+                img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+                c.insertImage(img)
 
             c,cell = self.setupCell(table,i,3,centerV=False,centerH=False)
             c.setCharFormat(self.styles['text'])
             c.insertText(separator)
 
             c,cell = self.setupCell(table,i,4,centerV=True,centerH=False)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(space)
+            if html and mapping:
+                text = chr(mapping[i]+65)
+                family = self.styles['answer_ok'].family()
+                weight = int(self.styles['answer_ok'].weight()*8)
+                size = int(self.styles['answer_ok'].pointSize())
+                color = 'black'
+                c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{} </span>'.format(size,family,color,weight,text))
+            else:
+                img = QImage(ICONS['option'])
+                img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+                c.insertImage(img)
+                c.setCharFormat(self.styles['text'])
+                c.insertText(space)
 
             if pic2:
                 c,cell = self.setupCell(table,i,5,centerV=False,centerH=False)
@@ -825,12 +868,11 @@ class helperPDF():
                     family = self.styles['text'].fontFamily()
                     weight = int(self.styles['text'].fontWeight()*8)
                     size = int(self.styles['text'].fontPointSize())
+                    color = 'dimgray'
                     c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,space+text2))
                 else:
                     c.setCharFormat(self.styles['text'])
                     c.insertText(space+text2)
-
-            i += 1
 
         return self.writeSeparator(document,single=True)
 
@@ -847,10 +889,12 @@ class helperPDF():
             bsize = int(self.styles['text.bold'].fontPointSize())
             if qnumber:
                 if html:
+                    color = 'dimgray'
                     cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{} {}: </span>'.format(bsize,bfamily,color,900,_('Question'),qnumber))
                 else:
                     cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
             if html:
+                color = 'lightgray'
                 cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
             else:
                 cursor.insertText(text,self.styles['text'])
