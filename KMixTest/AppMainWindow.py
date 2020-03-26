@@ -13,6 +13,7 @@ from .Persistence import Persistence
 from .MenuItem import MenuItem
 from .Util import dumpPixMapData,loadPixMapData
 from .CustomTranslator import CustomTranslator
+from .MainWindow import Ui_MainWindow
 
 from os.path import expanduser
 from os import urandom
@@ -22,12 +23,22 @@ from random import randint,shuffle,sample,choice,seed
 import os.path
 
 from .QuestionType import Question
+
+
+class MainWindow(QMainWindow,Ui_MainWindow):
+    closeRequested = Signal()
+    def __init__(self):
+        super(MainWindow,self).__init__()
+        self.setupUi(self)
+    def closeEvent(self, event):
+        self.closeRequested.emit()
+
 # Main class of application
 class AppMainWindow(QApplication):    
     def __init__(self,load_filename=None):
         super().__init__([])
         try:
-            self.debug = True
+            self.debug = False
             self.debug_translations = False or self.debug
             self.window = self.loadUi()
             self.setWindowIcon(QIcon(ICONS['application']))
@@ -47,7 +58,6 @@ class AppMainWindow(QApplication):
             self.tableQuestions.editingQuestion.connect(self.editingQuestion)
             self.tableQuestions.questionChanged.connect(self.questionChanged)
             self.window.scrollAreaAnswers.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
-
             self.scroll = gridHelper(self.window.gridEdition, self)
             self.scroll.boxIsUpdating.connect(self.updateTitleRow)
             self.tableQuestions.tableChanged.connect(self.tableQuestionsChanged)
@@ -55,7 +65,7 @@ class AppMainWindow(QApplication):
             self.window.previewButton.hide()
             self.tableQuestions.rowSelection.connect(self.scroll.showQuestion)
             self.sheet = None
-            self.aboutToQuit.connect(self.exitting)
+            self.window.closeRequested.connect(self.exitting)
             self.persistence = Persistence(debug=True)
             self.menu.addMenuItem(
                 [
@@ -162,7 +172,7 @@ class AppMainWindow(QApplication):
 
     def initializePrinting(self):
         if not self.sheet:
-            self.sheet = helperPDF(parent=self)
+            self.sheet = helperPDF(parent=self,debug=self.debug)
         examData = self.buildExamData()
         config = examData.get('config')
         exam = None
@@ -376,15 +386,18 @@ class AppMainWindow(QApplication):
                 return
         self.sheet.writePDF(filename,answermode=False)
         if self.with_solutionary:
-            self.sheet.writePDF(filename,answermode=True)
+            self.sheet.writePDF(filename2,answermode=True)
 
     def loadUi(self):
-        global UI
-        ui_file = QFile(UI)
-        ui_file.open(QFile.ReadOnly)
-        ui_loader = QUiLoader(self)
-        window = ui_loader.load(ui_file)
-        ui_file.close()
+        # Removed ! now using uic
+        #
+        # global UI
+        # ui_file = QFile(UI)
+        # ui_file.open(QFile.ReadOnly)
+        # ui_loader = QUiLoader(self)
+        # window = ui_loader.load(ui_file)
+        # ui_file.close()
+        window = MainWindow()
         return window
 
     def bind_toolbar_actions(self,actions):
@@ -419,11 +432,11 @@ class AppMainWindow(QApplication):
         return f[0] if f else None
 
     def savefiledialog(self):
-        f = QFileDialog().getSaveFileName(None,_("Save Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
+        f = QFileDialog.getSaveFileName(None,_("Save Exam"),expanduser("~"),"{} (*.kmt)".format(_('Exam files')))
         return f[0] if f else None
 
     def openOutputFilenamedialog(self):
-        f = QFileDialog().getSaveFileName(None,'{} PDF'.format(_("Export to")),expanduser("~"),"{} (*.pdf)".format(_('Document files')))
+        f = QFileDialog.getSaveFileName(None,'{} PDF'.format(_("Export to")),expanduser("~"),"{} (*.pdf)".format(_('Document files')))
         return f[0] if f else None
 
     def buildExamData(self, template=False):

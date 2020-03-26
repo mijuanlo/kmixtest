@@ -19,8 +19,8 @@ class helperPDF():
     header_table_cols = 3
     header_table_rows = 2
 
-    def __init__(self, parent=None):
-        self.debug = False
+    def __init__(self, parent=None, debug=False):
+        self.debug = False or debug
         self.parent = parent
         self.pageMargins = QMarginsF(10,10,10,10)
         self.orientation = QPageLayout.Orientation.Portrait
