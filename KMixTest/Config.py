@@ -59,7 +59,7 @@ ICONS = {
     'linked':'linked.svg',
     'fixed': 'fixed.svg',
     'close': 'close.svg',
-    'option': 'option.svg',
+    'menu_option': 'option.svg',
     'add': 'add.png',
     'exit': 'exit.png',
     'new': 'new.png',

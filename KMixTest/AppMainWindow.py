@@ -25,7 +25,7 @@ class AppMainWindow(QApplication):
     def __init__(self,load_filename=None):
         super().__init__([])
         try:
-            self.debug = False
+            self.debug = True
             self.debug_translations = False
             self.window = self.loadUi()
             self.setWindowIcon(QIcon(ICONS['application']))
@@ -89,10 +89,12 @@ class AppMainWindow(QApplication):
             self.editing_question = None
             self.n_models = 1
             self.alter_models = False
+            self.with_solutionary = True
             self.header_info = {}
             self.current_filename = None
             self.output_filename = None
             self.aborting = False
+            self.currentExam = None
             if load_filename:
                 self.autoloadfilename = load_filename
                 self.menuController('menu_load_exam')
@@ -131,7 +133,11 @@ class AppMainWindow(QApplication):
         return True
 
     @Slot()
-    def tableQuestionsChanged(self):
+    def tableQuestionsChanged(self,resetExam=True):
+        if self.debug:
+            qDebug('{}'.format(_('Questions changed')))
+        if resetExam:
+            self.currentExam = None
         data = self.tableQuestions.getCellContent(named=True)
         self.scroll.syncMapTableData(data)
 
@@ -157,16 +163,22 @@ class AppMainWindow(QApplication):
             self.sheet = helperPDF(parent=self)
         examData = self.buildExamData()
         config = examData.get('config')
-        exam = examData.get('examdata')
+        exam = None
+        if self.currentExam:
+            exam = self.currentExam
+        else:
+            exam = examData.get('examdata')
+            if config:
+                alter = config.get('alter')
+                nmodels = config.get('nmodels')
+                if exam:
+                    if self.debug:
+                        qDebug('{}'.format(_('Generating new mix')))
+                    exam = self.mixData(exam,nmodels,alter)
+        self.currentExam = exam
         header = examData.get('header')
         if header:
             self.sheet.setHeaderInfo(header)
-        
-        if config:
-            alter = config.get('alter')
-            nmodels = config.get('nmodels')
-            if exam:
-                exam = self.mixData(exam,nmodels,alter)
         if exam:
             self.sheet.setExamData(exam)
 
@@ -348,12 +360,14 @@ class AppMainWindow(QApplication):
         # qDebug("Preview clicked!")
         self.initializePrinting()
         self.sheet.openWidget(answermode=False)
-        self.sheet.openWidget(answermode=True)
+        if self.with_solutionary:
+            self.sheet.openWidget(answermode=True)
 
     def print_exam(self, filename=None):
         self.initializePrinting()
         self.sheet.writePDF(filename,answermode=False)
-        self.sheet.writePDF(filename,answermode=True)
+        if self.with_solutionary:
+            self.sheet.writePDF(filename,answermode=True)
 
     def loadUi(self):
         global UI
@@ -419,7 +433,7 @@ class AppMainWindow(QApplication):
                 'linked': None,
                 'title': None
             }
-            self.tableQuestionsChanged()
+            self.tableQuestionsChanged(resetExam=False)
             model = self.tableQuestions.dumpTableModel()
             boxes = self.scroll.dumpBoxes()
             if len(model) != len(boxes):
@@ -778,8 +792,10 @@ class AppMainWindow(QApplication):
         def updateValues(dialog):
                 le = dialog.findChild(QLineEdit,'n_models')
                 c = dialog.findChild(QCheckBox,'alter_models')
+                c2 = dialog.findChild(QCheckBox,'with_solutionary')
                 self.n_models = int(le.text())
                 self.alter_models = c.checkState() == Qt.CheckState.Checked
+                self.with_solutionary = c2.checkState() == Qt.CheckState.Checked
                 dialog.close()
 
         dialog = QDialog(self.window,Qt.Window)
@@ -788,7 +804,8 @@ class AppMainWindow(QApplication):
         dialog.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         vlayout = QVBoxLayout()
         dialog.setLayout(vlayout)
-        l1 = QLabel("{}:".format(_('Number disctinct models')))
+
+        l1 = QLabel("{}:".format(_('Number disctinct models')),parent=dialog)
         le = QLineEdit()
         le.setObjectName('n_models')
         le.setMaxLength(1)
@@ -798,8 +815,9 @@ class AppMainWindow(QApplication):
         hlayout1 = QHBoxLayout()
         hlayout1.addWidget(l1)
         hlayout1.addWidget(le)
-        l2 = QLabel("{}:".format(_('Alter answer order')))
-        c = QCheckBox()
+        
+        l2 = QLabel("{}:".format(_('Alter answer order')),parent=dialog)
+        c = QCheckBox(parent=dialog)
         c.setObjectName('alter_models')
         state = Qt.Unchecked
         if self.alter_models:
@@ -808,25 +826,56 @@ class AppMainWindow(QApplication):
         hlayout2 = QHBoxLayout()
         hlayout2.addWidget(l2)
         hlayout2.addWidget(c,0,Qt.AlignRight)
+
+        l3 = QLabel("{}:".format(_('Include solutionary')),parent=dialog)
+        c2 = QCheckBox(parent=dialog)
+        c2.setObjectName('with_solutionary')
+        state = Qt.Unchecked
+        if self.with_solutionary:
+            state = Qt.Checked
+        c2.setCheckState(state)
         hlayout3 = QHBoxLayout()
+        hlayout3.addWidget(l3)
+        hlayout3.addWidget(c2,0,Qt.AlignRight)
+
+        hlayout4 = QHBoxLayout()
         b1 = QPushButton(_('Ok'))
         b2 = QPushButton(_('Close'))
         b1.setCheckable(False)
         b1.clicked.connect(lambda: updateValues(dialog))
         b2.setCheckable(False)
         b2.clicked.connect(lambda: dialog.close())
-        hlayout3.addWidget(b1,0,Qt.AlignRight)
-        hlayout3.addWidget(b2,0,Qt.AlignRight)
-        w1 = QWidget()
-        w2 = QWidget()
-        w3 = QWidget()
+        hlayout4.addWidget(b1,0,Qt.AlignRight)
+        hlayout4.addWidget(b2,0,Qt.AlignRight)
+        
+        w1 = QWidget(parent=dialog)
+        w2 = QWidget(parent=dialog)
+        w3 = QWidget(parent=dialog)
+        w4 = QWidget(parent=dialog)
+
         w1.setLayout(hlayout1)
         w2.setLayout(hlayout2)
         w3.setLayout(hlayout3)
+        w4.setLayout(hlayout4)
+
         vlayout.addWidget(w1)
         vlayout.addWidget(w2)
-        vlayout.addWidget(w3,0,Qt.AlignRight)
+        vlayout.addWidget(w3)
+        vlayout.addWidget(w4,0,Qt.AlignRight)
+        
         dialog.exec()
+
+    def MakeDialog(self, message ,informative=""):
+        dialog = QMessageBox()
+        hspacer = QSpacerItem(300,0,QSizePolicy.Minimum,QSizePolicy.Expanding)
+        dialog.setProperty('icon',QMessageBox.Information)
+        dialog.setStandardButtons(QMessageBox.Ok)
+        dialog.setText("{}".format(message))
+        if informative:
+            dialog.setInformativeText(informative)
+        dialog.setStyleSheet('QMessageBox QLabel#qt_msgbox_label{ font-size: 12pt; } QMessageBox QLabel#qt_msgbox_informativelabel{ font-size: 10pt; }')
+        dialog.layout().addItem(hspacer,dialog.layout().rowCount(),0,1,dialog.layout().columnCount())
+        dialog.exec_()
 
     @Slot(str)
     def menuController(self,*args,**kwargs):
@@ -895,6 +944,7 @@ class AppMainWindow(QApplication):
             self.clickedPreview(True)
         elif data in Question().allTypes():
             self.editing_question = None
+            self.currentExam = None
             self.window.statusbar.showMessage("{}: {}".format(_('New question'),data),10*1000)
             q = Question().search(data)
             self.tableQuestions.addItem(q.getName())
@@ -903,6 +953,9 @@ class AppMainWindow(QApplication):
             if self.output_filename:
                 self.print_exam(self.output_filename)
         elif data == 'menu_generate_mix':
+            self.currentExam = None
+            self.MakeDialog(_('New mix will be generated'))
+        elif data == 'menu_configure_output':
             self.generateMixMenu()
         elif data == 'menu_configure_header':
             self.generateHeaderMenu()
