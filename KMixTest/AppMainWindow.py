@@ -19,6 +19,8 @@ from os import urandom
 from copy import deepcopy
 from random import randint,shuffle,sample,choice,seed
 
+import os.path
+
 from .QuestionType import Question
 # Main class of application
 class AppMainWindow(QApplication):    
@@ -26,7 +28,7 @@ class AppMainWindow(QApplication):
         super().__init__([])
         try:
             self.debug = True
-            self.debug_translations = False
+            self.debug_translations = False or self.debug
             self.window = self.loadUi()
             self.setWindowIcon(QIcon(ICONS['application']))
             self.translator = self.initTranslator()
@@ -98,8 +100,8 @@ class AppMainWindow(QApplication):
             if load_filename:
                 self.autoloadfilename = load_filename
                 self.menuController('menu_load_exam')
-                self.menuController('menu_print_preview')
-                #self.menuController('menu_print_exam')
+                #self.menuController('menu_print_preview')
+                self.menuController('menu_print_exam')
             else:
                 self.autoloadfilename = None
             # self.exitting()
@@ -365,6 +367,13 @@ class AppMainWindow(QApplication):
 
     def print_exam(self, filename=None):
         self.initializePrinting()
+        if self.with_solutionary:
+            filename2 = os.path.splitext(filename)
+            filename2 = filename2[0]+'_'+_('solution')+filename2[1]
+        if os.path.exists(filename2):
+            ret = self.MakeDialog('question',"{} «{}» {}!\n {}".format(_('The file'),filename2,_('already exists'),_('are you sure to overwrite it?')), bigtext=False)
+            if not ret:
+                return
         self.sheet.writePDF(filename,answermode=False)
         if self.with_solutionary:
             self.sheet.writePDF(filename,answermode=True)
@@ -865,17 +874,32 @@ class AppMainWindow(QApplication):
         
         dialog.exec()
 
-    def MakeDialog(self, message ,informative=""):
+    def MakeDialog(self, typeq, message , informative="", bigtext=True):
         dialog = QMessageBox()
+        message = "\n"+message
         hspacer = QSpacerItem(300,0,QSizePolicy.Minimum,QSizePolicy.Expanding)
-        dialog.setProperty('icon',QMessageBox.Information)
-        dialog.setStandardButtons(QMessageBox.Ok)
+        if bigtext:
+            size = 12
+        else:
+            size = 10
+        if typeq == 'info':
+            dialog.setProperty('icon',QMessageBox.Information)
+            dialog.setStandardButtons(QMessageBox.Ok)
+        elif typeq == 'question':
+            dialog.setProperty('icon',QMessageBox.Question)
+            dialog.setStandardButtons(QMessageBox.Ok|QMessageBox.No)
         dialog.setText("{}".format(message))
         if informative:
             dialog.setInformativeText(informative)
-        dialog.setStyleSheet('QMessageBox QLabel#qt_msgbox_label{ font-size: 12pt; } QMessageBox QLabel#qt_msgbox_informativelabel{ font-size: 10pt; }')
+        dialog.setStyleSheet('QMessageBox QLabel#qt_msgbox_label{{ font-size: {}pt; }} QMessageBox QLabel#qt_msgbox_informativelabel{{ font-size: {}pt; }}'.format(size,size-2))
         dialog.layout().addItem(hspacer,dialog.layout().rowCount(),0,1,dialog.layout().columnCount())
-        dialog.exec_()
+        ret = dialog.exec_()
+        if typeq == 'question':
+            if ret == QMessageBox.Ok:
+                return True
+            else:
+                return False
+        return ret
 
     @Slot(str)
     def menuController(self,*args,**kwargs):
@@ -954,7 +978,7 @@ class AppMainWindow(QApplication):
                 self.print_exam(self.output_filename)
         elif data == 'menu_generate_mix':
             self.currentExam = None
-            self.MakeDialog(_('New mix will be generated'))
+            self.MakeDialog('info', _('New mix will be generated'))
         elif data == 'menu_configure_output':
             self.generateMixMenu()
         elif data == 'menu_configure_header':

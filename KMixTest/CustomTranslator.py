@@ -4,6 +4,8 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
+import string
+
 from .Config import _
 
 _("First page") # Context: QPrintPreviewDialog
@@ -328,18 +330,18 @@ _("tree item") # Context: QSpiAccessibleBridge
 _("web document") # Context: QSpiAccessibleBridge
 # Total strings = 302
 
-'''
-_("%1%") # Context: QPrintPreviewDialog
-_("%1 x %2 in") # Context: QPageSize
-_("%1 File") # Context: QFileDialog
-_("Failed to extract plugin meta data from '%1'") # Context: QLibrary
-_("%1 GiB") # Context: udisksdevice
-_("%1 Hard Drive") # Context: Solid::Backends::UDisks2::Device
-_("%1 KiB") # Context: KFormat
-_("%1 B") # Context: KFormat
-_("%1 MiB") # Context: KFormat
-# Total strings = 9
-'''
+_("&Cancelar") # Context: KMessageBox
+_("&No") # Context: KStandardGuiItem
+_("&Overwrite") # Context: KStandardGuiItem
+_("&Yes") # Context: KStandardGuiItem
+_("A4") # Context: QPageSize
+_("No") # Context: KStandardGuiItem
+_("Yes") # Context: KStandardGuiItem
+_("cursor") # Context: QSpiAccessibleBridge
+_("dial") # Context: QSpiAccessibleBridge
+_("panel") # Context: QSpiAccessibleBridge
+_("terminal") # Context: QSpiAccessibleBridge
+
 
 class CustomTranslator(QTranslator):
     def __init__(self,*args,**kwargs):
@@ -387,6 +389,7 @@ class CustomTranslator(QTranslator):
                 translated = translated_qt
         if self.debug:
             if translated == source:
-                self.mapping.setdefault(source, context)
-                qDebug('{}:{} ("{}" -> "{}") '.format(_('Warning'),_('Possible missing translation'),source,translated))
+                if source.isalpha() or source.translate({ord('&'):65,ord(' '):65}).isalpha():
+                    self.mapping.setdefault(source, context)
+                    qDebug('{}:{} ("{}" -> "{}") '.format(_('Warning'),_('Possible missing translation'),source,translated))
         return translated

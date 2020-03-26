@@ -159,9 +159,6 @@ class helperPDF():
         dialog.setProperty('icon',QMessageBox.Information)
         dialog.setStandardButtons(QMessageBox.Ok)
         dialog.setText("{}".format(_('Pdf file generated')))
-        if answermode:
-            filename = os.path.splitext(filename)
-            filename = filename[0]+'_'+_('solution')+filename[1]
         self.paintRequest(filename=filename)
         dialog.setInformativeText(filename)
         dialog.setStyleSheet('QMessageBox QLabel#qt_msgbox_label{ font-size: 12pt; } QMessageBox QLabel#qt_msgbox_informativelabel{ font-size: 10pt; }')
