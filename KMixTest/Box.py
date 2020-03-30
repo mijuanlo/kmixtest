@@ -22,6 +22,9 @@ class customEventFilter(QObject):
         self._toolbar = None
 
     def eventFilter(self,obj,event,*args):
+        if not isinstance(event,QEvent):
+            qDebug(_('Parameter error on box event filter'))
+            return False
         if event.type() == QEvent.Enter:
             if self._toolbar is None:
                 self._parents = []
@@ -708,7 +711,7 @@ class Box(QGroupBox):
 
             buttons = self.menu.getButtons()
             for name,b in buttons.items():
-                if name == 'unlock':
+                if name == _('Unlock').lower().replace(" ","_"):
                     b.setEnabled(True)
                 else:
                     b.setDisabled(True)
@@ -725,7 +728,7 @@ class Box(QGroupBox):
 
             buttons = self.menu.getButtons() 
             for name,b in buttons.items():
-                if name == 'unlock':
+                if name == _('Unlock').lower().replace(" ","_"):
                     b.setDisabled(True)
                 else:
                     b.setEnabled(True)
