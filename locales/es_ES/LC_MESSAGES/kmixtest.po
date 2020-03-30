@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2020-03-26 17:17+0100\n"
-"PO-Revision-Date: 2020-03-26 17:29+0100\n"
+"POT-Creation-Date: 2020-03-30 10:37+0200\n"
+"PO-Revision-Date: 2020-03-30 10:38+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: es_ES\n"
@@ -17,195 +17,195 @@ msgstr ""
 "X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: KMixTest/AppMainWindow.py:62
+#: KMixTest/AppMainWindow.py:72
 msgid "Project"
 msgstr "Proyecto"
 
-#: KMixTest/AppMainWindow.py:64
+#: KMixTest/AppMainWindow.py:74
 msgid "New"
 msgstr "Nuevo"
 
-#: KMixTest/AppMainWindow.py:66
+#: KMixTest/AppMainWindow.py:76
 msgid "Load exam"
 msgstr "Cargar examen"
 
-#: KMixTest/AppMainWindow.py:67
+#: KMixTest/AppMainWindow.py:77
 msgid "Load template"
 msgstr "Cargar plantilla"
 
-#: KMixTest/AppMainWindow.py:69
+#: KMixTest/AppMainWindow.py:79
 msgid "Save"
 msgstr "Guardar"
 
-#: KMixTest/AppMainWindow.py:70
+#: KMixTest/AppMainWindow.py:80
 msgid "Save as"
 msgstr "Guardar como"
 
-#: KMixTest/AppMainWindow.py:71
+#: KMixTest/AppMainWindow.py:81
 msgid "Save as template"
 msgstr "Guardar como plantilla"
 
-#: KMixTest/AppMainWindow.py:72
+#: KMixTest/AppMainWindow.py:82
 msgid "Exit"
 msgstr "Salida"
 
-#: KMixTest/AppMainWindow.py:75
+#: KMixTest/AppMainWindow.py:85
 msgid "Mixer"
 msgstr "Mezclador"
 
-#: KMixTest/AppMainWindow.py:77
+#: KMixTest/AppMainWindow.py:87
 msgid "Configure header"
 msgstr "Configurar cabecera"
 
-#: KMixTest/AppMainWindow.py:78
+#: KMixTest/AppMainWindow.py:88
 msgid "Configure output"
 msgstr "Configurar salida"
 
-#: KMixTest/AppMainWindow.py:79
+#: KMixTest/AppMainWindow.py:89
 msgid "Generate Mix"
 msgstr "Generar mezcla"
 
-#: KMixTest/AppMainWindow.py:82
+#: KMixTest/AppMainWindow.py:92
 msgid "Print"
 msgstr "Imprimir"
 
-#: KMixTest/AppMainWindow.py:84
+#: KMixTest/AppMainWindow.py:94
 msgid "Print preview"
 msgstr "Previsualizar impresión"
 
-#: KMixTest/AppMainWindow.py:85
+#: KMixTest/AppMainWindow.py:95
 msgid "Print Exam"
 msgstr "Imprimir examen"
 
-#: KMixTest/AppMainWindow.py:109
+#: KMixTest/AppMainWindow.py:119
 msgid "Exception while initializing"
 msgstr "Excepcion durante la inicialización"
 
-#: KMixTest/AppMainWindow.py:121
+#: KMixTest/AppMainWindow.py:131
 msgid "Terminating"
 msgstr "Terminando"
 
-#: KMixTest/AppMainWindow.py:133
+#: KMixTest/AppMainWindow.py:143
 msgid "Edition not permitted, box locked"
 msgstr "Edición no permitida, caja bloqueada"
 
-#: KMixTest/AppMainWindow.py:140
+#: KMixTest/AppMainWindow.py:150
 msgid "Questions changed"
 msgstr "Preguntas cambiadas"
 
-#: KMixTest/AppMainWindow.py:148
+#: KMixTest/AppMainWindow.py:158
 msgid "Editing"
 msgstr "Editando"
 
-#: KMixTest/AppMainWindow.py:155
+#: KMixTest/AppMainWindow.py:165
 msgid "Question changed"
 msgstr "Pregunta"
 
-#: KMixTest/AppMainWindow.py:178
+#: KMixTest/AppMainWindow.py:188
 msgid "Generating new mix"
 msgstr "Generando nueva mezcla"
 
-#: KMixTest/AppMainWindow.py:372
+#: KMixTest/AppMainWindow.py:382
 msgid "solution"
 msgstr "solución"
 
-#: KMixTest/AppMainWindow.py:374
+#: KMixTest/AppMainWindow.py:384
 msgid "The file"
 msgstr "El fichero"
 
-#: KMixTest/AppMainWindow.py:374
+#: KMixTest/AppMainWindow.py:384
 msgid "already exists"
 msgstr "ya existe"
 
-#: KMixTest/AppMainWindow.py:374
+#: KMixTest/AppMainWindow.py:384
 msgid "are you sure to overwrite it?"
 msgstr "¿está seguro de sobrescribirlo?"
 
-#: KMixTest/AppMainWindow.py:414
+#: KMixTest/AppMainWindow.py:427
 msgid "Print Qt translations"
 msgstr "Imprimir traducciones de Qt"
 
-#: KMixTest/AppMainWindow.py:418
+#: KMixTest/AppMainWindow.py:431
 msgid "Open Exam"
 msgstr "Abrir examen"
 
-#: KMixTest/AppMainWindow.py:418 KMixTest/AppMainWindow.py:422
+#: KMixTest/AppMainWindow.py:431 KMixTest/AppMainWindow.py:435
 msgid "Exam files"
 msgstr "Archivos de examen"
 
-#: KMixTest/AppMainWindow.py:422
+#: KMixTest/AppMainWindow.py:435
 msgid "Save Exam"
 msgstr "Guardar examen"
 
-#: KMixTest/AppMainWindow.py:426
+#: KMixTest/AppMainWindow.py:439
 msgid "Document files"
 msgstr "Ficheros de documento"
 
-#: KMixTest/AppMainWindow.py:426
+#: KMixTest/AppMainWindow.py:439
 msgid "Export to"
 msgstr "Exportar a"
 
-#: KMixTest/AppMainWindow.py:557 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
 msgid "Image Files"
 msgstr "Ficheros de imagen"
 
-#: KMixTest/AppMainWindow.py:557 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
 msgid "Open image"
 msgstr "Abrir imagen"
 
-#: KMixTest/AppMainWindow.py:564
+#: KMixTest/AppMainWindow.py:577
 msgid "invalid"
 msgstr "invalido"
 
-#: KMixTest/AppMainWindow.py:564 KMixTest/AppMainWindow.py:567
+#: KMixTest/AppMainWindow.py:577 KMixTest/AppMainWindow.py:580
 msgid "filename"
 msgstr "nombre de fichero"
 
-#: KMixTest/AppMainWindow.py:567
+#: KMixTest/AppMainWindow.py:580
 msgid "valid"
 msgstr "válido"
 
-#: KMixTest/AppMainWindow.py:812
+#: KMixTest/AppMainWindow.py:825
 msgid "Generate mix"
 msgstr "Generar mezcla"
 
-#: KMixTest/AppMainWindow.py:817
+#: KMixTest/AppMainWindow.py:830
 msgid "Number disctinct models"
 msgstr "Numero de modelos diferentes"
 
-#: KMixTest/AppMainWindow.py:828
+#: KMixTest/AppMainWindow.py:841
 msgid "Alter answer order"
 msgstr "Alterar el orden de respuestas"
 
-#: KMixTest/AppMainWindow.py:839
+#: KMixTest/AppMainWindow.py:852
 msgid "Include solutionary"
 msgstr "Incluir solucionario"
 
-#: KMixTest/AppMainWindow.py:851
+#: KMixTest/AppMainWindow.py:864
 msgid "Ok"
 msgstr "Aceptar"
 
-#: KMixTest/AppMainWindow.py:852 KMixTest/Box.py:66
+#: KMixTest/AppMainWindow.py:865 KMixTest/Box.py:66
 msgid "Close"
 msgstr "Cerrar"
 
-#: KMixTest/AppMainWindow.py:907 KMixTest/Box.py:658
+#: KMixTest/AppMainWindow.py:920 KMixTest/Box.py:658
 msgid "Called"
 msgstr "Llamada"
 
-#: KMixTest/AppMainWindow.py:918
+#: KMixTest/AppMainWindow.py:931
 msgid "Menu"
 msgstr "Menú"
 
-#: KMixTest/AppMainWindow.py:972
+#: KMixTest/AppMainWindow.py:985
 msgid "New question"
 msgstr "Nueva pregunta"
 
-#: KMixTest/AppMainWindow.py:981
+#: KMixTest/AppMainWindow.py:994
 msgid "New mix will be generated"
 msgstr "Una nueva mezcla será generada"
 
-#: KMixTest/AppMainWindow.py:1002 KMixTest/Box.py:694
+#: KMixTest/AppMainWindow.py:1015 KMixTest/Box.py:694
 msgid "No action declared for"
 msgstr "No hay acción asociada a"
 
@@ -1611,7 +1611,7 @@ msgid "Row"
 msgstr "Fila"
 
 #: KMixTest/GridHelper.py:91 KMixTest/GridHelper.py:184
-#: KMixTest/HelperPDF.py:643 KMixTest/TableDrawer.py:116
+#: KMixTest/HelperPDF.py:648 KMixTest/TableDrawer.py:116
 #: KMixTest/TableHelper.py:87 KMixTest/TableHelper.py:106
 #: KMixTest/TableHelper.py:731
 msgid "title"
@@ -1693,62 +1693,66 @@ msgstr "Desde"
 msgid "to"
 msgstr "a"
 
-#: KMixTest/HelperPDF.py:618
+#: KMixTest/HelperPDF.py:623
 msgid "Starting question"
 msgstr "Empezando pregunta"
 
-#: KMixTest/HelperPDF.py:618 KMixTest/HelperPDF.py:643
-#: KMixTest/HelperPDF.py:670 KMixTest/HelperPDF.py:676
+#: KMixTest/HelperPDF.py:623 KMixTest/HelperPDF.py:648
+#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
 msgid "at page"
 msgstr "en la página"
 
-#: KMixTest/HelperPDF.py:643
+#: KMixTest/HelperPDF.py:648
 msgid "End title from question"
 msgstr "Fin del titulo de la pregunta"
 
-#: KMixTest/HelperPDF.py:670
+#: KMixTest/HelperPDF.py:675
 msgid "Space"
 msgstr "Espacio"
 
-#: KMixTest/HelperPDF.py:670 KMixTest/HelperPDF.py:676
+#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
 msgid "from question"
 msgstr "desde la pregunta"
 
-#: KMixTest/HelperPDF.py:676
+#: KMixTest/HelperPDF.py:681
 msgid "End options/lines"
 msgstr "Final de opciones/líneas"
 
-#: KMixTest/HelperPDF.py:687
+#: KMixTest/HelperPDF.py:692
 msgid "write success until page"
 msgstr "escritura correcta hasta la página"
 
-#: KMixTest/HelperPDF.py:687 KMixTest/HelperPDF.py:691
-#: KMixTest/HelperPDF.py:695 KMixTest/HelperPDF.py:890
-#: KMixTest/HelperPDF.py:892
+#: KMixTest/HelperPDF.py:692 KMixTest/HelperPDF.py:696
+#: KMixTest/HelperPDF.py:700 KMixTest/HelperPDF.py:904
+#: KMixTest/HelperPDF.py:906
 msgid "Question"
 msgstr "Pregunta"
 
-#: KMixTest/HelperPDF.py:691
+#: KMixTest/HelperPDF.py:696
 msgid "goes next page, breaking page on last question"
 msgstr "alcanza una nueva página, rompiendo la página en la última pregunta"
 
-#: KMixTest/HelperPDF.py:695
+#: KMixTest/HelperPDF.py:700
 msgid "sizes more than one page, skipping break, write sucess"
 msgstr ""
 "ocupa mas de una pagina, saltando la rotura de pagina, escritura correcta"
 
-#: KMixTest/HelperPDF.py:701
+#: KMixTest/HelperPDF.py:706
 msgid "End processing question"
 msgstr "Final de procesado de la pregunta"
 
-#: KMixTest/HelperPDF.py:701
+#: KMixTest/HelperPDF.py:706
 msgid "ended on page"
 msgstr "terminado en la página"
 
-#: KMixTest/HelperPDF.py:751 KMixTest/HelperPDF.py:814
-#: KMixTest/HelperPDF.py:857
+#: KMixTest/HelperPDF.py:756 KMixTest/HelperPDF.py:819
+#: KMixTest/HelperPDF.py:862
 msgid "Error: Invalid image detected"
 msgstr "Error: Imagen inválida detectada"
+
+#: KMixTest/HelperPDF.py:887
+msgid "Name"
+msgstr "Nombre"
 
 #: KMixTest/QuestionType.py:4
 msgid "Join activity"
