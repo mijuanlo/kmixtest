@@ -513,7 +513,7 @@ class helperPDF():
                 cursor.insertText(position.get('content'), self.styles['text'])
             elif typeh == 'image':
                 cursor.insertImage(self.imageResized(dataPixMapToImage(position.get('data')),max_image_height,max_image_width))
-        self.writeSeparator(document)
+        self.writeSeparator(document, single=True)
         return document
 
     def makeTitleTable(self, document, rows, cols, cursor=None):
@@ -601,7 +601,12 @@ class helperPDF():
                 continue
             document.setInitModel(model)
             document = self.makeHeaderTable(document,self.styles['header.table'] )
-            self.writeSeparator(document,single=False)
+            if not answermode:
+                document = self.writeTitleName(document)
+            else:
+                self.writeSeparator(document,single=True)    
+            self.writeSeparator(document,single=True)
+            self.writeSeparator(document,single=True)
             data = self.examData[model]
             self.pagequestion = {}
             question_num = 0
@@ -872,6 +877,15 @@ class helperPDF():
                     c.insertText(space+text2)
 
         return self.writeSeparator(document,single=True)
+
+    def writeTitleName(self,document,cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        cursor.insertBlock(self.styles['body'],self.styles['text.bold'])
+        width = document.idealWidth()
+        fm = QFontMetrics(self.styles['text.bold'].font())
+        cursor.insertText("{}: {}".format(_('Name'),'_'*int((width-fm.size(Qt.TextSingleLine,_('Name')+':').width())/fm.size(Qt.TextSingleLine,'_').width())))
+        return document
 
     def writeTitle(self,document,text, cursor=None, qnumber=None, html=False, color='red'):
         if document and text:

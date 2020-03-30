@@ -110,8 +110,8 @@ class AppMainWindow(QApplication):
             if load_filename:
                 self.autoloadfilename = load_filename
                 self.menuController('menu_load_exam')
-                #self.menuController('menu_print_preview')
-                self.menuController('menu_print_exam')
+                self.menuController('menu_print_preview')
+                #self.menuController('menu_print_exam')
             else:
                 self.autoloadfilename = None
             # self.exitting()
