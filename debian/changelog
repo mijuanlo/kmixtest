@@ -1,3 +1,9 @@
+kmixtest (0.2) bionic; urgency=medium
+
+  * Improvements & fixes over development version 0.1
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Wed, 01 Apr 2020 18:49:55 +0200
+
 kmixtest (0.1) bionic; urgency=medium
 
   * Initial Release.
