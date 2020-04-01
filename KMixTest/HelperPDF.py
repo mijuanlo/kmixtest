@@ -4,11 +4,12 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Util import mmToPixels, picaToPixels, marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage
+from .Util import mmToPixels, picaToPixels, marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage, timed
 from .PreviewPrinter import previewPrinter
 from .Config import _, ARTWORK, ICONS
 
 from copy import deepcopy
+import os.path
 
 USE_FAKE_HEADER = True
 
@@ -18,8 +19,8 @@ class helperPDF():
     header_table_cols = 3
     header_table_rows = 2
 
-    def __init__(self, parent=None):
-        self.debug = False
+    def __init__(self, parent=None, debug=False):
+        self.debug = False or debug
         self.parent = parent
         self.pageMargins = QMarginsF(10,10,10,10)
         self.orientation = QPageLayout.Orientation.Portrait
@@ -51,24 +52,19 @@ class helperPDF():
         self.numberedPages = numberedPages
         self.headerWithFrame = headerWithFrame
 
+    @timed
     def initPrinter(self, printer=None, resolution=QPrinter.HighResolution, margins=None, orientation=None):
-        
         if not resolution:
-            if self.resolution_type:
-                resolution = QPrinter(self.resolution_type).resolution()
-                self.dpi = resolution
-            else:
+            if not self.resolution_type:
                 self.resolution_type = QPrinter.HighResolution
-                resolution = QPrinter(self.resolution_type).resolution()
-                self.dpi = resolution
-        
+            # resolution = QPrinter(self.resolution_type).resolution()
         if isinstance(resolution,QPrinter.PrinterMode):
             default_printer = QPrinter(resolution)
-            resolution = QPrinter(resolution).resolution()
+            resolution = default_printer.resolution()
         else:
             default_printer = QPrinter()
             default_printer.setResolution(resolution)
-            
+        self.dpi = resolution
         if not printer:
             if self.printer:
                 printer = self.printer
@@ -101,8 +97,8 @@ class helperPDF():
 
         if changed_layout:
             printer.setPageLayout(current_layout)
-
-        PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
+        # PaperToScreen = int( resolution / QPrinter(QPrinter.ScreenResolution).resolution() )
+        PaperToScreen = int( resolution / 96 )
         self.constPaperScreen = PaperToScreen
         if self.debug:
             qDebug("{}: {}".format(_('Setting constant'),int(self.constPaperScreen)))
@@ -111,9 +107,9 @@ class helperPDF():
         self.relTextToA4 = relTextToA4
         if self.debug:
             qDebug("{}: {}".format(_('Setting text multiplier size'),relTextToA4))
-
         return printer, resolution, PaperToScreen, current_layout
 
+    @timed
     def initDocument(self, printer=None, document=None):
         if not printer:
             printer = self.printer
@@ -126,19 +122,20 @@ class helperPDF():
         self.initStyles(printer=printer)
         return document
 
-    def initWidget(self, parent=None, printer=None):
+    @timed
+    def initWidget(self, parent=None, printer=None,fn=None):
         widget = previewPrinter(parent=parent,printer=printer)
-        if not self.widget:
-            self.widget = widget
-        widget.paintRequested.connect(self.paintRequest)
+        widget.paintRequested.connect(fn)
         return widget 
 
+    @timed
     def initSystem(self,printer=None,filename=None):
         self.last_cursor_ack = None
         self.last_page_ack = 1
         if printer:
             self.printer = printer
-        self.printer, self.dpi, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution_type, margins=self.pageMargins)
+        if not self.printer:
+            self.printer, self.dpi, self.constPaperScreen, self.layout = self.initPrinter(printer=self.printer, resolution=self.resolution_type, margins=self.pageMargins)
         if not self.preview:
             self.printer.setOutputFormat(QPrinter.PdfFormat)
             if filename:
@@ -146,17 +143,30 @@ class helperPDF():
             else:
                 self.printer.setOutputFileName('out.pdf')
 
-    def openWidget(self):
+    @timed
+    def openWidget(self,answermode=False):
         self.preview = True
-        self.widget = self.initWidget(parent=self, printer=self.printer)
+        self.document = self.completeDocument(answermode)
+        self.widget = self.initWidget(parent=self, printer=self.printer, fn=self.paintRequest )
         self.widget.exec_()
 
-    def writePDF(self,filename=None):
+    @timed
+    def writePDF(self,filename=None,answermode=False):
         self.preview = False
+        self.document = self.completeDocument(answermode)
+        dialog = QMessageBox()
+        hspacer = QSpacerItem(300,0,QSizePolicy.Minimum,QSizePolicy.Expanding)
+        dialog.setProperty('icon',QMessageBox.Information)
+        dialog.setStandardButtons(QMessageBox.Ok)
+        dialog.setText("{}".format(_('Pdf file generated')))
         self.paintRequest(filename=filename)
+        dialog.setInformativeText(filename)
+        dialog.setStyleSheet('QMessageBox QLabel#qt_msgbox_label{ font-size: 12pt; } QMessageBox QLabel#qt_msgbox_informativelabel{ font-size: 10pt; }')
+        dialog.layout().addItem(hspacer,dialog.layout().rowCount(),0,1,dialog.layout().columnCount())
+        dialog.exec_()
 
+    @timed
     def initStyles(self, styles=None, printer=None):
-        
         if printer and isinstance(printer,QPrinter):
             resolution = printer.resolution()
         else:
@@ -289,6 +299,9 @@ class helperPDF():
 
         styles['defaultfont'] = QFont("Times", picaToPixels(10))
         styles['bigfont'] = QFont("Times", picaToPixels(30))
+        styles['answer_ok'] = QFont("Times", picaToPixels(14),QFont.Bold)
+        styles['answer_fail'] = styles['defaultfont']
+        styles['answer_fail'].setWeight(QFont.Light)
 
         styles['text'] = QTextCharFormat()
         styles['bigtext'] = QTextCharFormat()
@@ -322,12 +335,11 @@ class helperPDF():
             qDebug("***** {} ! *****".format(_('Repaint Event')))
 
         self.initSystem(printer,filename)
-
         if self.debug:        
             # print_document_data(self.document)
             print_printer_data(self.printer)
 
-        self.document = self.completeDocument()
+        #self.document = self.completeDocument(answermode)
         #self.document = self.makeTestDocument(self.document)
         self.document.printExamModel(self.printer,numbered=self.numberedPages,framed=self.headerWithFrame)
 
@@ -417,9 +429,10 @@ class helperPDF():
         qDebug('{}'.format(document.toHtml()))
         return document
 
-    def completeDocument(self):
+    @timed
+    def completeDocument(self, answermode=False):
         document = self.initDocument(printer = self.printer)
-        document = self.writeExamData(document)
+        document = self.writeExamData(document, answermode)
         return document
 
     def buildFakeHeaderInfo(self):
@@ -500,7 +513,7 @@ class helperPDF():
                 cursor.insertText(position.get('content'), self.styles['text'])
             elif typeh == 'image':
                 cursor.insertImage(self.imageResized(dataPixMapToImage(position.get('data')),max_image_height,max_image_width))
-        self.writeSeparator(document)
+        self.writeSeparator(document, single=True)
         return document
 
     def makeTitleTable(self, document, rows, cols, cursor=None):
@@ -579,7 +592,8 @@ class helperPDF():
         ret = cursor.movePosition(QTextCursor.Down)
         return cursor
 
-    def writeExamData(self,document):
+    @timed
+    def writeExamData(self,document,answermode=False):
         if not self.examData:
             return document
         for model in self.examData:
@@ -587,7 +601,12 @@ class helperPDF():
                 continue
             document.setInitModel(model)
             document = self.makeHeaderTable(document,self.styles['header.table'] )
-            self.writeSeparator(document,single=False)
+            if not answermode:
+                document = self.writeTitleName(document)
+            else:
+                self.writeSeparator(document,single=True)    
+            self.writeSeparator(document,single=True)
+            self.writeSeparator(document,single=True)
             data = self.examData[model]
             self.pagequestion = {}
             question_num = 0
@@ -613,7 +632,10 @@ class helperPDF():
                         cursor1,cell = self.setupCell(table,0,0,centerV=False)
                         if title_pic:
                             self.writeSeparator(document,cursor=cursor1,single=True)
-                        self.writeTitle(document,title, cursor=cursor1,qnumber=question_num)
+                        if answermode:
+                            self.writeTitle(document,title, cursor=cursor1,qnumber=question_num, html=True)
+                        else:
+                            self.writeTitle(document,title, cursor=cursor1,qnumber=question_num)
                     if title_pic:
                         cursor2,cell = self.setupCell(table,0,1,centerV=False)
                         image = dataPixMapToImage(title_pic)
@@ -634,9 +656,16 @@ class helperPDF():
                 else:
                     options = row.get('options')
                     if typeq == 'test_question':
-                        self.writeTest(document,options)
+                        if answermode:
+                            self.writeTest(document,options, html=True)
+                        else:
+                            self.writeTest(document,options, html=False)
                     elif typeq == 'join_activity':
-                        self.writeJoinActivity(document,options)
+                        if answermode:
+                            row_mapping = row.get('join_mapping')
+                            self.writeJoinActivity(document,options, html=True, mapping=row_mapping)
+                        else:
+                            self.writeJoinActivity(document,options, html=False)
                     self.writeSeparator(document,single=False)
 
                 for i in range(1,nlines+1):
@@ -678,7 +707,7 @@ class helperPDF():
         document.setEndModel(breakPage=False)
         return document
 
-    def writeTest(self, document, options, cursor=None):
+    def writeTest(self, document, options, cursor=None, html=False, color='red'):
         if not cursor:
             cursor = self.initCursor(document)
         
@@ -692,10 +721,33 @@ class helperPDF():
             text = opt.get('text1')
             text = text.capitalize()
             pic = opt.get('pic1')
+            is_valid = opt.get('valid')
+
+            iconbox = ICONS['option']
+            size = None
+            family = None
+            color = None
+            weight = None
+            style = 'defaultfont'
+            if html:
+                if is_valid:
+                    style = 'answer_ok'
+                    color = 'darkgreen'
+                    iconbox = ICONS['boxok']
+                    family = self.styles[style].family()
+                    size = int(self.styles[style].pointSize())
+                    weight = int(self.styles[style].weight()*8)
+                else:
+                    style = 'answer_fail'
+                    color = 'darksalmon'
+                    iconbox = ICONS['boxfail']
+                    family = self.styles[style].family()
+                    size = int(self.styles[style].pointSize())
+                    weight = int(self.styles[style].weight()*8)
 
             c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height(),Qt.SmoothTransformation)
+            img = QImage(iconbox)
+            img = img.scaledToHeight(QFontMetrics(self.styles[style]).height(),Qt.SmoothTransformation)
             c.insertImage(img)
             if pic:
                 c,cell = self.setupCell(table,i,1,centerV=True,centerH=False)
@@ -707,14 +759,16 @@ class helperPDF():
                     c.insertImage(img)
             if text:
                 c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(text)
-
+                if html:
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(text)
             i += 1
        
         return self.writeSeparator(document,single=True)
 
-    def writeJoinActivity(self, document, options, cursor=None):
+    def writeJoinActivity(self, document, options, cursor=None, html=False, color='red', mapping=None):
         if not cursor:
             cursor = self.initCursor(document)
         
@@ -723,8 +777,9 @@ class helperPDF():
         tf = table.format()
         tf.setCellSpacing(mmToPixels(2,1200))
         table.setFormat(tf)
-        i=0
+        i=-1
         for opt in options:
+            i += 1
             text1 = opt.get('text1')
             text1 = text1.capitalize()
             pic1 = opt.get('pic1')
@@ -747,8 +802,15 @@ class helperPDF():
 
             if text1:
                 c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(text1+space)
+                if html:
+                    family = self.styles['text'].fontFamily()
+                    weight = int(self.styles['text'].fontWeight()*8)
+                    size = int(self.styles['text'].fontPointSize())
+                    color = 'dimgray'
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text1+space))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(text1+space)
 
             if pic1:
                 c,cell = self.setupCell(table,i,1,centerV=False,centerH=False)
@@ -760,22 +822,38 @@ class helperPDF():
                     c.insertImage(img)
 
             c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(space)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
+            if html and mapping:
+                text = chr(i+65)
+                family = self.styles['answer_ok'].family()
+                weight = int(self.styles['answer_ok'].weight()*8)
+                size = int(self.styles['answer_ok'].pointSize())
+                color = 'black'
+                c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};"> {}</span>'.format(size,family,color,weight,text))
+            else:
+                c.setCharFormat(self.styles['text'])
+                c.insertText(space)
+                img = QImage(ICONS['option'])
+                img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+                c.insertImage(img)
 
             c,cell = self.setupCell(table,i,3,centerV=False,centerH=False)
             c.setCharFormat(self.styles['text'])
             c.insertText(separator)
 
             c,cell = self.setupCell(table,i,4,centerV=True,centerH=False)
-            img = QImage(ICONS['option'])
-            img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
-            c.insertImage(img)
-            c.setCharFormat(self.styles['text'])
-            c.insertText(space)
+            if html and mapping:
+                text = chr(mapping[i]+65)
+                family = self.styles['answer_ok'].family()
+                weight = int(self.styles['answer_ok'].weight()*8)
+                size = int(self.styles['answer_ok'].pointSize())
+                color = 'black'
+                c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{} </span>'.format(size,family,color,weight,text))
+            else:
+                img = QImage(ICONS['option'])
+                img = img.scaledToHeight(QFontMetrics(self.styles['defaultfont']).height()*0.9,Qt.SmoothTransformation)
+                c.insertImage(img)
+                c.setCharFormat(self.styles['text'])
+                c.insertText(space)
 
             if pic2:
                 c,cell = self.setupCell(table,i,5,centerV=False,centerH=False)
@@ -788,21 +866,49 @@ class helperPDF():
 
             if text2:
                 c,cell = self.setupCell(table,i,6,centerV=True,centerH=False)
-                c.setCharFormat(self.styles['text'])
-                c.insertText(space+text2)
-
-            i += 1
+                if html:
+                    family = self.styles['text'].fontFamily()
+                    weight = int(self.styles['text'].fontWeight()*8)
+                    size = int(self.styles['text'].fontPointSize())
+                    color = 'dimgray'
+                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,space+text2))
+                else:
+                    c.setCharFormat(self.styles['text'])
+                    c.insertText(space+text2)
 
         return self.writeSeparator(document,single=True)
 
-    def writeTitle(self,document,text, cursor=None, qnumber=None):
+    def writeTitleName(self,document,cursor=None):
+        if not cursor:
+            cursor = self.initCursor(document)
+        cursor.insertBlock(self.styles['body'],self.styles['text.bold'])
+        width = document.idealWidth()
+        fm = QFontMetrics(self.styles['text.bold'].font())
+        cursor.insertText("{}: {}".format(_('Name'),'_'*int((width-fm.size(Qt.TextSingleLine,_('Name')+':').width())/fm.size(Qt.TextSingleLine,'_').width())))
+        return document
+
+    def writeTitle(self,document,text, cursor=None, qnumber=None, html=False, color='red'):
         if document and text:
             if not cursor:
                 cursor = self.initCursor(document)
             cursor.insertBlock(self.styles['body'],self.styles['text'])
+            family = self.styles['text'].fontFamily()
+            weight = int(self.styles['text'].fontWeight()*8)
+            size = int(self.styles['text'].fontPointSize())
+            bfamily = self.styles['text.bold'].fontFamily()
+            bweight = int(self.styles['text.bold'].fontWeight()*8)
+            bsize = int(self.styles['text.bold'].fontPointSize())
             if qnumber:
-                cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
-            cursor.insertText(text,self.styles['text'])
+                if html:
+                    color = 'dimgray'
+                    cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{} {}: </span>'.format(bsize,bfamily,color,900,_('Question'),qnumber))
+                else:
+                    cursor.insertText('{} {}: '.format(_('Question'),qnumber),self.styles['text.bold'])
+            if html:
+                color = 'lightgray'
+                cursor.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
+            else:
+                cursor.insertText(text,self.styles['text'])
 
     def validateHeader(self,header):
         fake = None
@@ -888,7 +994,6 @@ class ExamDocument(QTextDocument):
                 pb.setPageBreakPolicy(QTextFormat.PageBreak_AlwaysBefore)
                 cursor.insertBlock(pb)
 
-
     def setPage(self,pageSize=None,printer=None):
         if not pageSize:
             if printer:
@@ -971,6 +1076,7 @@ class ExamDocument(QTextDocument):
             painter.drawText(footerPageRect,Qt.AlignRight, footer)
             painter.restore()
 
+    @timed
     def printExamModel(self,printer,numbered=True,framed=True):
         headermap = {}
         footermap = {}

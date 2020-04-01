@@ -35,6 +35,6 @@
             "request": "launch",
             "program": "kmixtest",
             "console": "integratedTerminal"
-        },
+        }
     ]
 }

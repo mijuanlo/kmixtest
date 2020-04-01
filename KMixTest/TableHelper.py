@@ -132,10 +132,19 @@ class tableHelper(QObject):
     # Update internal statestring used by resolver
     # Need to update statestring when rows are modified
     def updateStateString(self):
-        self.stateString = self.getStateString()
+        change = False
+        if self.stateString:
+            ss = self.getStateString()
+            if ss != self.stateString:
+                change = True
+            self.stateString = ss
+        else:
+            change = True
+            self.stateString = self.getStateString()
         #self.resolver.reset()
-        self.pool.set_stateString(self.stateString)
-        self.tableChanged.emit()
+        if change:
+            self.pool.set_stateString(self.stateString)
+            self.tableChanged.emit()
 
     # build new state string representing table
     # two digit with value of 0 (disabled) or 1 (enabled) from each row, representing fixed and linked cells
@@ -502,9 +511,13 @@ class tableHelper(QObject):
         qDebug("{} x:{} y:{} {} {}".format(_('item on'),item.column(),item.row(),_('with value'),item.text()))
         qm = QMenu(_('titulo'), self.table)
         if item.column()!=0:
-            for seq in range(1,4):
-                qm.addAction(Helper.genAction(name="{}{}_{}".format(_('ContextAction'),seq,item.text()),fn=self.printContextAction,data="{}_{}_{}".format(_('ContextAction'),seq,item.text(),_('Data')),icon=ICONS['option'],shortcut=None,tip="{}_{}".format(_('TipContextAction'),seq,item.text()),parent=qm))
-            qm.addAction(Helper.genAction(name="{} '{}'".format(_('Delete line'),item.text()),fn=self.deleteContextAction,data=item.row(),icon=ICONS['option'],shortcut=None,tip="{}_{}_{}".format(_('TipContextAction'),_('Delete'),item.text()),parent=qm))
+            # for seq in range(1,4):
+            #    qm.addAction(Helper.genAction(name="{}{}_{}".format(_('ContextAction'),seq,item.text()),fn=self.printContextAction,data="{}_{}_{}".format(_('ContextAction'),seq,item.text(),_('Data')),icon=ICONS['option'],shortcut=None,tip="{}_{}".format(_('TipContextAction'),seq,item.text()),parent=qm))
+            text = item.text()
+            if len(text) > 20:
+                text = text[:20]
+                text += '...'
+            qm.addAction(Helper.genAction(name="{} '{}'".format(_('Delete question'),text),fn=self.deleteContextAction,data=item.row(),icon=ICONS['menu_option'],shortcut=None,tip="{}_{}_{}".format(_('TipContextAction'),_('Delete'),text),parent=qm))
         else:
             self.makeLinkedAction(item.row())
         qm.exec_(QCursor.pos())

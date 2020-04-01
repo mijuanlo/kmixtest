@@ -59,7 +59,7 @@ ICONS = {
     'linked':'linked.svg',
     'fixed': 'fixed.svg',
     'close': 'close.svg',
-    'option': 'option.svg',
+    'menu_option': 'option.svg',
     'add': 'add.png',
     'exit': 'exit.png',
     'new': 'new.png',
@@ -81,7 +81,14 @@ ICONS = {
     'option': 'box.svg',
     'single_question': 'single_question.svg',
     'test_question': 'test_question.svg',
-    'join_activity': 'join_activity.svg'
+    'join_activity': 'join_activity.svg',
+    'open': 'open.png',
+    'header': 'header.png',
+    'merge': 'merge.png',
+    'configure': 'configure.png',
+    'application': 'application.svg',
+    'boxok': 'boxok.svg',
+    'boxfail': 'boxfail.svg',
     }
 
 ARTWORK = {
