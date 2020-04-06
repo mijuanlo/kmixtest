@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-03-30 10:37+0200\n"
+"POT-Creation-Date: 2020-04-01 17:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,275 +15,280 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: KMixTest/AppMainWindow.py:72
+#: KMixTest/AppMainWindow.py:73
 msgid "Project"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:74
+#: KMixTest/AppMainWindow.py:75
 msgid "New"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:76
+#: KMixTest/AppMainWindow.py:77
 msgid "Load exam"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:77
+#: KMixTest/AppMainWindow.py:78
 msgid "Load template"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:79
+#: KMixTest/AppMainWindow.py:80
 msgid "Save"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:80
+#: KMixTest/AppMainWindow.py:81
 msgid "Save as"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:81
+#: KMixTest/AppMainWindow.py:82
 msgid "Save as template"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:82
+#: KMixTest/AppMainWindow.py:83
 msgid "Exit"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:85
+#: KMixTest/AppMainWindow.py:86
 msgid "Mixer"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:87
+#: KMixTest/AppMainWindow.py:88
 msgid "Configure header"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:88
+#: KMixTest/AppMainWindow.py:89
 msgid "Configure output"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:89
+#: KMixTest/AppMainWindow.py:90
 msgid "Generate Mix"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:92
+#: KMixTest/AppMainWindow.py:93
 msgid "Print"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:94
+#: KMixTest/AppMainWindow.py:95
 msgid "Print preview"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:95
+#: KMixTest/AppMainWindow.py:96
 msgid "Print Exam"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:119
+#: KMixTest/AppMainWindow.py:122
 msgid "Exception while initializing"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:131
+#: KMixTest/AppMainWindow.py:134
 msgid "Terminating"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:143
+#: KMixTest/AppMainWindow.py:146
 msgid "Edition not permitted, box locked"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:150
+#: KMixTest/AppMainWindow.py:153
 msgid "Questions changed"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:158
+#: KMixTest/AppMainWindow.py:161
 msgid "Editing"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:165
+#: KMixTest/AppMainWindow.py:168
 msgid "Question changed"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:188
+#: KMixTest/AppMainWindow.py:191
 msgid "Generating new mix"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:382
+#: KMixTest/AppMainWindow.py:385
 msgid "solution"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "The file"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "already exists"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "are you sure to overwrite it?"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:427
+#: KMixTest/AppMainWindow.py:430
 msgid "Print Qt translations"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:431
+#: KMixTest/AppMainWindow.py:434
 msgid "Open Exam"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:431 KMixTest/AppMainWindow.py:435
+#: KMixTest/AppMainWindow.py:434 KMixTest/AppMainWindow.py:438
 msgid "Exam files"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:435
+#: KMixTest/AppMainWindow.py:438
 msgid "Save Exam"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:439
+#: KMixTest/AppMainWindow.py:442
 msgid "Document files"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:439
+#: KMixTest/AppMainWindow.py:442
 msgid "Export to"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:573 KMixTest/Box.py:223 KMixTest/Box.py:408
 msgid "Image Files"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:573 KMixTest/Box.py:223 KMixTest/Box.py:408
 msgid "Open image"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:577
+#: KMixTest/AppMainWindow.py:580
 msgid "invalid"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:577 KMixTest/AppMainWindow.py:580
+#: KMixTest/AppMainWindow.py:580 KMixTest/AppMainWindow.py:583
 msgid "filename"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:580
+#: KMixTest/AppMainWindow.py:583
 msgid "valid"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:825
+#: KMixTest/AppMainWindow.py:841
 msgid "Generate mix"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:830
+#: KMixTest/AppMainWindow.py:846
 msgid "Number disctinct models"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:841
+#: KMixTest/AppMainWindow.py:857
 msgid "Alter answer order"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:852
+#: KMixTest/AppMainWindow.py:868
 msgid "Include solutionary"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:864
+#: KMixTest/AppMainWindow.py:880
 msgid "Ok"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:865 KMixTest/Box.py:66
+#: KMixTest/AppMainWindow.py:881 KMixTest/Box.py:69
 msgid "Close"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:920 KMixTest/Box.py:658
+#: KMixTest/AppMainWindow.py:936 KMixTest/Box.py:661
 msgid "Called"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:931
+#: KMixTest/AppMainWindow.py:947
 msgid "Menu"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:985
+#: KMixTest/AppMainWindow.py:1001
 msgid "New question"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:994
+#: KMixTest/AppMainWindow.py:1010
 msgid "New mix will be generated"
 msgstr ""
 
-#: KMixTest/AppMainWindow.py:1015 KMixTest/Box.py:694
+#: KMixTest/AppMainWindow.py:1032 KMixTest/Box.py:697
 msgid "No action declared for"
 msgstr ""
 
-#: KMixTest/Box.py:207 KMixTest/TableHelper.py:14
+#: KMixTest/Box.py:26
+msgid "Parameter error on box event filter"
+msgstr ""
+
+#: KMixTest/Box.py:210 KMixTest/TableHelper.py:14
 msgid "Title"
 msgstr ""
 
-#: KMixTest/Box.py:267 KMixTest/Box.py:433
+#: KMixTest/Box.py:270 KMixTest/Box.py:436
 msgid "Option"
 msgstr ""
 
-#: KMixTest/Box.py:385
+#: KMixTest/Box.py:388
 msgid "Do you wan't to remove image?"
 msgstr ""
 
-#: KMixTest/Box.py:590
+#: KMixTest/Box.py:593
 msgid "from"
 msgstr ""
 
-#: KMixTest/Box.py:707
+#: KMixTest/Box.py:710
 msgid "Can't lock"
 msgstr ""
 
-#: KMixTest/Box.py:724
-msgid "Can't unlock"
-msgstr ""
-
-#: KMixTest/Box.py:791
-msgid "Empty lines for answer"
-msgstr ""
-
-#: KMixTest/Box.py:838
-msgid "Empty type for question received"
-msgstr ""
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855
-msgid "Delete image"
-msgstr ""
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
-msgid "Add image"
-msgstr ""
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
-msgid "Lock"
-msgstr ""
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:714 KMixTest/Box.py:731 KMixTest/Box.py:845
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Unlock"
 msgstr ""
 
-#: KMixTest/Box.py:847
+#: KMixTest/Box.py:727
+msgid "Can't unlock"
+msgstr ""
+
+#: KMixTest/Box.py:794
+msgid "Empty lines for answer"
+msgstr ""
+
+#: KMixTest/Box.py:841
+msgid "Empty type for question received"
+msgstr ""
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858
+msgid "Delete image"
+msgstr ""
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858 KMixTest/Box.py:868
+msgid "Add image"
+msgstr ""
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858 KMixTest/Box.py:868
+msgid "Lock"
+msgstr ""
+
+#: KMixTest/Box.py:850
 msgid "Empty lines"
 msgstr ""
 
-#: KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Add option"
 msgstr ""
 
-#: KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Remove option"
 msgstr ""
 
-#: KMixTest/Box.py:857 KMixTest/Box.py:867
+#: KMixTest/Box.py:860 KMixTest/Box.py:870
 msgid "Dump"
 msgstr ""
 
-#: KMixTest/Box.py:860
+#: KMixTest/Box.py:863
 msgid "Valid"
 msgstr ""
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "skipping"
 msgstr ""
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "type for question"
 msgstr ""
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "unknown"
 msgstr ""
 
@@ -1606,7 +1611,7 @@ msgid "Row"
 msgstr ""
 
 #: KMixTest/GridHelper.py:91 KMixTest/GridHelper.py:184
-#: KMixTest/HelperPDF.py:648 KMixTest/TableDrawer.py:116
+#: KMixTest/HelperPDF.py:655 KMixTest/TableDrawer.py:116
 #: KMixTest/TableHelper.py:87 KMixTest/TableHelper.py:106
 #: KMixTest/TableHelper.py:731
 msgid "title"
@@ -1634,6 +1639,58 @@ msgstr ""
 
 #: KMixTest/GridHelper.py:280 KMixTest/Resolver.py:317
 msgid "Error"
+msgstr ""
+
+#: KMixTest/HeaderController.py:16
+msgid "header designer"
+msgstr ""
+
+#: KMixTest/HeaderController.py:58 KMixTest/HeaderController.py:328
+msgid "No cell selected"
+msgstr ""
+
+#: KMixTest/HeaderController.py:61
+msgid "Multiple selection not allowed"
+msgstr ""
+
+#: KMixTest/HeaderController.py:225 KMixTest/HeaderController.py:258
+msgid "Cell not empty"
+msgstr ""
+
+#: KMixTest/HeaderController.py:268
+msgid "Insert text for header cell"
+msgstr ""
+
+#: KMixTest/HeaderController.py:268 KMixTest/Ui_headerForm.py:356
+msgid "Text"
+msgstr ""
+
+#: KMixTest/HeaderController.py:272
+msgid "No text inserted"
+msgstr ""
+
+#: KMixTest/HeaderController.py:293
+msgid "Student name field"
+msgstr ""
+
+#: KMixTest/HeaderController.py:297
+msgid "Date field"
+msgstr ""
+
+#: KMixTest/HeaderController.py:301
+msgid "Group field"
+msgstr ""
+
+#: KMixTest/HeaderController.py:331
+msgid "Not a valid selection"
+msgstr ""
+
+#: KMixTest/HeaderController.py:334
+msgid "Single element can not be joined"
+msgstr ""
+
+#: KMixTest/HeaderController.py:435 KMixTest/HeaderController.py:448
+msgid "Remove content first"
 msgstr ""
 
 #: KMixTest/HelperPDF.py:86
@@ -1664,87 +1721,87 @@ msgstr ""
 msgid "Repaint Event"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "Block"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "on"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "with"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "Break page"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "From"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "to"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:623
+#: KMixTest/HelperPDF.py:630
 msgid "Starting question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:623 KMixTest/HelperPDF.py:648
-#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:630 KMixTest/HelperPDF.py:655
+#: KMixTest/HelperPDF.py:682 KMixTest/HelperPDF.py:688
 msgid "at page"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:648
+#: KMixTest/HelperPDF.py:655
 msgid "End title from question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:675
+#: KMixTest/HelperPDF.py:682
 msgid "Space"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:682 KMixTest/HelperPDF.py:688
 msgid "from question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:688
 msgid "End options/lines"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:692
+#: KMixTest/HelperPDF.py:699
 msgid "write success until page"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:692 KMixTest/HelperPDF.py:696
-#: KMixTest/HelperPDF.py:700 KMixTest/HelperPDF.py:904
-#: KMixTest/HelperPDF.py:906
+#: KMixTest/HelperPDF.py:699 KMixTest/HelperPDF.py:703
+#: KMixTest/HelperPDF.py:707 KMixTest/HelperPDF.py:911
+#: KMixTest/HelperPDF.py:913
 msgid "Question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:696
+#: KMixTest/HelperPDF.py:703
 msgid "goes next page, breaking page on last question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:700
+#: KMixTest/HelperPDF.py:707
 msgid "sizes more than one page, skipping break, write sucess"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:706
+#: KMixTest/HelperPDF.py:713
 msgid "End processing question"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:706
+#: KMixTest/HelperPDF.py:713
 msgid "ended on page"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:756 KMixTest/HelperPDF.py:819
-#: KMixTest/HelperPDF.py:862
+#: KMixTest/HelperPDF.py:763 KMixTest/HelperPDF.py:826
+#: KMixTest/HelperPDF.py:869
 msgid "Error: Invalid image detected"
 msgstr ""
 
-#: KMixTest/HelperPDF.py:887
+#: KMixTest/HelperPDF.py:894
 msgid "Name"
 msgstr ""
 
@@ -1909,6 +1966,114 @@ msgstr ""
 
 #: KMixTest/TableHelper.py:685
 msgid "CHANGING"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:317
+msgid "Columns"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:319
+msgid "Rows"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:321
+msgid "Cell actions"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:323
+msgid "Join cells"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:325
+msgid "Join"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:327
+msgid "Split cell"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:329
+msgid "Split"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:331
+msgid "Empty cell"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:333
+msgid "Empty"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:334
+msgid "Align"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:336
+msgid "Align left"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:339
+msgid "Align center"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:342
+msgid "Align right"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:345
+msgid "Accept changes"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:347
+msgid "Accept"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:349
+msgid "Cancel changes"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:351
+msgid "Cancel"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:352
+msgid "Insert actions"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:354
+msgid "Insert text"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:358
+msgid "Insert image"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:360
+msgid "Image"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:362
+msgid "Insert student name field"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:364
+msgid "Student name"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:366
+msgid "Insert group field"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:368
+msgid "Group"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:370
+msgid "Insert date field"
+msgstr ""
+
+#: KMixTest/Ui_headerForm.py:372
+msgid "Date"
 msgstr ""
 
 #: KMixTest/UpdatePool.py:50

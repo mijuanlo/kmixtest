@@ -79,7 +79,8 @@ class UpdatePool(QObject):
             for t in self.threads:
                 t.start()
                 num += 1
-        qDebug("{} {} {}".format(_('Started'),num,_('threads + timer')))
+        if self.debug_level > 0:
+            qDebug("{} {} {}".format(_('Started'),num,_('threads + timer')))
 
     def row_is(self,state,row,col):
         return True if state[2*row+col] == '1' else False

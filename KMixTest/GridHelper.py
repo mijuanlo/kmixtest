@@ -17,6 +17,8 @@ class gridHelper(QObject):
         super().__init__()
         self.debug = False
         self.parent = parent
+        if self.parent and getattr(parent,'debug',None):
+            self.debug = getattr(parent,'debug',None)
         self.grid = grid
         # Links box_uuid with object
         self.boxes = {}
@@ -207,7 +209,8 @@ class gridHelper(QObject):
     def deleteBox(self,uuid):
         if not uuid:
             raise ValueError()
-        qDebug("{} {}".format(_('Deleting '),uuid))
+        if self.debug:
+            qDebug("{} {}".format(_('Deleting '),uuid))
         b = self.boxes.get(uuid,None)
         if b:
             del self.boxes[uuid]
