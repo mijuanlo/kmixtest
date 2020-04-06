@@ -1,3 +1,9 @@
+kmixtest (0.3) bionic; urgency=medium
+
+  * New designer for header layout
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Mon, 06 Apr 2020 11:39:41 +0200
+
 kmixtest (0.2) bionic; urgency=medium
 
   * Improvements & fixes over development version 0.1
