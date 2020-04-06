@@ -4,7 +4,7 @@ from PySide2.QtGui import *
 from PySide2.QtPrintSupport import *
 from PySide2.QtUiTools import *
 
-from .Util import mmToPixels, picaToPixels, marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage, timed
+from .Util import mmToPixels, pixelsToMm, picaToPixels, marginsToString, print_document_data, print_preview_data, print_printer_data, loadPixMapData, dumpPixMapData, fileToPixMap, dataPixMapToImage, timed
 from .PreviewPrinter import previewPrinter
 from .Config import _, ARTWORK, ICONS
 
@@ -17,7 +17,7 @@ USE_FAKE_HEADER = True
 class helperPDF():
 
     header_table_cols = 3
-    header_table_rows = 2
+    header_table_rows = 3
 
     def __init__(self, parent=None, debug=False):
         self.debug = False or debug
@@ -474,45 +474,99 @@ class helperPDF():
 
     def imageResized(self, name, max_image_height, max_image_width):
         image = QImage(name)
-        new_image_height = image.height() * max_image_width / image.width()
-        image = image.scaled(max_image_width,new_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-        if image.height() > max_image_height:
-            new_image_width = image.width() * max_image_height / image.height()
-            image = image.scaled(new_image_width,max_image_height,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-        return image
+        sw = max_image_width / image.width()
+        sh = max_image_height / image.height()
+        s = min(sw,sh)
+        return image.scaled(s*image.width(),s*image.height(),Qt.KeepAspectRatio,Qt.SmoothTransformation)
 
-    def makeHeaderTable(self, document, style, rows = header_table_rows, cols = header_table_cols, images = ARTWORK):
-
-        max_image_width = (document.pageSize() / cols).width()
-        max_image_height = (document.pageSize() / 6).height() # no big headers!
-
-        first_element_row = 1
-        first_element_col = 0
-        num_rows = 1
-        num_cols = cols
-
-        coords = { 
-            'west' : { 'y':0,'x':0 },
-            'north': { 'y':0,'x':1 },
-            'south': { 'y':1,'x':0 },
-            'east': {'y':0,'x':2 }
-        }
-
-        # cursor = QTextCursor(document)
+    def makeHeaderTable(self, document=None, headerdata=None, answermode=False):
+        printer = self.printer
+        config = self.headerData.get('config')
         cursor = self.initCursor(document)
-        table = cursor.insertTable(rows,cols,self.styles['header.table'])
-        table.mergeCells(first_element_row,first_element_col,num_rows,num_cols)
-
-        positions = self.header_info.keys()
-        for pos in positions:
-            position = self.header_info.get(pos)
-            coord = coords.get(pos)
-            cursor,cell = self.setupCell(table,coord['y'],coord['x'])
-            typeh = position.get('type')
-            if typeh == 'text':
-                cursor.insertText(position.get('content'), self.styles['text'])
-            elif typeh == 'image':
-                cursor.insertImage(self.imageResized(dataPixMapToImage(position.get('data')),max_image_height,max_image_width))
+        tableformat = QTextTableFormat()
+        configborder = None
+        bordersize = 2  # pixels
+        paddingsize = 1  # mm
+        if config:
+            configborder = config.get('border')
+        if configborder:
+            tableformat.setBorderStyle(QTextTableFormat.BorderStyle_Solid)
+            tableformat.setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
+            tableformat.setBorder(bordersize)
+        elif configborder is False:
+            tableformat.setBorderStyle(QTextTableFormat.BorderStyle_None)
+        else:
+            tableformat.setBorderStyle(QTextTableFormat.BorderStyle_Solid)
+            tableformat.setBorderBrush(QBrush(Qt.black,Qt.SolidPattern))
+            tableformat.setBorder(bordersize)
+        tableformat.setMargin(0.0)
+        tableformat.setCellSpacing(0.0)
+        paddingsize = mmToPixels(paddingsize,resolution=document.resolution)
+        tableformat.setCellPadding(paddingsize)
+        nrows = headerdata.get('nrows')
+        ncols = headerdata.get('ncols')
+        tablecolumnsize = document.pageSize().width() / ncols - (ncols + 1) * bordersize
+        qt_tablecolumnsize = QTextLength(QTextLength.FixedLength,tablecolumnsize)
+        tableformat.setColumnWidthConstraints([qt_tablecolumnsize] * ncols)
+        table = cursor.insertTable(nrows,headerdata.get('ncols'),tableformat)
+        joins = headerdata.get('joins')
+        if joins:
+            for k,v in joins.items():
+                y,x = [int(x) for x in k.split('_')]
+                sy,sx = v
+                table.mergeCells(y,x,sy,sx)
+        content = headerdata.get('content')
+        if content:
+            for k,v in content.items():
+                y,x = [ int(x) for x in k.split('_') ]
+                align = v.get('align')
+                pix = v.get('pix')
+                txt = v.get('txt')
+                if txt:
+                    isField = True if '_@[' in txt.get('value') and ']@_' in txt.get('value') else False
+                if align:
+                    if align == 'left':
+                        align = Qt.AlignLeft|Qt.AlignVCenter
+                    elif align == 'right':
+                        align = Qt.AlignRight|Qt.AlignVCenter
+                    else:
+                        align = Qt.AlignCenter
+                else:
+                    align = Qt.AlignCenter
+                cell = table.cellAt(y,x)
+                cursor = cell.firstCursorPosition()
+                blockformat = QTextBlockFormat()
+                blockformat.setAlignment(align)
+                cursor.setBlockFormat(blockformat)
+                charformat = QTextCharFormat()
+                charformat.setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignMiddle)
+                cell.setFormat(charformat)
+                if txt:
+                    if not isField:
+                        cursor.insertText(txt.get('show'),self.styles['text'])
+                    else:
+                        txt = txt.get('show')
+                        cursor.insertBlock(blockformat,self.styles['text.bold'])
+                        width = tablecolumnsize*cell.columnSpan()-2*paddingsize
+                        fm = QFontMetrics(self.styles['text.bold'].font())
+                        if bordersize:
+                            sub = ' '
+                        else:
+                            sub = '_'
+                        cursor.insertText("{}:{}".format(txt,sub*int((width-fm.size(Qt.TextSingleLine,txt+':').width())/fm.size(Qt.TextSingleLine,sub).width())))
+                if pix:
+                    pix = dataPixMapToImage(pix)
+                    max_image_height = ( tablecolumnsize / pix.width() ) * pix.height()
+                    pix = self.imageResized(pix,max_image_height*cell.rowSpan()-2*paddingsize,tablecolumnsize*cell.columnSpan()-2*paddingsize)
+                    cursor.insertImage(pix)
+                    
+        return document
+        
+       
+        cursor,cell = self.setupCell(table,2,1,centerH=False,centerV=True)
+        cursor.insertText('Name',self.styles['text.bold'])
+        cursor,cell = self.setupCell(table,2,2,centerH=False,centerV=True)
+        cursor.insertText('Group',self.styles['text.bold'])
         self.writeSeparator(document, single=True)
         return document
 
@@ -600,11 +654,17 @@ class helperPDF():
             if model[0] == '_':
                 continue
             document.setInitModel(model)
-            document = self.makeHeaderTable(document,self.styles['header.table'] )
-            if not answermode:
-                document = self.writeTitleName(document)
-            else:
-                self.writeSeparator(document,single=True)    
+            if self.headerData:
+                nrows = self.headerData.get('nrows')
+                ncols = self.headerData.get('ncols')
+                spans = self.headerData.get('joins')
+                content = self.headerData.get('content')
+                #self.styles['header.table'] = self.makeTableStyle(rows=nrows, cols=ncols, spans=spans, content=content, border=True)
+                document = self.makeHeaderTable(document=document,headerdata=self.headerData,answermode=answermode)
+            # if not answermode:
+            #     document = self.writeTitleName(document)
+            # else:
+            self.writeSeparator(document,single=True)    
             self.writeSeparator(document,single=True)
             self.writeSeparator(document,single=True)
             data = self.examData[model]
@@ -737,6 +797,7 @@ class helperPDF():
                     family = self.styles[style].family()
                     size = int(self.styles[style].pointSize())
                     weight = int(self.styles[style].weight()*8)
+                    decoration = 'none'
                 else:
                     style = 'answer_fail'
                     color = 'darksalmon'
@@ -744,6 +805,7 @@ class helperPDF():
                     family = self.styles[style].family()
                     size = int(self.styles[style].pointSize())
                     weight = int(self.styles[style].weight()*8)
+                    decoration = 'line-through'
 
             c,cell = self.setupCell(table,i,0,centerV=True,centerH=False)
             img = QImage(iconbox)
@@ -760,7 +822,7 @@ class helperPDF():
             if text:
                 c,cell = self.setupCell(table,i,2,centerV=True,centerH=False)
                 if html:
-                    c.insertHtml('<span style="font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(size,family,color,weight,text))
+                    c.insertHtml('<span style="text-decoration:{};font-size:{}pt;font-family:{};color:{};font-weight:{};">{}</span>'.format(decoration,size,family,color,weight,text))
                 else:
                     c.setCharFormat(self.styles['text'])
                     c.insertText(text)
@@ -910,51 +972,8 @@ class helperPDF():
             else:
                 cursor.insertText(text,self.styles['text'])
 
-    def validateHeader(self,header):
-        fake = None
-        if USE_FAKE_HEADER:
-            fake = self.buildFakeHeaderInfo()
-
-        if not header or not isinstance(header,dict):
-            if fake:
-                return fake
-            header = {'west':{},'north':{},'east':{},'south':{}}
-
-        ks = ['west','north','east','south']
-        for k in ks:
-            if k not in header.keys():
-                if fake:
-                    header[k] = deepcopy(fake[k])
-                    continue
-                header.setdefault(k,{})
-
-            if not isinstance(header[k],dict):
-                if fake:
-                    header[k] = deepcopy(fake[k])
-                    continue
-                header[k]={}
-
-            header[k].setdefault('type','text')
-            if header[k]['type'] not in ['image','text']:
-                if fake:
-                    header[k] = deepcopy(fake[k])
-                    continue
-                header[k]['type'] = 'text'
-
-            if header[k]['type'] == 'image':
-                if not header[k].get('data'):
-                    if fake:
-                        header[k] = deepcopy(fake[k])
-                        continue
-                    header[k]['type'] = 'text'
-
-            if header[k]['type'] == 'text':
-                header[k].setdefault('content','')
-
-        return header
-
-    def setHeaderInfo(self,header_info):
-            self.header_info = deepcopy(self.validateHeader(header_info))
+    def setHeaderInfo(self,headerData):
+            self.headerData = deepcopy(headerData)
 
 # class BData(QTextBlockUserData):
 #     def __init__(self,data=None):

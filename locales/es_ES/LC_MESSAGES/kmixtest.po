@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2020-03-30 10:37+0200\n"
-"PO-Revision-Date: 2020-03-30 10:38+0200\n"
+"POT-Creation-Date: 2020-04-01 17:26+0200\n"
+"PO-Revision-Date: 2020-04-01 17:29+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: es_ES\n"
@@ -17,275 +17,280 @@ msgstr ""
 "X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: KMixTest/AppMainWindow.py:72
+#: KMixTest/AppMainWindow.py:73
 msgid "Project"
 msgstr "Proyecto"
 
-#: KMixTest/AppMainWindow.py:74
+#: KMixTest/AppMainWindow.py:75
 msgid "New"
 msgstr "Nuevo"
 
-#: KMixTest/AppMainWindow.py:76
+#: KMixTest/AppMainWindow.py:77
 msgid "Load exam"
 msgstr "Cargar examen"
 
-#: KMixTest/AppMainWindow.py:77
+#: KMixTest/AppMainWindow.py:78
 msgid "Load template"
 msgstr "Cargar plantilla"
 
-#: KMixTest/AppMainWindow.py:79
+#: KMixTest/AppMainWindow.py:80
 msgid "Save"
 msgstr "Guardar"
 
-#: KMixTest/AppMainWindow.py:80
+#: KMixTest/AppMainWindow.py:81
 msgid "Save as"
 msgstr "Guardar como"
 
-#: KMixTest/AppMainWindow.py:81
+#: KMixTest/AppMainWindow.py:82
 msgid "Save as template"
 msgstr "Guardar como plantilla"
 
-#: KMixTest/AppMainWindow.py:82
+#: KMixTest/AppMainWindow.py:83
 msgid "Exit"
 msgstr "Salida"
 
-#: KMixTest/AppMainWindow.py:85
+#: KMixTest/AppMainWindow.py:86
 msgid "Mixer"
 msgstr "Mezclador"
 
-#: KMixTest/AppMainWindow.py:87
+#: KMixTest/AppMainWindow.py:88
 msgid "Configure header"
 msgstr "Configurar cabecera"
 
-#: KMixTest/AppMainWindow.py:88
+#: KMixTest/AppMainWindow.py:89
 msgid "Configure output"
 msgstr "Configurar salida"
 
-#: KMixTest/AppMainWindow.py:89
+#: KMixTest/AppMainWindow.py:90
 msgid "Generate Mix"
 msgstr "Generar mezcla"
 
-#: KMixTest/AppMainWindow.py:92
+#: KMixTest/AppMainWindow.py:93
 msgid "Print"
 msgstr "Imprimir"
 
-#: KMixTest/AppMainWindow.py:94
+#: KMixTest/AppMainWindow.py:95
 msgid "Print preview"
 msgstr "Previsualizar impresión"
 
-#: KMixTest/AppMainWindow.py:95
+#: KMixTest/AppMainWindow.py:96
 msgid "Print Exam"
 msgstr "Imprimir examen"
 
-#: KMixTest/AppMainWindow.py:119
+#: KMixTest/AppMainWindow.py:122
 msgid "Exception while initializing"
 msgstr "Excepcion durante la inicialización"
 
-#: KMixTest/AppMainWindow.py:131
+#: KMixTest/AppMainWindow.py:134
 msgid "Terminating"
 msgstr "Terminando"
 
-#: KMixTest/AppMainWindow.py:143
+#: KMixTest/AppMainWindow.py:146
 msgid "Edition not permitted, box locked"
 msgstr "Edición no permitida, caja bloqueada"
 
-#: KMixTest/AppMainWindow.py:150
+#: KMixTest/AppMainWindow.py:153
 msgid "Questions changed"
 msgstr "Preguntas cambiadas"
 
-#: KMixTest/AppMainWindow.py:158
+#: KMixTest/AppMainWindow.py:161
 msgid "Editing"
 msgstr "Editando"
 
-#: KMixTest/AppMainWindow.py:165
+#: KMixTest/AppMainWindow.py:168
 msgid "Question changed"
 msgstr "Pregunta"
 
-#: KMixTest/AppMainWindow.py:188
+#: KMixTest/AppMainWindow.py:191
 msgid "Generating new mix"
 msgstr "Generando nueva mezcla"
 
-#: KMixTest/AppMainWindow.py:382
+#: KMixTest/AppMainWindow.py:385
 msgid "solution"
 msgstr "solución"
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "The file"
 msgstr "El fichero"
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "already exists"
 msgstr "ya existe"
 
-#: KMixTest/AppMainWindow.py:384
+#: KMixTest/AppMainWindow.py:387
 msgid "are you sure to overwrite it?"
 msgstr "¿está seguro de sobrescribirlo?"
 
-#: KMixTest/AppMainWindow.py:427
+#: KMixTest/AppMainWindow.py:430
 msgid "Print Qt translations"
 msgstr "Imprimir traducciones de Qt"
 
-#: KMixTest/AppMainWindow.py:431
+#: KMixTest/AppMainWindow.py:434
 msgid "Open Exam"
 msgstr "Abrir examen"
 
-#: KMixTest/AppMainWindow.py:431 KMixTest/AppMainWindow.py:435
+#: KMixTest/AppMainWindow.py:434 KMixTest/AppMainWindow.py:438
 msgid "Exam files"
 msgstr "Archivos de examen"
 
-#: KMixTest/AppMainWindow.py:435
+#: KMixTest/AppMainWindow.py:438
 msgid "Save Exam"
 msgstr "Guardar examen"
 
-#: KMixTest/AppMainWindow.py:439
+#: KMixTest/AppMainWindow.py:442
 msgid "Document files"
 msgstr "Ficheros de documento"
 
-#: KMixTest/AppMainWindow.py:439
+#: KMixTest/AppMainWindow.py:442
 msgid "Export to"
 msgstr "Exportar a"
 
-#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:573 KMixTest/Box.py:223 KMixTest/Box.py:408
 msgid "Image Files"
 msgstr "Ficheros de imagen"
 
-#: KMixTest/AppMainWindow.py:570 KMixTest/Box.py:220 KMixTest/Box.py:405
+#: KMixTest/AppMainWindow.py:573 KMixTest/Box.py:223 KMixTest/Box.py:408
 msgid "Open image"
 msgstr "Abrir imagen"
 
-#: KMixTest/AppMainWindow.py:577
+#: KMixTest/AppMainWindow.py:580
 msgid "invalid"
 msgstr "invalido"
 
-#: KMixTest/AppMainWindow.py:577 KMixTest/AppMainWindow.py:580
+#: KMixTest/AppMainWindow.py:580 KMixTest/AppMainWindow.py:583
 msgid "filename"
 msgstr "nombre de fichero"
 
-#: KMixTest/AppMainWindow.py:580
+#: KMixTest/AppMainWindow.py:583
 msgid "valid"
 msgstr "válido"
 
-#: KMixTest/AppMainWindow.py:825
+#: KMixTest/AppMainWindow.py:841
 msgid "Generate mix"
 msgstr "Generar mezcla"
 
-#: KMixTest/AppMainWindow.py:830
+#: KMixTest/AppMainWindow.py:846
 msgid "Number disctinct models"
 msgstr "Numero de modelos diferentes"
 
-#: KMixTest/AppMainWindow.py:841
+#: KMixTest/AppMainWindow.py:857
 msgid "Alter answer order"
 msgstr "Alterar el orden de respuestas"
 
-#: KMixTest/AppMainWindow.py:852
+#: KMixTest/AppMainWindow.py:868
 msgid "Include solutionary"
 msgstr "Incluir solucionario"
 
-#: KMixTest/AppMainWindow.py:864
+#: KMixTest/AppMainWindow.py:880
 msgid "Ok"
 msgstr "Aceptar"
 
-#: KMixTest/AppMainWindow.py:865 KMixTest/Box.py:66
+#: KMixTest/AppMainWindow.py:881 KMixTest/Box.py:69
 msgid "Close"
 msgstr "Cerrar"
 
-#: KMixTest/AppMainWindow.py:920 KMixTest/Box.py:658
+#: KMixTest/AppMainWindow.py:936 KMixTest/Box.py:661
 msgid "Called"
 msgstr "Llamada"
 
-#: KMixTest/AppMainWindow.py:931
+#: KMixTest/AppMainWindow.py:947
 msgid "Menu"
 msgstr "Menú"
 
-#: KMixTest/AppMainWindow.py:985
+#: KMixTest/AppMainWindow.py:1001
 msgid "New question"
 msgstr "Nueva pregunta"
 
-#: KMixTest/AppMainWindow.py:994
+#: KMixTest/AppMainWindow.py:1010
 msgid "New mix will be generated"
 msgstr "Una nueva mezcla será generada"
 
-#: KMixTest/AppMainWindow.py:1015 KMixTest/Box.py:694
+#: KMixTest/AppMainWindow.py:1032 KMixTest/Box.py:697
 msgid "No action declared for"
 msgstr "No hay acción asociada a"
 
-#: KMixTest/Box.py:207 KMixTest/TableHelper.py:14
+#: KMixTest/Box.py:26
+msgid "Parameter error on box event filter"
+msgstr "Error de parametro en filtro de eventos de caja"
+
+#: KMixTest/Box.py:210 KMixTest/TableHelper.py:14
 msgid "Title"
 msgstr "Titulo"
 
-#: KMixTest/Box.py:267 KMixTest/Box.py:433
+#: KMixTest/Box.py:270 KMixTest/Box.py:436
 msgid "Option"
 msgstr "Opción"
 
-#: KMixTest/Box.py:385
+#: KMixTest/Box.py:388
 msgid "Do you wan't to remove image?"
 msgstr "¿Deseas eliminar la imagen?"
 
-#: KMixTest/Box.py:590
+#: KMixTest/Box.py:593
 msgid "from"
 msgstr "desde"
 
-#: KMixTest/Box.py:707
+#: KMixTest/Box.py:710
 msgid "Can't lock"
 msgstr "No se puede bloquear"
 
-#: KMixTest/Box.py:724
-msgid "Can't unlock"
-msgstr "No se puede desbloquear"
-
-#: KMixTest/Box.py:791
-msgid "Empty lines for answer"
-msgstr "Lineas vacias para la respuesta"
-
-#: KMixTest/Box.py:838
-msgid "Empty type for question received"
-msgstr "Recibido un tipo de pregunta vacio"
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855
-msgid "Delete image"
-msgstr "Borrar imagen"
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
-msgid "Add image"
-msgstr "Añadir imagen"
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
-msgid "Lock"
-msgstr "Bloquear"
-
-#: KMixTest/Box.py:842 KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:714 KMixTest/Box.py:731 KMixTest/Box.py:845
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Unlock"
 msgstr "Desbloquear"
 
-#: KMixTest/Box.py:847
+#: KMixTest/Box.py:727
+msgid "Can't unlock"
+msgstr "No se puede desbloquear"
+
+#: KMixTest/Box.py:794
+msgid "Empty lines for answer"
+msgstr "Lineas vacias para la respuesta"
+
+#: KMixTest/Box.py:841
+msgid "Empty type for question received"
+msgstr "Recibido un tipo de pregunta vacio"
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858
+msgid "Delete image"
+msgstr "Borrar imagen"
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858 KMixTest/Box.py:868
+msgid "Add image"
+msgstr "Añadir imagen"
+
+#: KMixTest/Box.py:845 KMixTest/Box.py:858 KMixTest/Box.py:868
+msgid "Lock"
+msgstr "Bloquear"
+
+#: KMixTest/Box.py:850
 msgid "Empty lines"
 msgstr "Lineas vacias"
 
-#: KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Add option"
 msgstr "Añadir opción"
 
-#: KMixTest/Box.py:855 KMixTest/Box.py:865
+#: KMixTest/Box.py:858 KMixTest/Box.py:868
 msgid "Remove option"
 msgstr "Borrar opción"
 
-#: KMixTest/Box.py:857 KMixTest/Box.py:867
+#: KMixTest/Box.py:860 KMixTest/Box.py:870
 msgid "Dump"
 msgstr "Volcado"
 
-#: KMixTest/Box.py:860
+#: KMixTest/Box.py:863
 msgid "Valid"
 msgstr "Válido"
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "skipping"
 msgstr "saltando"
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "type for question"
 msgstr "tipo de pregunta"
 
-#: KMixTest/Box.py:874
+#: KMixTest/Box.py:877
 msgid "unknown"
 msgstr "desconocido"
 
@@ -391,107 +396,107 @@ msgstr "..."
 
 #: KMixTest/CustomTranslator.py:38
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #: KMixTest/CustomTranslator.py:39
 msgid "1 (1x1)"
-msgstr ""
+msgstr "1 (1x1)"
 
 #: KMixTest/CustomTranslator.py:40
 msgid "16 (4x4)"
-msgstr ""
+msgstr "16 (4x4)"
 
 #: KMixTest/CustomTranslator.py:41
 msgid "2 (2x1)"
-msgstr ""
+msgstr "2 (2x1)"
 
 #: KMixTest/CustomTranslator.py:42
 msgid "4 (2x2)"
-msgstr ""
+msgstr "4 (2x2)"
 
 #: KMixTest/CustomTranslator.py:43
 msgid "6 (2x3)"
-msgstr ""
+msgstr "6 (2x3)"
 
 #: KMixTest/CustomTranslator.py:44
 msgid "9 (3x3)"
-msgstr ""
+msgstr "9 (3x3)"
 
 #: KMixTest/CustomTranslator.py:45
 msgid "A0"
-msgstr ""
+msgstr "A0"
 
 #: KMixTest/CustomTranslator.py:46
 msgid "A1"
-msgstr ""
+msgstr "A1"
 
 #: KMixTest/CustomTranslator.py:47
 msgid "A10"
-msgstr ""
+msgstr "A10"
 
 #: KMixTest/CustomTranslator.py:48
 msgid "A2"
-msgstr ""
+msgstr "A2"
 
 #: KMixTest/CustomTranslator.py:49
 msgid "A3"
-msgstr ""
+msgstr "A3"
 
 #: KMixTest/CustomTranslator.py:50
 msgid "A3 Extra"
-msgstr ""
+msgstr "A3 Extra"
 
 #: KMixTest/CustomTranslator.py:51 KMixTest/CustomTranslator.py:337
 msgid "A4"
-msgstr ""
+msgstr "A4"
 
 #: KMixTest/CustomTranslator.py:52
 msgid "A4 Extra"
-msgstr ""
+msgstr "A4 Extra"
 
 #: KMixTest/CustomTranslator.py:53
 msgid "A4 Plus"
-msgstr ""
+msgstr "A4 Plus"
 
 #: KMixTest/CustomTranslator.py:54
 msgid "A4 Small"
-msgstr ""
+msgstr "A4 Small"
 
 #: KMixTest/CustomTranslator.py:55
 msgid "A5"
-msgstr ""
+msgstr "A5"
 
 #: KMixTest/CustomTranslator.py:56
 msgid "A5 Extra"
-msgstr ""
+msgstr "A5 Extra"
 
 #: KMixTest/CustomTranslator.py:57
 msgid "A6"
-msgstr ""
+msgstr "A6"
 
 #: KMixTest/CustomTranslator.py:58
 msgid "A7"
-msgstr ""
+msgstr "A7"
 
 #: KMixTest/CustomTranslator.py:59
 msgid "A8"
-msgstr ""
+msgstr "A8"
 
 #: KMixTest/CustomTranslator.py:60
 msgid "A9"
-msgstr ""
+msgstr "A9"
 
 #: KMixTest/CustomTranslator.py:61
 msgid "ANSI C"
-msgstr ""
+msgstr "ANSI C"
 
 #: KMixTest/CustomTranslator.py:62
 msgid "ANSI D"
-msgstr ""
+msgstr "ANSI D"
 
 #: KMixTest/CustomTranslator.py:63
 msgid "ANSI E"
-msgstr ""
+msgstr "ANSI E"
 
 #: KMixTest/CustomTranslator.py:64
 msgid "Advanced"
@@ -507,79 +512,79 @@ msgstr "Todas las páginas"
 
 #: KMixTest/CustomTranslator.py:67
 msgid "Architect A"
-msgstr ""
+msgstr "Architect A"
 
 #: KMixTest/CustomTranslator.py:68
 msgid "Architect B"
-msgstr ""
+msgstr "Architect B"
 
 #: KMixTest/CustomTranslator.py:69
 msgid "Architect C"
-msgstr ""
+msgstr "Architect C"
 
 #: KMixTest/CustomTranslator.py:70
 msgid "Architect D"
-msgstr ""
+msgstr "Architect D"
 
 #: KMixTest/CustomTranslator.py:71
 msgid "Architect E"
-msgstr ""
+msgstr "Architect E"
 
 #: KMixTest/CustomTranslator.py:72
 msgid "B0"
-msgstr ""
+msgstr "B0"
 
 #: KMixTest/CustomTranslator.py:73
 msgid "B1"
-msgstr ""
+msgstr "B1"
 
 #: KMixTest/CustomTranslator.py:74
 msgid "B10"
-msgstr ""
+msgstr "B10"
 
 #: KMixTest/CustomTranslator.py:75
 msgid "B2"
-msgstr ""
+msgstr "B2"
 
 #: KMixTest/CustomTranslator.py:76
 msgid "B3"
-msgstr ""
+msgstr "B3"
 
 #: KMixTest/CustomTranslator.py:77
 msgid "B4"
-msgstr ""
+msgstr "B4"
 
 #: KMixTest/CustomTranslator.py:78
 msgid "B5"
-msgstr ""
+msgstr "B5"
 
 #: KMixTest/CustomTranslator.py:79
 msgid "B5 Extra"
-msgstr ""
+msgstr "B5 Extra"
 
 #: KMixTest/CustomTranslator.py:80
 msgid "B6"
-msgstr ""
+msgstr "B6"
 
 #: KMixTest/CustomTranslator.py:81
 msgid "B7"
-msgstr ""
+msgstr "B7"
 
 #: KMixTest/CustomTranslator.py:82
 msgid "B8"
-msgstr ""
+msgstr "B8"
 
 #: KMixTest/CustomTranslator.py:83
 msgid "B9"
-msgstr ""
+msgstr "B9"
 
 #: KMixTest/CustomTranslator.py:84
 msgid "Banner Pages"
-msgstr ""
+msgstr "Páginas de banner"
 
 #: KMixTest/CustomTranslator.py:85
 msgid "Billing information:"
-msgstr ""
+msgstr "Información de facturación:"
 
 #: KMixTest/CustomTranslator.py:86
 msgid "Bottom to Top, Left to Right"
@@ -591,7 +596,7 @@ msgstr "Fondo hacia Principio, Derecha a Izquierda"
 
 #: KMixTest/CustomTranslator.py:88
 msgid "Cicero (CC)"
-msgstr ""
+msgstr "Cicero (CC)"
 
 #: KMixTest/CustomTranslator.py:89
 msgid "Classified"
@@ -643,11 +648,11 @@ msgstr "Diurno (06:00 a 17:59)"
 
 #: KMixTest/CustomTranslator.py:101
 msgid "Didot (DD)"
-msgstr ""
+msgstr "Didot (DD)"
 
 #: KMixTest/CustomTranslator.py:102
 msgid "Double Postcard"
-msgstr ""
+msgstr "Doble postal"
 
 #: KMixTest/CustomTranslator.py:103
 msgid "Drive"
@@ -663,147 +668,147 @@ msgstr "Final:"
 
 #: KMixTest/CustomTranslator.py:106
 msgid "Envelope B4"
-msgstr ""
+msgstr "Envelope B4"
 
 #: KMixTest/CustomTranslator.py:107
 msgid "Envelope B5"
-msgstr ""
+msgstr "Envelope B5"
 
 #: KMixTest/CustomTranslator.py:108
 msgid "Envelope B6"
-msgstr ""
+msgstr "Envelope B6"
 
 #: KMixTest/CustomTranslator.py:109
 msgid "Envelope C0"
-msgstr ""
+msgstr "Envelope C0"
 
 #: KMixTest/CustomTranslator.py:110
 msgid "Envelope C1"
-msgstr ""
+msgstr "Envelope C1"
 
 #: KMixTest/CustomTranslator.py:111
 msgid "Envelope C2"
-msgstr ""
+msgstr "Envelope C2"
 
 #: KMixTest/CustomTranslator.py:112
 msgid "Envelope C3"
-msgstr ""
+msgstr "Envelope C3"
 
 #: KMixTest/CustomTranslator.py:113
 msgid "Envelope C4"
-msgstr ""
+msgstr "Envelope C4"
 
 #: KMixTest/CustomTranslator.py:114
 msgid "Envelope C5"
-msgstr ""
+msgstr "Envelope C5"
 
 #: KMixTest/CustomTranslator.py:115
 msgid "Envelope C6"
-msgstr ""
+msgstr "Envelope C6"
 
 #: KMixTest/CustomTranslator.py:116
 msgid "Envelope C65"
-msgstr ""
+msgstr "Envelope C65"
 
 #: KMixTest/CustomTranslator.py:117
 msgid "Envelope C7"
-msgstr ""
+msgstr "Envelope C7"
 
 #: KMixTest/CustomTranslator.py:118
 msgid "Envelope Chou 3"
-msgstr ""
+msgstr "Envelope Chou 3"
 
 #: KMixTest/CustomTranslator.py:119
 msgid "Envelope Chou 4"
-msgstr ""
+msgstr "Envelope Chou 4"
 
 #: KMixTest/CustomTranslator.py:120
 msgid "Envelope DL"
-msgstr ""
+msgstr "Envelope DL"
 
 #: KMixTest/CustomTranslator.py:121
 msgid "Envelope Invite"
-msgstr ""
+msgstr "Envelope Invite"
 
 #: KMixTest/CustomTranslator.py:122
 msgid "Envelope Italian"
-msgstr ""
+msgstr "Envelope Italian"
 
 #: KMixTest/CustomTranslator.py:123
 msgid "Envelope Kaku 2"
-msgstr ""
+msgstr "Envelope Kaku 2"
 
 #: KMixTest/CustomTranslator.py:124
 msgid "Envelope Kaku 3"
-msgstr ""
+msgstr "Envelope Kaku 3"
 
 #: KMixTest/CustomTranslator.py:125
 msgid "Envelope Monarch"
-msgstr ""
+msgstr "Envelope Monarch"
 
 #: KMixTest/CustomTranslator.py:126
 msgid "Envelope PRC 1"
-msgstr ""
+msgstr "Envelope PRC 1"
 
 #: KMixTest/CustomTranslator.py:127
 msgid "Envelope PRC 10"
-msgstr ""
+msgstr "Envelope PRC 10"
 
 #: KMixTest/CustomTranslator.py:128
 msgid "Envelope PRC 2"
-msgstr ""
+msgstr "Envelope PRC 2"
 
 #: KMixTest/CustomTranslator.py:129
 msgid "Envelope PRC 3"
-msgstr ""
+msgstr "Envelope PRC 3"
 
 #: KMixTest/CustomTranslator.py:130
 msgid "Envelope PRC 4"
-msgstr ""
+msgstr "Envelope PRC 4"
 
 #: KMixTest/CustomTranslator.py:131
 msgid "Envelope PRC 5"
-msgstr ""
+msgstr "Envelope PRC 5"
 
 #: KMixTest/CustomTranslator.py:132
 msgid "Envelope PRC 6"
-msgstr ""
+msgstr "Envelope PRC 6"
 
 #: KMixTest/CustomTranslator.py:133
 msgid "Envelope PRC 7"
-msgstr ""
+msgstr "Envelope PRC 7"
 
 #: KMixTest/CustomTranslator.py:134
 msgid "Envelope PRC 8"
-msgstr ""
+msgstr "Envelope PRC 8"
 
 #: KMixTest/CustomTranslator.py:135
 msgid "Envelope PRC 9"
-msgstr ""
+msgstr "Envelope PRC 9"
 
 #: KMixTest/CustomTranslator.py:136
 msgid "Envelope Personal"
-msgstr ""
+msgstr "Envelope Personal"
 
 #: KMixTest/CustomTranslator.py:137
 msgid "Envelope US 10"
-msgstr ""
+msgstr "Envelope US 10"
 
 #: KMixTest/CustomTranslator.py:138
 msgid "Envelope US 11"
-msgstr ""
+msgstr "Envelope US 11"
 
 #: KMixTest/CustomTranslator.py:139
 msgid "Envelope US 12"
-msgstr ""
+msgstr "Envelope US 12"
 
 #: KMixTest/CustomTranslator.py:140
 msgid "Envelope US 14"
-msgstr ""
+msgstr "Envelope US 14"
 
 #: KMixTest/CustomTranslator.py:141
 msgid "Envelope US 9"
-msgstr ""
+msgstr "Envelope US 9"
 
 #: KMixTest/CustomTranslator.py:142
 msgid "Even Pages"
@@ -811,23 +816,23 @@ msgstr "Páginas impares"
 
 #: KMixTest/CustomTranslator.py:143
 msgid "Executive (7.25 x 10.5 in)"
-msgstr ""
+msgstr "Executive (7.25 x 10.5 in)"
 
 #: KMixTest/CustomTranslator.py:144
 msgid "Executive (7.5 x 10 in)"
-msgstr ""
+msgstr "Executive (7.5 x 10 in)"
 
 #: KMixTest/CustomTranslator.py:145
 msgid "Fan-fold German (8.5 x 12 in)"
-msgstr ""
+msgstr "Fan-fold German (8.5 x 12 in)"
 
 #: KMixTest/CustomTranslator.py:146
 msgid "Fan-fold German Legal (8.5 x 13 in)"
-msgstr ""
+msgstr "Fan-fold German Legal (8.5 x 13 in)"
 
 #: KMixTest/CustomTranslator.py:147
 msgid "Fan-fold US (14.875 x 11 in)"
-msgstr ""
+msgstr "Fan-fold US (14.875 x 11 in)"
 
 #: KMixTest/CustomTranslator.py:148
 msgid "File not found"
@@ -843,7 +848,7 @@ msgstr "Carpeta"
 
 #: KMixTest/CustomTranslator.py:151
 msgid "Folio (8.27 x 13 in)"
-msgstr ""
+msgstr "Folio (8.27 x 13 in)"
 
 #: KMixTest/CustomTranslator.py:152
 msgid "Form"
@@ -867,47 +872,47 @@ msgstr "Pulgadas (in)"
 
 #: KMixTest/CustomTranslator.py:157
 msgid "JIS B0"
-msgstr ""
+msgstr "JIS B0"
 
 #: KMixTest/CustomTranslator.py:158
 msgid "JIS B1"
-msgstr ""
+msgstr "JIS B1"
 
 #: KMixTest/CustomTranslator.py:159
 msgid "JIS B10"
-msgstr ""
+msgstr "JIS B10"
 
 #: KMixTest/CustomTranslator.py:160
 msgid "JIS B2"
-msgstr ""
+msgstr "JIS B2"
 
 #: KMixTest/CustomTranslator.py:161
 msgid "JIS B3"
-msgstr ""
+msgstr "JIS B3"
 
 #: KMixTest/CustomTranslator.py:162
 msgid "JIS B4"
-msgstr ""
+msgstr "JIS B4"
 
 #: KMixTest/CustomTranslator.py:163
 msgid "JIS B5"
-msgstr ""
+msgstr "JIS B5"
 
 #: KMixTest/CustomTranslator.py:164
 msgid "JIS B6"
-msgstr ""
+msgstr "JIS B6"
 
 #: KMixTest/CustomTranslator.py:165
 msgid "JIS B7"
-msgstr ""
+msgstr "JIS B7"
 
 #: KMixTest/CustomTranslator.py:166
 msgid "JIS B8"
-msgstr ""
+msgstr "JIS B8"
 
 #: KMixTest/CustomTranslator.py:167
 msgid "JIS B9"
-msgstr ""
+msgstr "JIS B9"
 
 #: KMixTest/CustomTranslator.py:168
 msgid "Job"
@@ -927,39 +932,39 @@ msgstr "Prioridad de trabajo:"
 
 #: KMixTest/CustomTranslator.py:172
 msgid "Ledger / ANSI B"
-msgstr ""
+msgstr "Ledger / ANSI B"
 
 #: KMixTest/CustomTranslator.py:173
 msgid "Left to Right, Bottom to Top"
-msgstr ""
+msgstr "Izquierda a Derecha, Fondo a Principio"
 
 #: KMixTest/CustomTranslator.py:174
 msgid "Left to Right, Top to Bottom"
-msgstr ""
+msgstr "Izquierda a Derecha, Principio a Fondo"
 
 #: KMixTest/CustomTranslator.py:175
 msgid "Legal"
-msgstr ""
+msgstr "Legal"
 
 #: KMixTest/CustomTranslator.py:176
 msgid "Legal Extra"
-msgstr ""
+msgstr "Legal Extra"
 
 #: KMixTest/CustomTranslator.py:177
 msgid "Letter / ANSI A"
-msgstr ""
+msgstr "Letter / ANSI A"
 
 #: KMixTest/CustomTranslator.py:178
 msgid "Letter Extra"
-msgstr ""
+msgstr "Letter Extra"
 
 #: KMixTest/CustomTranslator.py:179
 msgid "Letter Plus"
-msgstr ""
+msgstr "Letter Plus"
 
 #: KMixTest/CustomTranslator.py:180
 msgid "Letter Small"
-msgstr ""
+msgstr "Letter Small"
 
 #: KMixTest/CustomTranslator.py:181
 msgid "Location:"
@@ -1015,15 +1020,15 @@ msgstr "P&ropiedades"
 
 #: KMixTest/CustomTranslator.py:194
 msgid "PRC 16K"
-msgstr ""
+msgstr "PRC 16K"
 
 #: KMixTest/CustomTranslator.py:195
 msgid "PRC 32K"
-msgstr ""
+msgstr "PRC 32K"
 
 #: KMixTest/CustomTranslator.py:196
 msgid "PRC 32K Big"
-msgstr ""
+msgstr "PRC 32K Big"
 
 #: KMixTest/CustomTranslator.py:197
 msgid "Page"
@@ -1111,7 +1116,7 @@ msgstr "Propiedades de impresora"
 
 #: KMixTest/CustomTranslator.py:218
 msgid "Quarto"
-msgstr ""
+msgstr "Quarto"
 
 #: KMixTest/CustomTranslator.py:219
 msgid "Reverse"
@@ -1200,19 +1205,19 @@ msgstr "Dispositivos de almacenamiento"
 
 #: KMixTest/CustomTranslator.py:239
 msgid "Super A"
-msgstr ""
+msgstr "Super A"
 
 #: KMixTest/CustomTranslator.py:240
 msgid "Super B"
-msgstr ""
+msgstr "Super B"
 
 #: KMixTest/CustomTranslator.py:241
 msgid "Tabloid / ANSI B"
-msgstr ""
+msgstr "Tabloid / ANSI B"
 
 #: KMixTest/CustomTranslator.py:242
 msgid "Tabloid Extra"
-msgstr ""
+msgstr "Tabloid Extra"
 
 #: KMixTest/CustomTranslator.py:243
 msgid "There are conflicts in some options. Please fix them."
@@ -1611,7 +1616,7 @@ msgid "Row"
 msgstr "Fila"
 
 #: KMixTest/GridHelper.py:91 KMixTest/GridHelper.py:184
-#: KMixTest/HelperPDF.py:648 KMixTest/TableDrawer.py:116
+#: KMixTest/HelperPDF.py:655 KMixTest/TableDrawer.py:116
 #: KMixTest/TableHelper.py:87 KMixTest/TableHelper.py:106
 #: KMixTest/TableHelper.py:731
 msgid "title"
@@ -1641,6 +1646,58 @@ msgstr "Cerrando"
 msgid "Error"
 msgstr "Error"
 
+#: KMixTest/HeaderController.py:16
+msgid "header designer"
+msgstr "diseñador de cabecera"
+
+#: KMixTest/HeaderController.py:58 KMixTest/HeaderController.py:328
+msgid "No cell selected"
+msgstr "No hay celda seleccionada"
+
+#: KMixTest/HeaderController.py:61
+msgid "Multiple selection not allowed"
+msgstr "Selección múltiple no permitida"
+
+#: KMixTest/HeaderController.py:225 KMixTest/HeaderController.py:258
+msgid "Cell not empty"
+msgstr "Celda no vacia"
+
+#: KMixTest/HeaderController.py:268
+msgid "Insert text for header cell"
+msgstr "Inserción de text para celda de cabecera"
+
+#: KMixTest/HeaderController.py:268 KMixTest/Ui_headerForm.py:356
+msgid "Text"
+msgstr "Texto"
+
+#: KMixTest/HeaderController.py:272
+msgid "No text inserted"
+msgstr "No se ha insertado texto"
+
+#: KMixTest/HeaderController.py:293
+msgid "Student name field"
+msgstr "Campo nombre de estudiante"
+
+#: KMixTest/HeaderController.py:297
+msgid "Date field"
+msgstr "campo de fecha"
+
+#: KMixTest/HeaderController.py:301
+msgid "Group field"
+msgstr "Campo de grupo"
+
+#: KMixTest/HeaderController.py:331
+msgid "Not a valid selection"
+msgstr "No es una selección válida"
+
+#: KMixTest/HeaderController.py:334
+msgid "Single element can not be joined"
+msgstr "Un elemento solo no puede ser unido"
+
+#: KMixTest/HeaderController.py:435 KMixTest/HeaderController.py:448
+msgid "Remove content first"
+msgstr "Borrar el contenido primero"
+
 #: KMixTest/HelperPDF.py:86
 msgid "Setting margins to"
 msgstr "Fijando margenes a"
@@ -1669,88 +1726,88 @@ msgstr "Usando un multiplicador de texto"
 msgid "Repaint Event"
 msgstr "Evento de repintado"
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "Block"
 msgstr "Bloque"
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "on"
 msgstr "en"
 
-#: KMixTest/HelperPDF.py:564
+#: KMixTest/HelperPDF.py:571
 msgid "with"
 msgstr "con"
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "Break page"
 msgstr "Rotura de página"
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "From"
 msgstr "Desde"
 
-#: KMixTest/HelperPDF.py:581
+#: KMixTest/HelperPDF.py:588
 msgid "to"
 msgstr "a"
 
-#: KMixTest/HelperPDF.py:623
+#: KMixTest/HelperPDF.py:630
 msgid "Starting question"
 msgstr "Empezando pregunta"
 
-#: KMixTest/HelperPDF.py:623 KMixTest/HelperPDF.py:648
-#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:630 KMixTest/HelperPDF.py:655
+#: KMixTest/HelperPDF.py:682 KMixTest/HelperPDF.py:688
 msgid "at page"
 msgstr "en la página"
 
-#: KMixTest/HelperPDF.py:648
+#: KMixTest/HelperPDF.py:655
 msgid "End title from question"
 msgstr "Fin del titulo de la pregunta"
 
-#: KMixTest/HelperPDF.py:675
+#: KMixTest/HelperPDF.py:682
 msgid "Space"
 msgstr "Espacio"
 
-#: KMixTest/HelperPDF.py:675 KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:682 KMixTest/HelperPDF.py:688
 msgid "from question"
 msgstr "desde la pregunta"
 
-#: KMixTest/HelperPDF.py:681
+#: KMixTest/HelperPDF.py:688
 msgid "End options/lines"
 msgstr "Final de opciones/líneas"
 
-#: KMixTest/HelperPDF.py:692
+#: KMixTest/HelperPDF.py:699
 msgid "write success until page"
 msgstr "escritura correcta hasta la página"
 
-#: KMixTest/HelperPDF.py:692 KMixTest/HelperPDF.py:696
-#: KMixTest/HelperPDF.py:700 KMixTest/HelperPDF.py:904
-#: KMixTest/HelperPDF.py:906
+#: KMixTest/HelperPDF.py:699 KMixTest/HelperPDF.py:703
+#: KMixTest/HelperPDF.py:707 KMixTest/HelperPDF.py:911
+#: KMixTest/HelperPDF.py:913
 msgid "Question"
 msgstr "Pregunta"
 
-#: KMixTest/HelperPDF.py:696
+#: KMixTest/HelperPDF.py:703
 msgid "goes next page, breaking page on last question"
 msgstr "alcanza una nueva página, rompiendo la página en la última pregunta"
 
-#: KMixTest/HelperPDF.py:700
+#: KMixTest/HelperPDF.py:707
 msgid "sizes more than one page, skipping break, write sucess"
 msgstr ""
 "ocupa mas de una pagina, saltando la rotura de pagina, escritura correcta"
 
-#: KMixTest/HelperPDF.py:706
+#: KMixTest/HelperPDF.py:713
 msgid "End processing question"
 msgstr "Final de procesado de la pregunta"
 
-#: KMixTest/HelperPDF.py:706
+#: KMixTest/HelperPDF.py:713
 msgid "ended on page"
 msgstr "terminado en la página"
 
-#: KMixTest/HelperPDF.py:756 KMixTest/HelperPDF.py:819
-#: KMixTest/HelperPDF.py:862
+#: KMixTest/HelperPDF.py:763 KMixTest/HelperPDF.py:826
+#: KMixTest/HelperPDF.py:869
 msgid "Error: Invalid image detected"
 msgstr "Error: Imagen inválida detectada"
 
-#: KMixTest/HelperPDF.py:887
+#: KMixTest/HelperPDF.py:894
 msgid "Name"
 msgstr "Nombre"
 
@@ -1916,6 +1973,114 @@ msgstr "Calculando... espera por favor"
 #: KMixTest/TableHelper.py:685
 msgid "CHANGING"
 msgstr "CAMBIANDO"
+
+#: KMixTest/Ui_headerForm.py:317
+msgid "Columns"
+msgstr "Columnas"
+
+#: KMixTest/Ui_headerForm.py:319
+msgid "Rows"
+msgstr "Filas"
+
+#: KMixTest/Ui_headerForm.py:321
+msgid "Cell actions"
+msgstr "Acciones de celda"
+
+#: KMixTest/Ui_headerForm.py:323
+msgid "Join cells"
+msgstr "Unir celdas"
+
+#: KMixTest/Ui_headerForm.py:325
+msgid "Join"
+msgstr "Unir"
+
+#: KMixTest/Ui_headerForm.py:327
+msgid "Split cell"
+msgstr "Separar celda"
+
+#: KMixTest/Ui_headerForm.py:329
+msgid "Split"
+msgstr "Separar"
+
+#: KMixTest/Ui_headerForm.py:331
+msgid "Empty cell"
+msgstr "Vaciar celda"
+
+#: KMixTest/Ui_headerForm.py:333
+msgid "Empty"
+msgstr "Vaciar"
+
+#: KMixTest/Ui_headerForm.py:334
+msgid "Align"
+msgstr "Alineación"
+
+#: KMixTest/Ui_headerForm.py:336
+msgid "Align left"
+msgstr "Alinear a la izquierda"
+
+#: KMixTest/Ui_headerForm.py:339
+msgid "Align center"
+msgstr "Alinear al centro"
+
+#: KMixTest/Ui_headerForm.py:342
+msgid "Align right"
+msgstr "Alinear a la derecha"
+
+#: KMixTest/Ui_headerForm.py:345
+msgid "Accept changes"
+msgstr "Aceptar cambios"
+
+#: KMixTest/Ui_headerForm.py:347
+msgid "Accept"
+msgstr "Aceptar"
+
+#: KMixTest/Ui_headerForm.py:349
+msgid "Cancel changes"
+msgstr "Cancelar cambios"
+
+#: KMixTest/Ui_headerForm.py:351
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: KMixTest/Ui_headerForm.py:352
+msgid "Insert actions"
+msgstr "Acciones de inserción"
+
+#: KMixTest/Ui_headerForm.py:354
+msgid "Insert text"
+msgstr "Insertar texto"
+
+#: KMixTest/Ui_headerForm.py:358
+msgid "Insert image"
+msgstr "Insertar imagen"
+
+#: KMixTest/Ui_headerForm.py:360
+msgid "Image"
+msgstr "Imagen"
+
+#: KMixTest/Ui_headerForm.py:362
+msgid "Insert student name field"
+msgstr "Insertar campo para nombre de alumno"
+
+#: KMixTest/Ui_headerForm.py:364
+msgid "Student name"
+msgstr "Nombre de estudiante"
+
+#: KMixTest/Ui_headerForm.py:366
+msgid "Insert group field"
+msgstr "Insertar campo de grupo"
+
+#: KMixTest/Ui_headerForm.py:368
+msgid "Group"
+msgstr "Grupo"
+
+#: KMixTest/Ui_headerForm.py:370
+msgid "Insert date field"
+msgstr "Insertar campo de fecha"
+
+#: KMixTest/Ui_headerForm.py:372
+msgid "Date"
+msgstr "Fecha"
 
 #: KMixTest/UpdatePool.py:50
 msgid "Initializing worker"

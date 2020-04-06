@@ -65,6 +65,17 @@ def mmToPixels(mm, printer=None, resolution=1200):
         return mm * 0.039370147 * res
     return None
 
+def pixelsToMm(pixels, printer=None, resolution=1200):
+    res = None
+    if not printer or not isinstance(printer,QPrinter):
+        if resolution:
+            res = resolution
+    else:
+        res = printer.resolution()
+    if res:
+        return pixels / 0.039370147 / res
+    return None
+
 # Function for debugging page printer configuration
 def print_preview_data(preview):
     orientation = preview.orientation().name.decode()
