@@ -22,6 +22,8 @@ class helperPDF():
     def __init__(self, parent=None, debug=False):
         self.debug = False or debug
         self.parent = parent
+        if self.parent and getattr(parent,'debug',None):
+            self.debug = getattr(parent,'debug',None)
         self.pageMargins = QMarginsF(10,10,10,10)
         self.orientation = QPageLayout.Orientation.Portrait
         self.layout = None

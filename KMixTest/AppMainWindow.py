@@ -714,6 +714,8 @@ class AppMainWindow(QApplication):
             self.n_models = 1
             self.alter_models = False
             self.current_filename = None
+            self.with_solutionary = True
+            self.dialogheader.reset()
         elif data == 'menu_save':
             if self.current_filename:
                 examData = self.buildExamData()

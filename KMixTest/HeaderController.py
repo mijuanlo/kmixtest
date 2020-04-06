@@ -21,15 +21,7 @@ class HeaderController(QWidget):
         self.ui = Ui_headerForm()
         self.ui.setupUi(self)
         self.ui.retranslateUi(self)
-
-        self.max_ncols = 5
-        self.max_nrows = 5
-        self.ncols = 1
-        self.nrows = 1
-        self.tcontent = {}
-        self.tjoins = {}
-        self.backupData = None
-
+        self.reset()
         self.makeConnections()
         self.initUI()
 
@@ -154,6 +146,26 @@ class HeaderController(QWidget):
                 selection['items'].append((row,col+j))
         return selection
 
+    def reset(self):
+        self.removeWidgetsTable()
+        self.max_ncols = 5
+        self.max_nrows = 5
+        self.ncols = 1
+        self.nrows = 1
+        self.tcontent = {}
+        self.tjoins = {}
+        self.backupData = None
+        if self.ui:
+            self.ui.columnSlider.setMaximum(self.max_ncols)
+            self.ui.columnSlider.setMinimum(1)
+            self.ui.columnSlider.setValue(self.ncols)
+            self.ui.columnSlider.valueChanged.emit(self.ncols)
+            self.ui.rowSlider.setMaximum(self.max_nrows)
+            self.ui.rowSlider.setMinimum(1)
+            self.ui.rowSlider.setValue(self.nrows)
+            self.ui.rowSlider.valueChanged.emit(self.nrows)
+        self.updateN()
+
     def loadData(self, data):
         if not self.checkDataIntegrity(data):
             return None
@@ -195,16 +207,7 @@ class HeaderController(QWidget):
         self.ui.headerTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.ui.headerTable.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.ui.headerTable.viewport().installEventFilter(self)
-        self.ui.columnSlider.setMaximum(self.max_ncols)
-        self.ui.columnSlider.setMinimum(1)
-        self.ui.columnSlider.setValue(self.ncols)
-        self.ui.columnSlider.valueChanged.emit(self.ncols)
-        self.ui.rowSlider.setMaximum(self.max_nrows)
-        self.ui.rowSlider.setMinimum(1)
-        self.ui.rowSlider.setValue(self.nrows)
-        self.ui.rowSlider.valueChanged.emit(self.nrows)
-        self.updateN()
-    
+
     def getSingleSelection(self, selection=None):
         if selection:
             sel = selection
@@ -598,6 +601,12 @@ class HeaderController(QWidget):
         self.adjustImages()
         self.ui.joinButton.setDisabled(True)
         self.ui.splitButton.setDisabled(False)
+
+    def removeWidgetsTable(self):
+        if getattr(self,'nrows',None) and getattr(self,'ncols',None):
+            for y in range(self.nrows):
+                for x in range(self.ncols):
+                    self.ui.headerTable.removeCellWidget(y,x)
 
     def getWidgetsTable(self):
         l = []
